@@ -55,27 +55,27 @@
   :disabled
   :bind ([remap other-window] . ace-window)
   :custom-face
-  (aw-leading-char-face ((t (:foreground "deep sky blue" :bold t :height 3.0))))
-  (aw-mode-line-face ((t (:inherit 'mode-line-buffer-id :foreground "yellow green"))))
+  (aw-leading-char-face ((t (:inherit 'font-lock-keyword-face :height 3.0))))
+  (aw-mode-line-face ((t (:inherit 'mode-line-emphasis))))
   :config
-  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+  ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 
   (add-to-list 'aw-dispatch-alist '(?l balance-windows "Balance Windows") t)
   (add-to-list 'aw-dispatch-alist '(?u winner-undo "Switch back to an earlier config") t)
   (add-to-list 'aw-dispatch-alist '(?r winner-redo "Restore to a recent config") t)
 
   (when (package-installed-p 'hydra)
-    (defhydra hydra-window-size (:color red)
+    (defhydra hydra-window-size (:color blue)
       "Windows size"
       ("h" shrink-window-horizontally "shrink horizontal")
       ("j" shrink-window "shrink vertical")
       ("k" enlarge-window "enlarge vertical")
       ("l" enlarge-window-horizontally "enlarge horizontal"))
-    (defhydra hydra-window-frame (:color red)
+    (defhydra hydra-window-frame (:color blue)
       "Frame"
       ("f" make-frame "new frame")
       ("x" delete-frame "delete frame"))
-    (defhydra hydra-window-scroll (:color red)
+    (defhydra hydra-window-scroll (:color blue)
       "Scroll other window"
       ("n" scroll-other-window "scroll")
       ("p" scroll-other-window-down "scroll down"))
@@ -85,9 +85,14 @@
 
 ;; A *visual* way to switch window
 (use-package switch-window
-  :bind ([remap other-window] . switch-window)
+  :bind (([remap other-window] . switch-window)
+         :map switch-window-extra-map
+         ("u" . winner-undo)
+         ("r" . winner-redo))
+  :custom-face
+  (switch-window-label ((t (:inherit font-lock-keyword-face :height 3.0))))
   :config
-  (setq switch-window-shortcut-style 'qwerty)
+  ;; (setq switch-window-shortcut-style 'qwerty)
   (setq switch-window-minibuffer-shortcut ?0)
   (setq switch-window-multiple-frames t)
   (with-eval-after-load 'ivy
@@ -128,20 +133,24 @@
   ;; don't use default value but manage it ourselves
   (setq popwin:special-display-config
         '(;; Emacs
-          ("*Help*" :dedicated t :position bottom :stick nil :noselect nil)
+          ("*Help*" :dedicated t :position bottom :stick t :noselect t)
           ("*compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
           ("*Compile-Log*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
           ("*Warnings*" :dedicated t :position bottom :stick t :noselect t)
           ("*Completions*" :dedicated t :position bottom :stick t :noselect nil)
+          ("*Pp Eval Output*" :dedicated t :position bottom :stick t :noselect t)
           ("*Shell Command Output*" :dedicated t :position bottom :stick t :noselect nil)
           ("\*Async Shell Command\*.+" :regexp t :position bottom :stick t :noselect nil)
-          ("^*Man.+*$" :regexp t :position bottom :stick nil :noselect nil :height 0.4)
+          ("^*Man.+*$" :regexp t :position bottom :stick t :noselect t :height 0.4)
           ("^*WoMan.+*$" :regexp t :position bottom)
           ("^*Backtrace.+*$" :regexp t :dedicated t :position bottom :stick t :noselect nil)
-          ("^*helpful .+*$" :regexp t :position bottom :stick nil :noselect nil :height 0.4)
+          ("^*helpful .+*$" :regexp t :position bottom :stick t :noselect t :height 0.4)
 
           ;; Kill Ring
           ("*Kill Ring*" :dedicated t :position bottom)
+
+          ;; Org
+          ("*Org todo*" :dedicated t :position bottom :stick t :noselect nil :height 0.2)
 
           ;; Flycheck
           ("\*flycheck errors\*.+*$" :regexp t :position bottom :stick t :noselect nil)
@@ -167,7 +176,7 @@
           ("*pt-search*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
           ("*Occur*" :dedicated t :position bottom :stick t :noselect nil)
           ("\*ivy-occur.+*$" :regexp t :position bottom :stick t :noselect nil)
-          ("*xref*" :dedicated t :position bottom :stick nil :noselect nil)
+          ;; ("*xref*" :dedicated t :position bottom :stick t :noselect nil)
 
           ;; VC
           ("*vc-diff*" :dedicated t :position bottom :stick t :noselect nil)
@@ -178,7 +187,8 @@
           ;; (magit-diff-mode :dedicated t :position bottom :stick t :noselect t :height 0.5)
 
           ;; Script
-          ("*shell*" :dedicated t :position bottom :stick t :noselect nil)
+          ("*eshell*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
+          ("*shell*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
           ("*Python*" :dedicated t :position bottom :stick t :noselect t)
           ("*Ruby*" :dedicated t :position bottom :stick t :noselect t)
           ("*quickrun*" :dedicated t :position bottom :stick t :noselect t)

@@ -21,7 +21,7 @@ latest stable release - currently **26.1**.
 
 - Out of box.
 - Clean and Fast.
-- Quick fuzzy search (via `ivy`, `rg`, `ag` and `pt` etc.).
+- Quick fuzzy search.
 - Better Org support.
 - Support multiple programming languages
   - C/C++/C#/Java
@@ -62,49 +62,34 @@ Recommend to use [Centaur Dotfiles](https://github.com/seagle0128/dotfiles).
 
 ### Install
 
-Backup `.emacs.d` if need,
-
 ``` shell
 mv ~/.emacs.d ~/.emacs.d.bak
-```
-
-then
-
-``` shell
-git clone https://github.com/seagle0128/.emacs.d.git ~/.emacs.d
+git clone --depth 1 https://github.com/seagle0128/.emacs.d.git ~/.emacs.d
 ```
 
 or download the [zip
 package](https://github.com/seagle0128/.emacs.d/archive/master.zip) directly and
-extract to `~./emacs.d`.
+extract to `~/.emacs.d`.
 
 Then start emacs. Wait for a while to install packages at the first startup.
 Enjoy!
 
 ### Update
 
-Run `M-x update-config` in Emacs, or
-
-``` shell
-cd ~/.emacs.d && git pull
-```
-
-### Upgrade packages
-
 ``` emacs-lisp
-M-x upgrade-packages
+M-x update-centaur
 ```
 
 ## Customization
 
 ### Customize-group
 
-`M-x customize-group` and select `centaur`. You can add additional
-customizations in `custom.el`.
+`M-x customize-group` and select `centaur`. Set and save the configurations,
+then restart Emacs.
 
 ### Manual
 
-Copy `custom-example.el` to `custom.el` and change the configurations, then
+Copy `custom-template.el` to `custom.el` and change the configurations, then
 restart Emacs.
 
 For Example:
@@ -114,18 +99,18 @@ For Example:
 (setq centaur-full-name "user name")           ; User full name
 (setq centaur-mail-address "user@email.com")   ; Email address
 (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
-(setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, emacs-china or tuna
+(setq centaur-package-archives 'melpa-mirror)  ; Package repo: melpa, melpa-mirror, emacs-china, netease or tuna
 (setq centaur-theme 'doom)                     ; Color theme: default, doom, dark, light or daylight
-(setq centuar-company-enable-yas t)            ; Enable/disable yasnippet for company: t or nil
-(setq centaur-emoji-enabled t)                 ; Enable/disable emoji: t or nil
-(setq centaur-benchmark-enabled t)             ; Enable/disable initialization benchmark: t or nil
-
-;; You may add addtional configurations here
-;; (custom-set-variables )
+(setq centaur-dashboard t)                     ; Use dashboard at startup or not: t or nil
+(setq centaur-lsp nil)                         ; Enable language servers or not: t or nil
+(setq centaur-company-enable-yas t)            ; Enable yasnippet for company or not: t or nil
+(setq centaur-benchmark t)                     ; Enable initialization benchmark or not: t or nil
 ```
 
 The default pacakge archives is `melpa`. You can change it in `custom.el`, or
 switch manually via `M-x switch-package-archives` anytime.
+
+For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 ## Screenshots
 
@@ -149,21 +134,61 @@ switch manually via `M-x switch-package-archives` anytime.
 
 ![Magit](https://user-images.githubusercontent.com/140797/30391181-20bd848e-987e-11e7-9cda-3dac2865922e.png)
 
-### Doom theme and modeline
+### Dired and replace (doom theme with [doom-modeline](https://github.com/seagle0128/doom-modeline))
 
 ![Doom](https://user-images.githubusercontent.com/140797/41302817-13cb7622-6e9e-11e8-894b-07aff95f91bc.png)
+
+### Dashboard (doom theme with [doom-modeline](https://github.com/seagle0128/doom-modeline))
+
+![Dashboard](https://user-images.githubusercontent.com/140797/43999598-6514db6c-9e42-11e8-8219-05d297fbbe8d.png)
 
 ## FAQ
 
 1. Why is the modline messy?
 
-   Powerline fonts are missing on your system. Please install
-   [powerline-fonts](https://github.com/powerline/fonts).
+    Powerline fonts or all-the-icons are missing on your system. Please install
+    [powerline-fonts](https://github.com/powerline/fonts) for `spaceline` or
+    run `M-x all-the-icons-install-fonts` for `doom-modeline`.
 
 1. How to search Chinese via pinyin?
 
-   In Emacs, `C-s :`. If you just want to search `:`, use `C-s \:`.
+    In Emacs, `C-s :`. If you just want to search `:`, use `C-s \:`.
 
+1. How to use the Centaur Dashboard?
+
+    Set `(setq centaur-dashboard t)` in `~/.emacs.d/custom.el`. Dashboard will
+    be opened at startup. After startup, you could use `F2` to reopen it anytime.
+    In the dashboard, you could easily jump to Homepage(`H`), Restore
+    Session(`S`), Edit Config (`E`), Update(`U`), Recent Files (`r`),
+    Bookmarks(`m`) and Projects(`p`).
+
+1. Does Centuar Emacs support Language Server Protocol (LSP)?
+
+    LSP is supported and enabled by default in Centuar Emacs now. Please install
+    language servers as below. LSP` feature performs better in Emacs26+. Use
+    `(setq centaur-lsp nil)` to disable LSP` if you don't like it.
+    - `Golang`: `go get -u github.com/sourcegraph/go-langserver`
+    - `Python`: `pip install python-language-server`
+    - `Ruby`:  `gem install solargraph`
+    - `Javascript/Typescript`: `npm i -g javascript-typescript-langserver`
+    - `CSS`: `npm i -g vscode-css-languageserver-bin`
+    - `HTML`: `npm i -g vscode-html-languageserver-bin`
+    - `Bash/Shell`: `npm i -g bash-language-server`. Require Python2.5+, use
+      `--python` to specify.
+    - `C/C++/Objective-C` : `brew install cquery` or dwonload binary from
+      [here](https://github.com/cquery-project/cquery/releases).
+    - `Rust`: `rustup component add rls-preview rust-analysis rust-src`
+    - `Java`:
+        ```shell
+        wget http://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz
+        tar jdt-language-server-latest.tar.gz -C ~/.emacs.d/eclipse.jdt.ls/server/
+        ```
+    - `PHP`: refer to https://github.com/felixfbecker/php-language-server#installation.
+        ```shell
+        composer require felixfbecker/language-server
+        composer run-script --working-dir=vendor/felixfbecker/language-server parse-stubs
+        ```
+    
 1. How to enable `plantuml` in `org-mode`?
 
-   Put `(setq org-plantuml-jar-path "<path of plantumx.x.x.jar>")` in `custom.el`.
+    Put `(setq org-plantuml-jar-path "<path of plantumx.x.x.jar>")` in `custom.el`.

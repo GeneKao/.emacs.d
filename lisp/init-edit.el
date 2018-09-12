@@ -156,9 +156,7 @@
          :map isearch-mode-map
          ([remap isearch-query-replace] . anzu-isearch-query-replace)
          ([remap isearch-query-replace-regexp] . anzu-isearch-query-replace-regexp))
-  :hook (after-init . global-anzu-mode)
-  :config (setq anzu-replace-to-string-separator
-                (if (char-displayable-p ?→) " → " " -> ")))
+  :hook (after-init . global-anzu-mode))
 
 ;; An all-in-one comment command to rule them all
 (use-package comment-dwim-2
@@ -188,7 +186,8 @@
 ;; Automatic parenthesis pairing
 (use-package elec-pair
   :ensure nil
-  :hook (after-init . electric-pair-mode))
+  :hook (after-init . electric-pair-mode)
+  :init (setq electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit))
 
 ;; Edit multiple regions in the same way simultaneously
 (use-package iedit
@@ -210,12 +209,16 @@
 
 ;; Multiple cursors
 (use-package multiple-cursors
-  :bind (("C-S-c C-S-c" . mc/edit-lines)
-         ("C->" . mc/mark-next-like-this)
-         ("C-<". mc/mark-previous-like-this)
-         ("C-c C-<". mc/mark-all-like-this)
-         ("s-<mouse-1>" . mc/add-cursor-on-click)
-         ("C-S-<mouse-1>" . mc/add-cursor-on-click)))
+  :bind (("C-S-c C-S-c"   . mc/edit-lines)
+         ("C->"           . mc/mark-next-like-this)
+         ("C-<"           . mc/mark-previous-like-this)
+         ("C-c C-<"       . mc/mark-all-like-this)
+         ("C-M->"         . mc/skip-to-next-like-this)
+         ("C-M-<"         . mc/skip-to-previous-like-this)
+         ("s-<mouse-1>"   . mc/add-cursor-on-click)
+         ("C-S-<mouse-1>" . mc/add-cursor-on-click)
+         :map mc/keymap
+         ("C-|" . mc/vertical-align-with-space)))
 
 ;; Smartly select region, rectangle, multi cursors
 (use-package smart-region

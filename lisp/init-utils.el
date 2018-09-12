@@ -51,53 +51,46 @@
   ;; Enable Chinese word segmentation support (支持中文分词)
   (setq youdao-dictionary-use-chinese-word-segmentation t))
 
-;; Search utils: `ag', `rg', `pt'
+;; Search tools: `wgrep', `ag' and `rg'
+(use-package wgrep
+  :init
+  (setq wgrep-auto-save-buffer t)
+  (setq wgrep-change-readonly-file t))
+
 (use-package ag
   :defines projectile-command-map
   :init
   (with-eval-after-load 'projectile
-    (bind-key "s s" #'ag-project projectile-command-map))
+    (bind-key "s S" #'ag-project projectile-command-map))
   :config
   (setq ag-highlight-search t)
-  (setq ag-reuse-buffers t))
-
-(use-package wgrep-ag
-  :config
-  (setq wgrep-auto-save-buffer t)
-  (setq wgrep-change-readonly-file t))
-
-(use-package pt
-  :init
-  (with-eval-after-load 'projectile
-    (bind-key "s p" #'projectile-pt projectile-command-map))
-  :config (use-package wgrep-pt))
+  (setq ag-reuse-buffers t)
+  (use-package wgrep-ag))
 
 (use-package rg
-  :defines counsel-projectile-command-map
-  :hook ((after-init . rg-enable-default-bindings)
-         (rg-mode . wgrep-ag-setup))
+  :hook (after-init . rg-enable-default-bindings)
   :config
   (setq rg-group-result t)
   (setq rg-show-columns t)
 
   (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
 
+  (use-package wgrep-ag
+    :hook (rg-mode . wgrep-ag-setup))
+
   (with-eval-after-load 'projectile
-    (bind-key "s r" #'rg-project projectile-command-map))
+    (defalias 'projectile-ripgrep 'rg-project)
+    (bind-key "s R" #'rg-project projectile-command-map))
 
   (when (fboundp 'ag)
     (bind-key "a" #'ag rg-global-map))
-  (when (fboundp 'pt-regexp)
-    (bind-key "P" #'pt-regexp rg-global-map))
 
   (with-eval-after-load 'counsel
-    (bind-key "c r" #'counsel-rg rg-global-map)
-    (bind-key "c s" #'counsel-ag rg-global-map)
-    (bind-key "c p" #'counsel-pt rg-global-map)
-    (bind-key "c f" #'counsel-fzf rg-global-map))
-
-  (with-eval-after-load 'counsel-projectile
-    (bind-key "s r" #'rg-project counsel-projectile-command-map)))
+    (bind-keys :map rg-global-map
+               ("c r" . counsel-rg)
+               ("c s" . counsel-ag)
+               ("c p" . counsel-pt)
+               ("c f" . counsel-fzf))))
 
 ;; Edit text for browsers with GhostText or AtomicChrome extension
 (use-package atomic-chrome
@@ -108,18 +101,12 @@
   (setq atomic-chrome-url-major-mode-alist
         '(("github\\.com" . gfm-mode))))
 
+;; Open files as another user
+(unless sys/win32p
+  (use-package sudo-edit))
+
 ;; Tramp
 (use-package docker-tramp)
-
-;; Emoji
-(when centaur-emoji-enabled
-  (use-package emojify
-    :hook (after-init . global-emojify-mode)
-    :config
-    (use-package company-emoji
-      :after company
-      :defines company-backends
-      :init (add-to-list 'company-backends 'company-emoji))))
 
 ;; Discover key bindings and their meaning for the current Emacs major mode
 (use-package discover-my-major
@@ -129,7 +116,7 @@
 ;; A Simmple and cool pomodoro timer
 (use-package pomidor
   :bind ("<f12>" . pomidor)
-  :init (setq alert-default-style 'mode-line)
+  :init (setq alert-default-style (if sys/macp 'osx-notifier 'libnotify))
   :config
   (when sys/macp
     (setq pomidor-play-sound-file

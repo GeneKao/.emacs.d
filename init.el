@@ -4,7 +4,7 @@
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 3.5.0
+;; Version: 3.6.0
 ;; Keywords: .emacs.d centaur
 
 ;; This file is not part of GNU Emacs.
@@ -92,7 +92,7 @@
 (require 'init-vcs)
 (require 'init-flycheck)
 (require 'init-projectile)
-(when centuar-lsp (require 'init-lsp))
+(when centaur-lsp (require 'init-lsp))
 
 (require 'init-emacs-lisp)
 (require 'init-c)

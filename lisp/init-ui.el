@@ -39,11 +39,19 @@
 
 ;; Title
 (setq frame-title-format
-      '("GNU Emacs " emacs-version "@" user-login-name " : "
+      '("Centaur Emacs - "
         (:eval (if (buffer-file-name)
                    (abbreviate-file-name (buffer-file-name))
                  "%b"))))
 (setq icon-title-format frame-title-format)
+
+(when sys/mac-x-p
+  (add-to-list 'default-frame-alist '(ns-appearance . dark))
+  (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+  (add-hook 'after-load-theme-hook
+            (lambda ()
+              (setcdr (assq 'ns-appearance default-frame-alist)
+                      (frame-parameter nil 'background-mode)))))
 
 ;; Menu/Tool/Scroll bars
 (unless sys/mac-x-p (menu-bar-mode -1))
@@ -65,7 +73,8 @@
 ;; Modeline
 (if (is-doom-theme-p centaur-theme)
     (use-package doom-modeline
-      :hook (after-load-theme . doom-modeline-init))
+      :hook ((after-load-theme . doom-modeline-init)
+             (dashboard-mode . doom-modeline-set-project-modeline)))
   (use-package spaceline-config
     :ensure spaceline
     :defines (powerline-default-separator
@@ -75,7 +84,7 @@
     :functions powerline-reset
     :hook (after-init . spaceline-spacemacs-theme)
     :init
-    (setq powerline-default-separator (if (display-graphic-p) 'arrow 'utf-8))
+    (setq powerline-default-separator (or (and (display-graphic-p) 'arrow) 'utf-8))
     (setq powerline-image-apple-rgb sys/mac-x-p)
     :config
     (setq spaceline-pre-hook #'powerline-reset) ; For changing themes
@@ -114,9 +123,19 @@
                    centaur-theme)))
       (load-theme theme t))
     :config
+    ;; Enable flashing mode-line on errors
     (doom-themes-visual-bell-config)
+
+    ;; Corrects (and improves) org-mode's native fontification.
     (doom-themes-org-config)
 
+    ;; Enable custom treemacs theme (all-the-icons must be installed!)
+    (doom-themes-treemacs-config)
+
+    ;; Enable custom neotree theme (all-the-icons must be installed!)
+    ;; (doom-themes-neotree-config)
+
+    ;; Make certain buffers grossly incandescent
     (use-package solaire-mode
       :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
              (minibuffer-setup . solaire-mode-in-minibuffer)
@@ -133,9 +152,8 @@
     "Show icons in all-the-icons."
     (when (featurep 'all-the-icons)
       (dolist (charset '(kana han cjk-misc bopomofo gb18030))
-        (set-fontset-font "fontset-default" charset "github-octicons" nil 'append)
-        (set-fontset-font "fontset-default" charset "FontAwesome" nil 'append)
-        (set-fontset-font "fontset-default" charset "Material Icons" nil 'append))))
+        (dolist (font '("all-the-icons" "github-octicons" "FontAwesome" "Material Icons"))
+          (set-fontset-font "fontset-default" charset font nil 'append)))))
   :hook ((after-init . cnfonts-enable)
          (cnfonts-set-font-finish . cnfonts--set-all-the-icons-fonts))
   :config
@@ -149,10 +167,10 @@
   ;; Set profiles
   (setq cnfonts-use-cache t)
   (setq cnfonts-profiles
-        '("program1" "program2" "program3" "org-mode" "read-book"))
-  (setq cnfonts--profiles-steps '(("program1" . 4)
-                                  ("program2" . 5)
-                                  ("program3" . 3)
+        '("program-normal" "program-large" "program-small" "org-mode" "read-book"))
+  (setq cnfonts--profiles-steps '(("program-normal" . 4)
+                                  ("program-large" . 5)
+                                  ("program-small" . 3)
                                   ("org-mode" . 6)
                                   ("read-book" . 8))))
 
@@ -188,7 +206,7 @@
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))
 (setq mouse-wheel-progressive-speed nil)
 (setq scroll-step 1
-      scroll-margin 1
+      scroll-margin 0
       scroll-conservatively 100000)
 
 ;; Display Time

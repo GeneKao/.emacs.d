@@ -62,8 +62,9 @@
     :hook (python-mode . py-autopep8-enable-on-save))
 
   ;; Anaconda mode
-  (unless centuar-lsp
+  (unless centaur-lsp
     (use-package anaconda-mode
+      :defines anaconda-mode-localhost-address
       :diminish anaconda-mode
       :hook ((python-mode . anaconda-mode)
              (python-mode . anaconda-eldoc-mode))

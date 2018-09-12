@@ -34,13 +34,23 @@
 (use-package eshell
   :ensure nil
   :defines (compilation-last-buffer eshell-prompt-function)
-  :commands (eshell-flatten-list eshell-interactive-output-p eshell-parse-command)
+  :commands (eshell/alias
+             eshell-send-input eshell-flatten-list
+             eshell-interactive-output-p eshell-parse-command)
+  :hook (eshell-mode . (lambda ()
+                         (bind-key "C-l" 'eshell/clear eshell-mode-map)
+                         (eshell/alias "f" "find-file $1")
+                         (eshell/alias "fo" "find-file-other-window $1")
+                         (eshell/alias "d" "dired $1")
+                         (eshell/alias "ll" "ls -l")
+                         (eshell/alias "la" "ls -al")))
   :preface
   (defun eshell/clear ()
     "Clear the eshell buffer."
     (interactive)
     (let ((inhibit-read-only t))
-      (erase-buffer)))
+      (erase-buffer)
+      (eshell-send-input)))
 
   (defun eshell/emacs (&rest args)
     "Open a file (ARGS) in Emacs.  Some habits die hard."
@@ -99,13 +109,33 @@
 
   (defalias 'eshell/more 'eshell/less)
   :config
-  ;; Eshell prompt for git users
-  (use-package eshell-git-prompt
-    :hook (eshell-load
-           .
-           (lambda () (eshell-git-prompt-use-theme "robbyrussell"))))
+  ;;  Display extra information for prompt
+  (use-package eshell-prompt-extras
+    :after esh-opt
+    :defines eshell-highlight-prompt
+    :commands (epe-theme-lambda epe-theme-dakrone epe-theme-pipeline)
+    :init (setq eshell-highlight-prompt nil
+                eshell-prompt-function 'epe-theme-lambda))
 
-  ;; cd to frequent directory in eshell
+  ;; Fish-like history autosuggestions
+  (use-package esh-autosuggest
+    :defines ivy-display-functions-alist
+    :bind (:map eshell-mode-map
+                ([remap eshell-pcomplete] . completion-at-point))
+    :hook (eshell-mode . esh-autosuggest-mode)
+    :config
+    (with-eval-after-load 'ivy
+      (defun setup-eshell-ivy-completion ()
+        (setq-local ivy-display-functions-alist
+                    (remq (assoc 'ivy-completion-in-region ivy-display-functions-alist)
+                          ivy-display-functions-alist)))
+      (add-hook 'eshell-mode-hook #'setup-eshell-ivy-completion)))
+
+  ;; Eldoc support
+  (use-package esh-help
+    :init (setup-esh-help-eldoc))
+
+  ;; `cd' to frequent directory in eshell
   (use-package eshell-z
     :hook (eshell-mode
            .

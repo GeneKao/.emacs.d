@@ -25,6 +25,7 @@
 /bookmarks
 /company-statistics-cache.el
 /custom.el
+/custom-post.el
 /history
 /places
 /projectile-bookmarks.eld
@@ -44,6 +45,7 @@ eshell/
 games/
 image-dired/
 images/
+irony/
 magithub/
 persistent-scratch/
 server/

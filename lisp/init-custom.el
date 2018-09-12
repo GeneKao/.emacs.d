@@ -54,7 +54,9 @@
   "Set package archives from which to fetch."
   :type '(choice
           (const :tag "Melpa" melpa)
+          (const :tag "Melpa Mirror" melpa-mirror)
           (const :tag "Emacs-China" emacs-china)
+          (const :tag "Netease" netease)
           (const :tag "Tuna" tuna)))
 
 (defcustom centaur-theme 'default
@@ -67,24 +69,30 @@
           (const :tag "Doom theme" doom)
           symbol))
 
-(defcustom centuar-lsp nil
-  "Use language servers or not."
+(defcustom centaur-dashboard nil
+  "Use dashboard at startup or not. If Non-nil, use dashboard, otherwise will restore previous session."
   :type 'boolean)
 
-(defcustom centuar-company-enable-yas nil
-  "Enable/disable yasnippet for company backends."
+(defcustom centaur-lsp t
+  "Enable language servers or not."
   :type 'boolean)
 
-(defcustom centaur-emoji-enabled nil
-  "Enable/disable emoji features or not."
+(defcustom centaur-company-enable-yas nil
+  "Enable yasnippet for company backends or not."
   :type 'boolean)
 
-(defcustom centaur-benchmark-enabled nil
-  "Enable/disable the init benchmark."
+(defcustom centaur-benchmark nil
+  "Enable the init benchmark or not."
   :type 'boolean)
 
 ;; Load `custome.el' file
+;; If it doesn't exist, copy from the template, then load it.
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+
+(let ((custom-template-file (expand-file-name "custom-template.el" user-emacs-directory)))
+  (if (and (file-exists-p custom-template-file) (not (file-exists-p custom-file)))
+      (copy-file custom-template-file custom-file)))
+
 (if (file-exists-p custom-file)
     (load custom-file))
 

@@ -32,7 +32,7 @@
 
 (use-package counsel
   :diminish ivy-mode counsel-mode
-  :defines magit-completing-read-function
+  :defines (projectile-completion-system magit-completing-read-function)
   :bind (("C-s" . swiper)
          ("C-S-s" . swiper-all)
 
@@ -76,8 +76,22 @@
          ("C-c c w" . counsel-colors-web)
          ("C-c c z" . counsel-fzf)
 
+         ;; Find counsel commands quickly
+         ("<f6>" . (lambda ()
+                     (interactive)
+                     (counsel-M-x "^counsel ")))
+
          :map ivy-minibuffer-map
          ("C-w" . ivy-yank-word)
+
+         ;; Search at point
+         ;; "M-j": word-at-point
+         ;; "M-n"/"C-w": symbol-at-point
+         ;; Refer to https://www.emacswiki.org/emacs/SearchAtPoint#toc8
+         ;; and https://github.com/abo-abo/swiper/wiki/FAQ
+         ;; ("C-w" . (lambda ()
+         ;;            (interactive)
+         ;;            (insert (format "%s" (with-ivy-window (ivy-thing-at-point))))))
 
          :map counsel-find-file-map
          ("C-h" . counsel-up-directory)
@@ -94,6 +108,7 @@
   (setq ivy-height 10)
   (setq ivy-count-format "(%d/%d) ")
   (setq ivy-on-del-error-function nil)
+  (setq ivy-format-function 'ivy-format-function-arrow)
   ;; (setq ivy-initial-inputs-alist nil)
 
   (setq ivy-re-builders-alist
@@ -103,11 +118,6 @@
   (setq swiper-action-recenter t)
   (setq counsel-find-file-at-point t)
   (setq counsel-yank-pop-separator "\n-------\n")
-
-  ;; Find counsel commands quickly
-  (bind-key "<f6>" (lambda ()
-                     (interactive)
-                     (counsel-M-x "^counsel ")))
 
   ;; Use faster search tools: ripgrep or the silver search
   (let ((command
@@ -119,6 +129,11 @@
           (t counsel-grep-base-command))))
     (setq counsel-grep-base-command command))
 
+  (when (executable-find "rg")
+    (setq counsel-git-cmd "rg --files")
+    (setq counsel-rg-base-command
+          "rg -i -M 120 --no-heading --line-number --color never %s ."))
+
   ;; Integration with `projectile'
   (with-eval-after-load 'projectile
     (setq projectile-completion-system 'ivy))
@@ -126,16 +141,6 @@
   ;; Integration with `magit'
   (with-eval-after-load 'magit
     (setq magit-completing-read-function 'ivy-completing-read))
-
-  ;; Search at point
-  ;; "M-j": word-at-point
-  ;; "M-n"/"C-w": symbol-at-point
-  ;; Refer to https://www.emacswiki.org/emacs/SearchAtPoint#toc8
-  ;; and https://github.com/abo-abo/swiper/wiki/FAQ
-  ;; (bind-key "C-w" (lambda ()
-  ;;                   (interactive)
-  ;;                   (insert (format "%s" (with-ivy-window (ivy-thing-at-point)))))
-  ;;           ivy-minibuffer-map)
 
   ;; Enhance fuzzy matching
   (use-package flx)
@@ -150,14 +155,14 @@
 
   ;; More friendly display transformer for Ivy
   (use-package ivy-rich
-    :ensure nil
-    :commands ivy-rich-mode
     :init (ivy-rich-mode 1)
     :hook (ivy-rich-mode . (lambda ()
-                             (let ((style (if ivy-rich-mode
-                                              'abbreviate
-                                            'name)))
-                               (setq ivy-virtual-abbreviate style)))))
+                             (setq ivy-virtual-abbreviate
+                                   (or (and ivy-rich-mode 'abbreviate) 'name)))))
+
+  ;; Select from xref candidates with Ivy
+  (use-package ivy-xref
+    :init (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
 
   ;; Correcting words with flyspell via Ivy
   (use-package flyspell-correct-ivy
@@ -184,17 +189,6 @@
   (use-package counsel-tramp
     :bind (:map counsel-mode-map
                 ("C-c c v" . counsel-tramp)))
-
-  ;; Ivy for GNU global
-  (use-package counsel-gtags
-    :diminish counsel-gtags-mode
-    :bind (:map counsel-gtags-mode-map
-                ("M-." . counsel-gtags-find-definition)
-                ("M-r" . counsel-gtags-find-reference)
-                ("M-s" . counsel-gtags-find-symbol)
-                ("M-," . counsel-gtags-go-backward))
-    :hook ((c-mode c++-mode) . counsel-gtags-mode)
-    :config (setq counsel-gtags-auto-update t))
 
   ;; Improve `counsel-ag', also impact `counsel-rg', `counsel-pt'.
   ;; search the selection or current symbol by default
