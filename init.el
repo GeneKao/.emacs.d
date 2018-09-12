@@ -50,6 +50,7 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 (add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
 
+
 ;; Constants
 (require 'init-const)
 
@@ -86,6 +87,7 @@
 
 (require 'init-utils)
 
+
 ;; Programming
 (require 'init-vcs)
 (require 'init-flycheck)
@@ -102,6 +104,10 @@
 
 ;; Restore
 (require 'init-restore)
+
+(require 'doom-modeline)
+(doom-modeline-init)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; init.el ends here
