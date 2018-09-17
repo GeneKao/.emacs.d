@@ -99,7 +99,7 @@ For Example:
 (setq centaur-full-name "user name")           ; User full name
 (setq centaur-mail-address "user@email.com")   ; Email address
 (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
-(setq centaur-package-archives 'melpa-mirror)  ; Package repo: melpa, melpa-mirror, emacs-china, netease or tuna
+(setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, melpa-mirror, emacs-china, netease or tuna
 (setq centaur-theme 'doom)                     ; Color theme: default, doom, dark, light or daylight
 (setq centaur-dashboard t)                     ; Use dashboard at startup or not: t or nil
 (setq centaur-lsp nil)                         ; Enable language servers or not: t or nil
@@ -165,30 +165,31 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 1. Does Centuar Emacs support Language Server Protocol (LSP)?
 
     LSP is supported and enabled by default in Centuar Emacs now. Please install
-    language servers as below. LSP` feature performs better in Emacs26+. Use
-    `(setq centaur-lsp nil)` to disable LSP` if you don't like it.
-    - `Golang`: `go get -u github.com/sourcegraph/go-langserver`
-    - `Python`: `pip install python-language-server`
-    - `Ruby`:  `gem install solargraph`
-    - `Javascript/Typescript`: `npm i -g javascript-typescript-langserver`
-    - `CSS`: `npm i -g vscode-css-languageserver-bin`
-    - `HTML`: `npm i -g vscode-html-languageserver-bin`
-    - `Bash/Shell`: `npm i -g bash-language-server`. Require Python2.5+, use
+    language servers as below. Use `(setq centaur-lsp nil)` to disable `LSP` if
+    you don't like it.
+    - Golang: `go get -u github.com/sourcegraph/go-langserver`
+    - Python: `pip install python-language-server`
+    - Ruby:  `gem install solargraph`
+    - Javascript/Typescript: `npm i -g javascript-typescript-langserver`
+    - CSS: `npm i -g vscode-css-languageserver-bin`
+    - HTML: `npm i -g vscode-html-languageserver-bin`
+    - Bash/Shell: `npm i -g bash-language-server`. Require Python2.5+, use
       `--python` to specify.
-    - `C/C++/Objective-C` : `brew install cquery` or dwonload binary from
+    - C/C++/Objective-C : `brew install cquery` or dwonload binary from
       [here](https://github.com/cquery-project/cquery/releases).
-    - `Rust`: `rustup component add rls-preview rust-analysis rust-src`
-    - `Java`:
+    - Rust: `rustup component add rls-preview rust-analysis rust-src`
+    - Java:
         ```shell
         wget http://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz
         tar jdt-language-server-latest.tar.gz -C ~/.emacs.d/eclipse.jdt.ls/server/
         ```
-    - `PHP`: refer to https://github.com/felixfbecker/php-language-server#installation.
-        ```shell
+    - PHP: refer to the [installation
+      guide](https://github.com/felixfbecker/php-language-server#installation).
+      ```shell
         composer require felixfbecker/language-server
         composer run-script --working-dir=vendor/felixfbecker/language-server parse-stubs
         ```
-    
+
 1. How to enable `plantuml` in `org-mode`?
 
     Put `(setq org-plantuml-jar-path "<path of plantumx.x.x.jar>")` in `custom.el`.
