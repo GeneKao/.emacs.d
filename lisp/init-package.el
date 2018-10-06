@@ -81,8 +81,9 @@
 (set-package-archives centaur-package-archives)
 
 ;; Initialize packages
-(setq package-enable-at-startup nil)    ; To prevent initialising twice
-(package-initialize)
+(setq package-enable-at-startup nil)    ; To prevent initializing twice
+(unless (bound-and-true-p package--initialized) ; Avoid warnings in Emacs27
+  (package-initialize))
 
 ;; Setup `use-package'
 (unless (package-installed-p 'use-package)
@@ -101,8 +102,6 @@
 ;; Required by `use-package'
 (use-package diminish)
 (use-package bind-key)
-
-(use-package use-package-ensure-system-package)
 
 ;; Initialization benchmark
 (when centaur-benchmark

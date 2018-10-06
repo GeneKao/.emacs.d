@@ -39,12 +39,12 @@
               ("s-t" . projectile-find-file) ; `cmd-t' or `super-t'
               ("C-c p" . projectile-command-map))
   :hook (after-init . projectile-mode)
-  :config
-  (setq projectile-mode-line
-        '(:eval (format "[%s]" (projectile-project-name))))
-
+  :init
+  (setq projectile-mode-line-prefix "")
   (setq projectile-sort-order 'recentf)
   (setq projectile-use-git-grep t)
+  :config
+  (projectile-update-mode-line)         ; Update mode-line at the first time
 
   ;; Use the faster searcher to handle project files:
   ;; ripgrep `rg', the platinum searcher `pt' or the silver searcher `ag'

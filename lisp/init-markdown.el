@@ -32,72 +32,60 @@
 
 (use-package markdown-mode
   :defines flycheck-markdown-markdownlint-cli-config
+  :preface
+  ;; Install: pip install grip
+  (defun markdown-preview-grip ()
+    "Render and preview with `grip'."
+    (interactive)
+    (let ((port "6419"))
+      (start-process "grip" "*gfm-to-html*" "grip" (buffer-file-name) port)
+      (browse-url (format "http://localhost:%s/%s.%s"
+                          port
+                          (file-name-base)
+                          (file-name-extension
+                           (buffer-file-name))))))
+
+  ;; Install: npm i -g markdownlint-cli
+  (defun set-flycheck-markdownlint ()
+    "Set the `mardkownlint' config file for the current buffer."
+    (let* ((md-lint ".markdownlint.json")
+           (md-file buffer-file-name)
+           (md-lint-dir (and md-file
+                             (locate-dominating-file md-file md-lint))))
+      (setq-local flycheck-markdown-markdownlint-cli-config
+                  (concat md-lint-dir md-lint))))
+  :bind (:map markdown-mode-command-map
+              ("g" .  markdown-preview-grip))
+  :hook ((markdown-mode . flyspell-mode)
+         (markdown-mode . set-flycheck-markdownlint))
   :mode (("README\\.md\\'" . gfm-mode))
   :config
-  (when (executable-find "multimarkdown")
-    (setq markdown-command "multimarkdown"))
-
-  (with-eval-after-load 'flycheck
-    (eval-and-compile
-      (defun set-markdownlint-config ()
-        "Set the `mardkownlint' config file for the current buffer."
-        (when (and (executable-find "markdownlint") buffer-file-name)
-          (let ((md-lint ".markdownlint.json"))
-            (let ((md-lint-dir (locate-dominating-file buffer-file-name md-lint)))
-              (if md-lint-dir
-                  (setq-local flycheck-markdown-markdownlint-cli-config (concat md-lint-dir md-lint)))))))
-      (add-hook 'markdown-mode-hook #'set-markdownlint-config)))
-
-  ;; Preview
-  (setq markdown-css-paths '("http://thomasf.github.io/solarized-css/solarized-light.min.css"))
-
-  (use-package markdown-preview-mode
-    :bind (:map markdown-mode-command-map
-                ("P" . markdown-preview-mode))
-    :config
-    (setq markdown-preview-stylesheets
-          (list "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/2.9.0/github-markdown.min.css"
-                "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" "
-  <style>
-   .markdown-body {
-     box-sizing: border-box;
-     min-width: 200px;
-     max-width: 980px;
-     margin: 0 auto;
-     padding: 45px;
-   }
-
-   @media (max-width: 767px) {
-     .markdown-body {
-       padding: 15px;
-     }
-   }
-  </style>
+  (setq markdown-command-needs-filename t)
+  (setq markdown-content-type "application/xhtml+xml")
+  (setq markdown-css-paths '("https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css"
+                             "http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css"))
+  (setq markdown-xhtml-header-content "
+<meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
+<style>
+body {
+  box-sizing: border-box;
+  max-width: 740px;
+  width: 100%;
+  margin: 40px auto;
+  padding: 0 10px;
+}
+</style>
+<script src='http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/highlight.min.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('markdown-body');
+  document.querySelectorAll('pre[lang] > code').forEach((code) => {
+    code.classList.add(code.parentElement.lang);
+    hljs.highlightBlock(code);
+  });
+});
+</script>
 "))
-    (setq markdown-preview-javascript
-          (list "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js" "
-  <script>
-   $(document).on('mdContentChange', function() {
-     $('pre code').each(function(i, block) {
-       hljs.highlightBlock(block);
-     });
-   });
-  </script>
-")))
-
-  ;; Render and preview via `grip'
-  (when (executable-find "grip")
-    (eval-and-compile
-      (defun markdown-to-html ()
-        (interactive)
-        (let ((port "6419"))
-          (start-process "grip" "*gfm-to-html*" "grip" (buffer-file-name) port)
-          (browse-url (format "http://localhost:%s/%s.%s"
-                              port
-                              (file-name-base)
-                              (file-name-extension
-                               (buffer-file-name)))))))
-    (bind-key "V" #'markdown-to-html markdown-mode-command-map)))
 
 (provide 'init-markdown)
 

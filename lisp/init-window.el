@@ -96,24 +96,23 @@
   (setq switch-window-minibuffer-shortcut ?0)
   (setq switch-window-multiple-frames t)
   (with-eval-after-load 'ivy
-    (setq switch-window-preferred 'ivy))
-  (unless (display-graphic-p)
-    (setq switch-window-shortcut-appearance 'asciiart)))
+    (setq switch-window-preferred 'ivy)))
 
 ;; Navigate windows and frames using numbers
 (use-package winum
-  :bind (("C-`" . winum-select-window-by-number)
-         ("C-²" . winum-select-window-by-number)
-         ("M-0" . winum-select-window-0-or-10)
-         ("M-1" . winum-select-window-1)
-         ("M-2" . winum-select-window-2)
-         ("M-3" . winum-select-window-3)
-         ("M-4" . winum-select-window-4)
-         ("M-5" . winum-select-window-5)
-         ("M-6" . winum-select-window-6)
-         ("M-7" . winum-select-window-7)
-         ("M-8" . winum-select-window-8)
-         ("M-9" . winum-select-window-9))
+  :bind (:map winum-keymap
+              ("C-`" . winum-select-window-by-number)
+              ("C-²" . winum-select-window-by-number)
+              ("M-0" . winum-select-window-0-or-10)
+              ("M-1" . winum-select-window-1)
+              ("M-2" . winum-select-window-2)
+              ("M-3" . winum-select-window-3)
+              ("M-4" . winum-select-window-4)
+              ("M-5" . winum-select-window-5)
+              ("M-6" . winum-select-window-6)
+              ("M-7" . winum-select-window-7)
+              ("M-8" . winum-select-window-8)
+              ("M-9" . winum-select-window-9))
   :hook (after-init . winum-mode)
   :config
   (setq winum-auto-setup-mode-line nil)
@@ -133,7 +132,7 @@
   ;; don't use default value but manage it ourselves
   (setq popwin:special-display-config
         '(;; Emacs
-          ("*Help*" :dedicated t :position bottom :stick t :noselect t)
+          ("*Help*" :dedicated t :position bottom :stick t :noselect nil)
           ("*compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
           ("*Compile-Log*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
           ("*Warnings*" :dedicated t :position bottom :stick t :noselect t)
@@ -144,7 +143,7 @@
           ("^*Man.+*$" :regexp t :position bottom :stick t :noselect t :height 0.4)
           ("^*WoMan.+*$" :regexp t :position bottom)
           ("^*Backtrace.+*$" :regexp t :dedicated t :position bottom :stick t :noselect nil)
-          ("^*helpful .+*$" :regexp t :position bottom :stick t :noselect t :height 0.4)
+          ("^*helpful .+*$" :regexp t :position bottom :stick t :noselect nil :height 0.4)
 
           ;; Kill Ring
           ("*Kill Ring*" :dedicated t :position bottom)

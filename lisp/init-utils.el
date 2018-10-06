@@ -95,9 +95,9 @@
 ;; Edit text for browsers with GhostText or AtomicChrome extension
 (use-package atomic-chrome
   :after markdown-mode
-  :hook (after-init . atomic-chrome-start-server)
+  :hook (emacs-startup . atomic-chrome-start-server)
   :config
-  (setq atomic-chrome-default-major-mode 'markdown-mode)
+  (setq atomic-chrome-buffer-open-style 'frame)
   (setq atomic-chrome-url-major-mode-alist
         '(("github\\.com" . gfm-mode))))
 
@@ -125,12 +125,6 @@
                            nil
                            "afplay"
                            file)))))
-
-;; Bustling Image Manipulation Package
-;; The wrapper of imagemagick
-(use-package blimp
-  :diminish
-  :hook (image-mode . blimp-mode))
 
 ;; Misc
 (use-package copyit)                    ; copy path, url, etc.
