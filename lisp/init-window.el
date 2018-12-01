@@ -52,161 +52,126 @@
 
 ;; Quickly switch windows
 (use-package ace-window
-  :disabled
   :bind ([remap other-window] . ace-window)
   :custom-face
   (aw-leading-char-face ((t (:inherit 'font-lock-keyword-face :height 3.0))))
-  (aw-mode-line-face ((t (:inherit 'mode-line-emphasis))))
+  (aw-mode-line-face ((t (:inherit 'mode-line-emphasis :bold t))))
+  :hook (after-init . ace-window-display-mode)
   :config
   ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 
-  (add-to-list 'aw-dispatch-alist '(?l balance-windows "Balance Windows") t)
-  (add-to-list 'aw-dispatch-alist '(?u winner-undo "Switch back to an earlier config") t)
-  (add-to-list 'aw-dispatch-alist '(?r winner-redo "Restore to a recent config") t)
-
   (when (package-installed-p 'hydra)
-    (defhydra hydra-window-size (:color blue)
-      "Windows size"
-      ("h" shrink-window-horizontally "shrink horizontal")
-      ("j" shrink-window "shrink vertical")
-      ("k" enlarge-window "enlarge vertical")
-      ("l" enlarge-window-horizontally "enlarge horizontal"))
-    (defhydra hydra-window-frame (:color blue)
-      "Frame"
-      ("f" make-frame "new frame")
-      ("x" delete-frame "delete frame"))
-    (defhydra hydra-window-scroll (:color blue)
-      "Scroll other window"
-      ("n" scroll-other-window "scroll")
-      ("p" scroll-other-window-down "scroll down"))
-    (add-to-list 'aw-dispatch-alist '(?w hydra-window-size/body) t)
-    (add-to-list 'aw-dispatch-alist '(?o hydra-window-scroll/body) t)
-    (add-to-list 'aw-dispatch-alist '(?\; hydra-window-frame/body) t)))
+    ;; https://github.com/abo-abo/ace-window/wiki/Hydra
+    ;; hydra-frame-window is designed from ace-window (C-x o w) and
+    ;; matches aw-dispatch-alist with a few extra
+    (defhydra hydra-frame-window (:color red :hint nil)
+      "
+^Delete^                       ^Frame resize^             ^Window^                Window Size^^^^^^   ^Text^                         (__)
+_0_: delete-frame              _g_: resize-frame-right    _t_: toggle               ^ ^ _k_ ^ ^        _K_                           (oo)
+_1_: delete-other-frames       _H_: resize-frame-left     _e_: ace-swap-win         _h_ ^+^ _l_        ^+^                     /------\\/
+_2_: make-frame                _F_: fullscreen            ^ ^                       ^ ^ _j_ ^ ^        _J_                    / |    ||
+_d_: kill-and-delete-frame     _n_: make-frame            _w_: ace-delete-window    _b_alance^^^^      ^ ^                 *  /\\---/\\  ~~  C-x o w ;
+"
+      ("0" delete-frame :exit t)
+      ("1" delete-other-frames :exit t)
+      ("2" make-frame  :exit t)
+      ("b" balance-windows)
+      ("d" kill-and-delete-frame :exit t)
+      ("e" ace-swap-window)
+      ("F" toggle-frame-fullscreen)   ;; is <f11>
+      ("g" resize-frame-right :exit t)
+      ("H" resize-frame-left :exit t)  ;; aw-dispatch-alist uses h, I rebind here so hjkl can be used for size
+      ("n" make-frame :exit t)
+      ;; ("r" reverse-windows)
+      ("t" toggle-window-spilt)
+      ("w" ace-delete-window :exit t)
+      ("x" delete-frame :exit t)
+      ("K" text-scale-decrease)
+      ("J" text-scale-increase)
+      ("h" shrink-window-horizontally)
+      ("k" shrink-window)
+      ("j" enlarge-window)
+      ("l" enlarge-window-horizontally)
+      ("q" nil "quit"))
+    (add-to-list 'aw-dispatch-alist '(?w hydra-frame-window/body) t)))
 
-;; A *visual* way to switch window
-(use-package switch-window
-  :bind (([remap other-window] . switch-window)
-         :map switch-window-extra-map
-         ("u" . winner-undo)
-         ("r" . winner-redo))
-  :custom-face
-  (switch-window-label ((t (:inherit font-lock-keyword-face :height 3.0))))
+;; Enforce rules for popups
+(use-package shackle
+  :hook (after-init . shackle-mode)
   :config
-  ;; (setq switch-window-shortcut-style 'qwerty)
-  (setq switch-window-minibuffer-shortcut ?0)
-  (setq switch-window-multiple-frames t)
-  (with-eval-after-load 'ivy
-    (setq switch-window-preferred 'ivy)))
+  (defun view-last-popup-buffer ()
+    "View last popup buffer."
+    (interactive)
+    (ignore-errors
+      (display-buffer shackle-last-buffer)))
+  (bind-key "C-h z" #'view-last-popup-buffer)
 
-;; Navigate windows and frames using numbers
-(use-package winum
-  :bind (:map winum-keymap
-              ("C-`" . winum-select-window-by-number)
-              ("C-²" . winum-select-window-by-number)
-              ("M-0" . winum-select-window-0-or-10)
-              ("M-1" . winum-select-window-1)
-              ("M-2" . winum-select-window-2)
-              ("M-3" . winum-select-window-3)
-              ("M-4" . winum-select-window-4)
-              ("M-5" . winum-select-window-5)
-              ("M-6" . winum-select-window-6)
-              ("M-7" . winum-select-window-7)
-              ("M-8" . winum-select-window-8)
-              ("M-9" . winum-select-window-9))
-  :hook (after-init . winum-mode)
-  :config
-  (setq winum-auto-setup-mode-line nil)
-  (add-to-list 'winum-assign-functions
-               (lambda ()
-                 (cond
-                  ((equal (buffer-name) " *Treemacs-Framebuffer-1*") 9)
-                  ((equal (buffer-name) "*Flycheck errors*") 8)))))
+  ;; Add keyword: `autoclose'
+  (defvar shackle--popup-window-list nil) ; all popup windows
+  (defvar-local shackle--current-popup-window nil) ; current popup window
+  (put 'shackle--current-popup-window 'permanent-local t)
 
-;; Popup Window Manager
-(use-package popwin
-  :commands popwin-mode
-  :hook (after-init . popwin-mode)
-  :config
-  (bind-key "C-z" popwin:keymap)
+  (defun shackle-display-buffer-hack (fn buffer alist plist)
+    (let ((window (funcall fn buffer alist plist)))
+      (setq shackle--current-popup-window window)
 
-  ;; don't use default value but manage it ourselves
-  (setq popwin:special-display-config
-        '(;; Emacs
-          ("*Help*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-          ("*Compile-Log*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-          ("*Warnings*" :dedicated t :position bottom :stick t :noselect t)
-          ("*Completions*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*Pp Eval Output*" :dedicated t :position bottom :stick t :noselect t)
-          ("*Shell Command Output*" :dedicated t :position bottom :stick t :noselect nil)
-          ("\*Async Shell Command\*.+" :regexp t :position bottom :stick t :noselect nil)
-          ("^*Man.+*$" :regexp t :position bottom :stick t :noselect t :height 0.4)
-          ("^*WoMan.+*$" :regexp t :position bottom)
-          ("^*Backtrace.+*$" :regexp t :dedicated t :position bottom :stick t :noselect nil)
-          ("^*helpful .+*$" :regexp t :position bottom :stick t :noselect nil :height 0.4)
+      (when (plist-get plist :autoclose)
+        (push (cons window buffer) shackle--popup-window-list))
+      window))
 
-          ;; Kill Ring
-          ("*Kill Ring*" :dedicated t :position bottom)
+  (defun shackle-close-popup-window-hack (&rest _)
+    "Close current popup window via `C-g'."
+    (setq shackle--popup-window-list
+          (loop for (window . buffer) in shackle--popup-window-list
+                if (and (window-live-p window)
+                        (equal (window-buffer window) buffer))
+                collect (cons window buffer)))
+    ;; `C-g' can deactivate region
+    (when (and (called-interactively-p 'interactive)
+               (not (region-active-p)))
+      (let (window buffer)
+        (if (one-window-p)
+            (progn
+              (setq window (selected-window))
+              (when (equal (buffer-local-value 'shackle--current-popup-window
+                                               (window-buffer window))
+                           window)
+                (winner-undo)))
+          (setq window (caar shackle--popup-window-list))
+          (setq buffer (cdar shackle--popup-window-list))
+          (when (and (window-live-p window)
+                     (equal (window-buffer window) buffer))
+            (delete-window window)
 
-          ;; Org
-          ("*Org todo*" :dedicated t :position bottom :stick t :noselect nil :height 0.2)
+            (pop shackle--popup-window-list))))))
 
-          ;; Flycheck
-          ("\*flycheck errors\*.+*$" :regexp t :position bottom :stick t :noselect nil)
+  (advice-add #'keyboard-quit :before #'shackle-close-popup-window-hack)
+  (advice-add #'shackle-display-buffer :around #'shackle-display-buffer-hack)
 
-          ;; Youdao dict
-          ("*Youdao Dictionary*" :dedicated t :position bottom)
-
-          ;; Paradox
-          ("*Paradox Report*" :dedicated t :position bottom :noselect nil)
-
-          ;; List
-          ("*Colors*" :dedicated t :position bottom)
-          ("*Process List*" :dedicated t :position bottom)
-          ("*Process-Environment*" :dedicated t :position bottom)
-
-          ;; undo-tree
-          (" *undo-tree*" :dedicated t :position right :stick t :noselect nil :width 60)
-
-          ;; Search
-          ("*grep*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*ag search*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
-          ("*rg*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
-          ("*pt-search*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
-          ("*Occur*" :dedicated t :position bottom :stick t :noselect nil)
-          ("\*ivy-occur.+*$" :regexp t :position bottom :stick t :noselect nil)
-          ;; ("*xref*" :dedicated t :position bottom :stick t :noselect nil)
-
-          ;; VC
-          ("*vc-diff*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*vc-change-log*" :dedicated t :position bottom :stick t :noselect nil)
-
-          ;; Magit
-          ;; (magit-status-mode :dedicated t :position bottom :stick t :height 0.5)
-          ;; (magit-diff-mode :dedicated t :position bottom :stick t :noselect t :height 0.5)
-
-          ;; Script
-          ("*eshell*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
-          ("*shell*" :dedicated t :position bottom :stick t :noselect nil :height 0.4)
-          ("*Python*" :dedicated t :position bottom :stick t :noselect t)
-          ("*Ruby*" :dedicated t :position bottom :stick t :noselect t)
-          ("*quickrun*" :dedicated t :position bottom :stick t :noselect t)
-
-          ;; Go
-          ("^*godoc.+*$" :regexp t :position bottom :stick nil :noselect nil)
-          ("*golint*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*govet*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*go-guru-output*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*Gofmt Errors*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*Go Test*" :dedicated t :position bottom :stick t :noselect nil)
-
-          ;; Test
-          ("*ert*" :dedicated t :position bottom :stick t :noselect nil)
-          ("*nosetests*" :dedicated t :position bottom :stick t :noselect nil))))
-
-;; Easy window config switching
-(use-package eyebrowse
-  :hook (after-init . eyebrowse-mode))
+  ;; rules
+  (setq shackle-default-size 0.4)
+  (setq shackle-rules
+        '(("*Help*" :select t :align 'below :autoclose t)
+          ("*compilation*" :size 0.25 :align 'below :autoclose t)
+          ("*Completions*" :size 0.3 :align 'below :autoclose t)
+          ("*Pp Eval Output*" :size 0.25 :align 'below :autoclose t)
+          ("*ert*" :same t)
+          ("*Ibuffer*" :select t :inhibit-window-quit t :same t)
+          ("*info*" :select t :inhibit-window-quit t :same t)
+          ("*Backtrace*" :select t :size 20 :align 'below)
+          ("*Warnings*" :size 12 :align 'below :autoclose t)
+          ("*Messages*" :size 12 :align 'below :autoclose t)
+          ("^\\*.*Shell Command.*\\*$" :regexp t :size 0.3 :align 'below :autoclose t)
+          ("\\*[Wo]*Man.*\\*" :regexp t :select t :other t :inhibit-window-quit t)
+          ("*Calendar*" :select t :size 0.3 :align 'below)
+          (" *undo-tree*" :select t)
+          (apropos-mode :size 0.3 :align 'below :autoclose t)
+          (Buffer-menu-mode :size 20 :align 'below :autoclose t)
+          (comint-mode :align 'below)
+          (grep-mode :size 25 :align 'below :autoclose t)
+          (profiler-report-mode :popup t)
+          (tabulated-list-mode :align 'below)
+          ("^ ?\\*" :regexp t :select t :align 'below :autoclose t))))
 
 (provide 'init-window)
 

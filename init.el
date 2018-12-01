@@ -4,7 +4,7 @@
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 3.6.1
+;; Version: 4.0.0
 ;; Keywords: .emacs.d centaur
 
 ;; This file is not part of GNU Emacs.
@@ -47,8 +47,14 @@
             (add-hook 'focus-out-hook 'garbage-collect)))
 
 ;; Load path
-(add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
-(add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
+;; Optimize: Force "lisp"" and "site-lisp" at the head to reduce the startup time.
+(defun update-load-path (&rest _)
+  "Update `load-path'."
+  (push (expand-file-name "site-lisp" user-emacs-directory) load-path)
+  (push (expand-file-name "lisp" user-emacs-directory) load-path))
+(advice-add #'package-initialize :after #'update-load-path)
+
+(update-load-path)
 
 
 ;; Constants
@@ -72,10 +78,12 @@
 (require 'init-yasnippet)
 
 (require 'init-calendar)
+(require 'init-dashboard)
 (require 'init-dired)
 (require 'init-highlight)
 (require 'init-ibuffer)
 (require 'init-kill-ring)
+(require 'init-persp)
 (require 'init-window)
 (require 'init-treemacs)
 
@@ -84,6 +92,7 @@
 
 (require 'init-markdown)
 (require 'init-org)
+(require 'init-elfeed)
 
 (require 'init-utils)
 
@@ -101,13 +110,6 @@
 (require 'init-ruby)
 (require 'init-web)
 (require 'init-prog)
-
-;; Restore
-(require 'init-restore)
-
-(require 'doom-modeline)
-(doom-modeline-init)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; init.el ends here

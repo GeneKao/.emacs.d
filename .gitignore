@@ -11,6 +11,7 @@
 /.emacs*.desktop
 /.emacs*.desktop.lock
 /.emacs-buffers
+/.elfeed
 /.last-package-update-day
 /.markdown-preview.html
 /.mc-lists.el
@@ -22,6 +23,7 @@
 /GTAGS
 /TAGS
 /ac-comphist.dat
+/amx-items
 /bookmarks
 /company-statistics-cache.el
 /custom.el
@@ -30,6 +32,7 @@
 /places
 /projectile-bookmarks.eld
 /projectile.cache
+/package-quickstart.el
 /recentf
 /scratch
 /smex-items
@@ -47,6 +50,7 @@ image-dired/
 images/
 irony/
 magithub/
+persp-confs/
 persistent-scratch/
 server/
 thumbs/

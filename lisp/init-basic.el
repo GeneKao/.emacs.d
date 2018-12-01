@@ -70,17 +70,22 @@
 (use-package recentf
   :ensure nil
   ;; lazy load recentf
-  :hook (find-file . (lambda () (unless recentf-mode
-                             (recentf-mode)
-                             (recentf-track-opened-file))))
+  ;; :hook (find-file . (lambda () (unless recentf-mode
+  ;;                            (recentf-mode)
+  ;;                            (recentf-track-opened-file))))
   :init
-  ;; (add-hook 'after-init-hook #'recentf-mode)
+  (add-hook 'after-init-hook #'recentf-mode)
   (setq recentf-max-saved-items 200)
   :config
   (add-to-list 'recentf-exclude (expand-file-name package-user-dir))
   (add-to-list 'recentf-exclude ".cache")
   (add-to-list 'recentf-exclude ".cask")
+  (add-to-list 'recentf-exclude ".elfeed")
   (add-to-list 'recentf-exclude "bookmarks")
+  (add-to-list 'recentf-exclude "cache")
+  (add-to-list 'recentf-exclude "persp-confs")
+  (add-to-list 'recentf-exclude "recentf")
+  (add-to-list 'recentf-exclude "url")
   (add-to-list 'recentf-exclude "COMMIT_EDITMSG\\'"))
 
 (use-package savehist
@@ -94,6 +99,18 @@
                                               regexp-search-ring
                                               extended-command-history)
               savehist-autosave-interval 60))
+
+;; Save Emacs buffers when they lose focus
+(use-package super-save
+  :diminish
+  :hook (after-init . super-save-mode)
+  :init
+  (setq super-save-auto-save-when-idle t)
+  (setq auto-save-default nil)
+  :config
+  (with-eval-after-load 'ace-window
+    (add-to-list 'super-save-triggers 'ace-window))
+  (add-to-list 'super-save-hook-triggers 'find-file-hook))
 
 (provide 'init-basic)
 

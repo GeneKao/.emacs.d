@@ -45,7 +45,29 @@
          ("M-P" . symbol-overlay-switch-backward)
          ("M-C" . symbol-overlay-remove-all)
          ([M-f3] . symbol-overlay-remove-all))
-  :hook (prog-mode . symbol-overlay-mode))
+  :hook (prog-mode . symbol-overlay-mode)
+  :config
+  (defun symbol-overlay-switch-first ()
+    (interactive)
+    (let* ((symbol (symbol-overlay-get-symbol))
+           (keyword (symbol-overlay-assoc symbol))
+           (a-symbol (car keyword))
+           (before (symbol-overlay-get-list a-symbol 'car))
+           (count (length before)))
+      (symbol-overlay-jump-call 'symbol-overlay-basic-jump (- count))))
+
+  (defun symbol-overlay-switch-last ()
+    (interactive)
+    (let* ((symbol (symbol-overlay-get-symbol))
+           (keyword (symbol-overlay-assoc symbol))
+           (a-symbol (car keyword))
+           (after (symbol-overlay-get-list a-symbol 'cdr))
+           (count (length after)))
+      (symbol-overlay-jump-call 'symbol-overlay-basic-jump (- count 1))))
+
+  (bind-keys :map symbol-overlay-map
+             ("<" . symbol-overlay-switch-first)
+             (">" . symbol-overlay-switch-last)))
 
 ;; Highlight matching paren
 (use-package paren
@@ -83,8 +105,9 @@
               ("C-c t o" . hl-todo-occur))
   :hook (after-init . global-hl-todo-mode)
   :config
-  (dolist (keyword '("BUG" "DEFECT" "ISSUE" "WORKAROUND"))
-    (cl-pushnew `(,keyword . "#cd5c5c") hl-todo-keyword-faces)))
+  (dolist (keyword '("BUG" "DEFECT" "ISSUE"))
+    (cl-pushnew `(,keyword . "#cd5c5c") hl-todo-keyword-faces))
+  (cl-pushnew '("WORKAROUND" . "#d0bf8f") hl-todo-keyword-faces))
 
 ;; Highlight uncommitted changes
 (use-package diff-hl
@@ -156,7 +179,7 @@
       (if my-prev-whitespace-mode
           (whitespace-mode 1)))))
 
-;; Flash the current line
+;; Blink current line
 (use-package nav-flash
   :defines compilation-highlight-overlay
   :functions windmove-do-window-select
@@ -178,18 +201,21 @@
     (interactive)
     (unless (minibufferp)
       (nav-flash-show)
-      ;; only show in the current window
+      ;; Only show in the current window
       (overlay-put compilation-highlight-overlay 'window (selected-window))))
-  :hook ((imenu-after-jump
-          switch-window-finish
-          counsel-grep-post-action
-          dumb-jump-after-jump)
-         . my-blink-cursor)
+  :hook ((switch-window-finish . my-blink-cursor)
+         ((bookmark-after-jump
+           counsel-grep-post-action
+           dumb-jump-after-jump
+           imenu-after-jump
+           xref-after-jump
+           xref-after-return) . recenter))
   :init
   ;; NOTE In :feature jump `recenter' is hooked to a bunch of jumping commands,
   ;; which will trigger nav-flash.
   (advice-add #'windmove-do-window-select :around #'my-blink-cursor-maybe)
   (advice-add #'other-window :around #'my-blink-cursor-maybe)
+  (advice-add #'ace-window :around #'my-blink-cursor-maybe)
   (advice-add #'recenter :around #'my-blink-cursor-maybe))
 
 (provide 'init-highlight)

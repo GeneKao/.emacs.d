@@ -39,14 +39,17 @@
   :functions hydra-org-template/body
   :bind (("C-c a" . org-agenda)
          ("C-c b" . org-switchb))
-  :hook ((org-mode . org-indent-mode)
-         (org-indent-mode . (lambda() (diminish 'org-indent-mode))))
+  :hook (org-indent-mode . (lambda() (diminish 'org-indent-mode)))
   :config
-  (setq org-agenda-files '("~/org"))
-  (setq org-todo-keywords
-        '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")))
-  (setq org-log-done 'time)
-  (setq org-src-fontify-natively t)
+  (setq org-agenda-files '("~/org")
+        org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)"
+                                      "|" "DONE(d)" "CANCEL(c)"))
+        org-log-done 'time
+        org-startup-indented t
+        org-ellipsis "  "
+        org-pretty-entities t
+        org-hide-emphasis-markers t)
+
   (add-to-list 'org-export-backends 'md)
 
   ;; More fancy UI
@@ -61,21 +64,35 @@
       :config (setq org-fancy-priorities-list '("⚡" "⬆" "⬇" "☕"))))
 
   ;; Babel
-  (setq org-confirm-babel-evaluate nil)
+  (setq org-confirm-babel-evaluate nil
+        org-src-fontify-natively t
+        org-src-tab-acts-natively t)
 
   (defvar load-language-list '((emacs-lisp . t)
                                (perl . t)
                                (python . t)
                                (ruby . t)
+                               (js . t)
+                               (css . t)
+                               (sass . t)
+                               (C . t)
+                               (java . t)
                                (plantuml . t)))
+
+  ;; ob-sh renamed to ob-shell since 26.1.
+  (if emacs/>=26p
+      (cl-pushnew '(shell . t) load-language-list)
+    (cl-pushnew '(sh . t) load-language-list))
+
   (use-package ob-go
-    :init
-    (if (executable-find "go")
-        (cl-pushnew '(go . t) load-language-list)))
+    :init (cl-pushnew '(go . t) load-language-list))
+
+  (use-package ob-rust
+    :init (cl-pushnew '(rust . t) load-language-list))
+
   (use-package ob-ipython
-    :init
-    (if (executable-find "jupyter")
-        (cl-pushnew '(ipython . t) load-language-list)))
+    :if (executable-find "jupyter")     ; DO NOT remove
+    :init (cl-pushnew '(ipython . t) load-language-list))
 
   (org-babel-do-load-languages 'org-babel-load-languages
                                load-language-list)

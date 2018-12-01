@@ -79,7 +79,7 @@
       (setq projectile-enable-caching nil))
 
     ;; FIXME: too slow while getting submodule files on Windows
-    (setq projectile-git-submodule-command ""))
+    (setq projectile-git-submodule-command nil))
 
   ;; Support Perforce project
   (let ((val (or (getenv "P4CONFIG") ".p4config")))

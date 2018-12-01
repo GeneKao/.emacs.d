@@ -65,6 +65,7 @@
   :config
   (setq ag-highlight-search t)
   (setq ag-reuse-buffers t)
+  (setq ag-reuse-window t)
   (use-package wgrep-ag))
 
 (use-package rg
@@ -74,9 +75,6 @@
   (setq rg-show-columns t)
 
   (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
-
-  (use-package wgrep-ag
-    :hook (rg-mode . wgrep-ag-setup))
 
   (with-eval-after-load 'projectile
     (defalias 'projectile-ripgrep 'rg-project)
@@ -126,15 +124,31 @@
                            "afplay"
                            file)))))
 
+;; Persistent the scratch buffer
+(use-package persistent-scratch
+  :preface
+  (defun my-save-buffer ()
+    "Save scratch and other buffer."
+    (interactive)
+    (let ((scratch-name "*scratch*"))
+      (if (string-equal (buffer-name) scratch-name)
+          (progn
+            (message "Saving %s..." scratch-name)
+            (persistent-scratch-save)
+            (message "Wrote %s" scratch-name))
+        (save-buffer))))
+  :hook (after-init . persistent-scratch-setup-default)
+  :bind (:map lisp-interaction-mode-map
+              ("C-x C-s" . my-save-buffer)))
+
 ;; Misc
 (use-package copyit)                    ; copy path, url, etc.
+(use-package daemons)                   ; system services/daemons
 (use-package diffview)                  ; side-by-side diff view
 (use-package esup)                      ; Emacs startup profiler
 (use-package htmlize)                   ; covert to html
 (use-package list-environment)
 (use-package memory-usage)
-(use-package open-junk-file)
-(use-package try)
 (use-package ztree)                     ; text mode directory tree. Similar with beyond compare
 
 (provide 'init-utils)

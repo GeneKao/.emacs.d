@@ -1,4 +1,4 @@
-;; init-restore.el --- Initialize restoring configurations.	-*- lexical-binding: t -*-
+;; init-dashboard.el --- Initialize dashboard configurations.	-*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Vincent Zhang
 
@@ -25,42 +25,44 @@
 
 ;;; Commentary:
 ;;
-;; Restoring configurations.
+;; Dashboard configurations.
 ;;
 
 ;;; Code:
 
 (eval-when-compile
   (require 'init-const)
-  (require 'init-custom))
-
-;; Save and restore status
-(use-package desktop
-  :ensure nil
-  :init (unless centaur-dashboard (desktop-save-mode 1))
-  :config
-  ;; Restore frames into their original displays (if possible)
-  (setq desktop-restore-in-current-display nil)
-
-  (if (display-graphic-p)
-      ;; Prevent desktop from holding onto theme elements
-      (add-hook 'desktop-after-read-hook
-                (lambda ()
-                  "Load custom theme."
-                  (dolist (theme custom-enabled-themes)
-                    (load-theme theme t))))
-    ;; Don't save/restore frames in TTY
-    (setq desktop-restore-frames nil)))
-
-;; Persistent the scratch buffter
-(use-package persistent-scratch
-  :hook (after-init . persistent-scratch-setup-default))
+  (require 'init-custom)
+  (require 'wid-edit))
 
 ;; Dashboard
 (when centaur-dashboard
   (use-package dashboard
     :diminish (dashboard-mode page-break-lines-mode)
-    :functions (dashboard-insert-startupify-lists widget-forward)
+    :functions widget-forward winner-undo open-custom-file
+    :commands dashboard-insert-startupify-lists
+    :preface
+    (defun restore-session ()
+      "Restore last session."
+      (interactive)
+      (when (boundp 'persp-mode)
+        (if persp-mode
+            (message "Session already restored.")
+          (progn
+            (message "Restoring session...")
+            (persp-mode 1)))))
+
+    (defun exit-dashboard ()
+      "Quit dashboard window."
+      (interactive)
+      (quit-window t)
+      (winner-undo))
+
+    (defun dashboard-edit-config ()
+      "Open custom config file."
+      (interactive)
+      (exit-dashboard)
+      (open-custom-file))
     :bind (("<f2>" . (lambda ()
                        "Open the *dashboard* buffer and jump to the first widget."
                        (interactive)
@@ -69,15 +71,18 @@
                        (dashboard-insert-startupify-lists)
                        (switch-to-buffer dashboard-buffer-name)
                        (goto-char (point-min))
-                       (widget-forward 1)))
+                       (widget-forward 1)
+                       (delete-other-windows)))
            :map dashboard-mode-map
            ("H" . browse-homepage)
-           ("E" . open-custom-file)
-           ("S" . desktop-read)
-           ("U" . update-centaur))
+           ("E" . dashboard-edit-config)
+           ("R" . restore-session)
+           ("U" . centaur-update)
+           ("q" . exit-dashboard))
     :hook ((after-init . dashboard-setup-startup-hook)
            (emacs-startup . toggle-frame-maximized))
-    :init (setq inhibit-startup-screen t)
+    :init
+    (setq inhibit-startup-screen t)
     :config
     (setq dashboard-banner-logo-title "Welcome to Centaur Emacs")
     (setq dashboard-startup-banner (if centaur-logo centaur-logo 'official))
@@ -96,7 +101,7 @@
       (insert " ")
       (widget-create 'push-button
                      :help-echo "Restore previous session"
-                     :action (lambda () (desktop-save-mode 1) (desktop-read))
+                     :action (lambda (&rest _) (restore-session))
                      :mouse-face 'highlight
                      :button-prefix ""
                      :button-suffix ""
@@ -104,7 +109,7 @@
       (insert " ")
       (widget-create 'push-button
                      :help-echo "Edit Personal Configurations"
-                     :action (lambda () (open-custom-file))
+                     :action (lambda (&rest _) (dashboard-edit-config))
                      :mouse-face 'highlight
                      :button-prefix ""
                      :button-suffix ""
@@ -112,7 +117,7 @@
       (insert " ")
       (widget-create 'push-button
                      :help-echo "Update Centaur Emacs config and packages"
-                     :action (lambda () (update-centaur))
+                     :action (lambda (&rest _) (centaur-update))
                      :mouse-face 'highlight
                      (propertize "Update" 'face 'font-lock-keyword-face))
       (insert "\n")
@@ -122,12 +127,7 @@
     (add-to-list 'dashboard-item-generators  '(buttons . dashboard-insert-buttons))
     (add-to-list 'dashboard-items '(buttons))))
 
-;; Load personal configurations
-(let ((file (expand-file-name "custom-post.el" user-emacs-directory)))
-  (if (file-exists-p file)
-      (load file)))
-
-(provide 'init-restore)
+(provide 'init-dashboard)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-restore.el ends here
+;;; init-dashboard.el ends here

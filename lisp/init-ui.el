@@ -50,50 +50,84 @@
   (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
   (add-hook 'after-load-theme-hook
             (lambda ()
-              (setcdr (assq 'ns-appearance default-frame-alist)
-                      (frame-parameter nil 'background-mode)))))
+              (let ((bg (frame-parameter nil 'background-mode)))
+                (set-frame-parameter nil 'ns-appearance bg)
+                (setcdr (assq 'ns-appearance default-frame-alist) bg)))))
 
 ;; Menu/Tool/Scroll bars
-(unless sys/mac-x-p (menu-bar-mode -1))
-(and (bound-and-true-p tool-bar-mode) (tool-bar-mode -1))
-(and (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
-(and (bound-and-true-p horizontal-scroll-bar-mode) (horizontal-scroll-bar-mode -1))
+(unless emacs/>=27p        ; Move to early init-file in 27
+  (unless sys/mac-x-p (menu-bar-mode -1))
+  (and (bound-and-true-p tool-bar-mode) (tool-bar-mode -1))
+  (and (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)))
 
 ;; Theme
-(defun is-doom-theme-p (theme)
-  "Check whether the THEME is a doom theme. THEME is a symbol."
-  (string-prefix-p "doom" (symbol-name theme)))
-
 (defvar after-load-theme-hook nil
   "Hook run after a color theme is loaded using `load-theme'.")
 (defadvice load-theme (after run-after-load-theme-hook activate)
   "Run `after-load-theme-hook'."
   (run-hooks 'after-load-theme-hook))
 
-;; Modeline
+(defun standardize-theme (theme)
+  "Standardize THEME."
+  (pcase theme
+    ('default 'doom-one)
+    ('classic 'doom-molokai)
+    ('doom 'doom-one)
+    ('dark 'doom-Iosvkem)
+    ('light 'doom-one-light)
+    ('daylight 'doom-tomorrow-day)
+    (t theme)))
+
+(defun is-doom-theme-p (theme)
+  "Check whether the THEME is a doom theme. THEME is a symbol."
+  (string-prefix-p "doom" (symbol-name (standardize-theme theme))))
+
+(defun centaur-load-theme (theme)
+  "Set color THEME."
+  (interactive
+   (list
+    (intern (completing-read "Load theme: "
+                             '(default classic dark light daylight)))))
+  (let ((theme (standardize-theme theme)))
+    (if (boundp 'counsel-load-theme)
+        (counsel-load-theme theme)
+      (load-theme theme t))))
+
+(if (is-doom-theme-p centaur-theme)
+    (progn
+      (use-package doom-themes
+        :init (centaur-load-theme centaur-theme)
+        :config
+        ;; Enable flashing mode-line on errors
+        (doom-themes-visual-bell-config)
+        ;; Corrects (and improves) org-mode's native fontification.
+        (doom-themes-org-config)
+        ;; Enable custom treemacs theme (all-the-icons must be installed!)
+        (doom-themes-treemacs-config)
+        ;; Enable custom neotree theme (all-the-icons must be installed!)
+        (doom-themes-neotree-config))
+
+      ;; Make certain buffers grossly incandescent
+      (use-package solaire-mode
+        :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
+               (minibuffer-setup . solaire-mode-in-minibuffer)
+               (after-load-theme . solaire-mode-swap-bg)))
+
+      (use-package doom-modeline
+        :hook (after-init . doom-modeline-init)))
+  (progn
+    (ignore-errors
+      (centaur-load-theme centaur-theme))
+
+    (use-package telephone-line
+      :init (setq ns-use-srgb-colorspace nil)
+      :hook (after-init . telephone-line-mode))))
+
+;; Mode-line
 (defun mode-line-height ()
   "Get current height of mode-line."
   (- (elt (window-pixel-edges) 3)
      (elt (window-inside-pixel-edges) 3)))
-
-(if (is-doom-theme-p centaur-theme)
-    (use-package doom-modeline
-      :hook ((after-load-theme . doom-modeline-init)
-             (dashboard-mode . doom-modeline-set-project-modeline)))
-  (use-package spaceline-config
-    :ensure spaceline
-    :defines (powerline-default-separator
-              powerline-image-apple-rgb
-              spaceline-pre-hook
-              spaceline-highlight-face-func)
-    :functions powerline-reset
-    :hook (after-init . spaceline-spacemacs-theme)
-    :init
-    (setq powerline-default-separator (or (and (display-graphic-p) 'arrow) 'utf-8))
-    (setq powerline-image-apple-rgb sys/mac-x-p)
-    :config
-    (setq spaceline-pre-hook #'powerline-reset) ; For changing themes
-    (setq spaceline-highlight-face-func 'spaceline-highlight-face-modified)))
 
 (use-package hide-mode-line
   :hook (((completion-list-mode
@@ -102,82 +136,28 @@
            treemacs-mode)
           . hide-mode-line-mode)))
 
-;; Color theme
-(cond
- ((eq centaur-theme 'default)
-  (use-package monokai-theme
-    :init (load-theme 'monokai t)))
-
- ((eq centaur-theme 'dark)
-  (use-package spacemacs-theme
-    :init (load-theme 'spacemacs-dark t)))
-
- ((eq centaur-theme 'light)
-  (use-package spacemacs-theme
-    :init (load-theme 'spacemacs-light t)))
-
- ((eq centaur-theme 'daylight)
-  (use-package leuven-theme
-    :init (load-theme 'leuven t)))
-
- ((is-doom-theme-p centaur-theme)
-  (use-package doom-themes
-    :init
-    (let ((theme (if (eq centaur-theme 'doom)
-                     'doom-one
-                   centaur-theme)))
-      (load-theme theme t))
-    :config
-    ;; Enable flashing mode-line on errors
-    (doom-themes-visual-bell-config)
-
-    ;; Corrects (and improves) org-mode's native fontification.
-    (doom-themes-org-config)
-
-    ;; Enable custom treemacs theme (all-the-icons must be installed!)
-    (doom-themes-treemacs-config)
-
-    ;; Enable custom neotree theme (all-the-icons must be installed!)
-    ;; (doom-themes-neotree-config)
-
-    ;; Make certain buffers grossly incandescent
-    (use-package solaire-mode
-      :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
-             (minibuffer-setup . solaire-mode-in-minibuffer)
-             (after-load-theme . solaire-mode-swap-bg)))))
-
- (t
-  (ignore-errors (load-theme centaur-theme t))))
-
 ;; Fonts
-(use-package cnfonts
-  :preface
-  ;; Fallback to `all-the-icons'.
-  (defun cnfonts--set-all-the-icons-fonts (&optional _)
-    "Show icons in all-the-icons."
-    (when (featurep 'all-the-icons)
-      (dolist (charset '(kana han cjk-misc bopomofo gb18030))
-        (dolist (font '("all-the-icons" "github-octicons" "FontAwesome" "Material Icons"))
-          (set-fontset-font "fontset-default" charset font nil 'append)))))
-  :hook ((after-init . cnfonts-enable)
-         (cnfonts-set-font-finish . cnfonts--set-all-the-icons-fonts))
-  :config
-  ;; NOTE: on macOS, the frame size is changed during the startup without below.
-  ;; Keep frame size
-  (setq cnfonts-keep-frame-size nil)
-  (add-hook 'window-setup-hook
-            (lambda ()
-              (setq cnfonts-keep-frame-size t)))
+(when (and centaur-cnfonts (display-graphic-p))
+  ;; cnfonts doesn't support terminal
+  (use-package cnfonts
+    :hook (after-init . cnfonts-enable)
+    :config
+    ;; NOTE: on macOS, the frame size is changed during the startup without below.
+    ;; Keep frame size
+    (setq cnfonts-keep-frame-size nil)
+    (add-hook 'window-setup-hook
+              (lambda ()
+                (setq cnfonts-keep-frame-size t)))
 
-  ;; Set profiles
-  (setq cnfonts-use-cache t)
-  (setq cnfonts-profiles
-        '("program-normal" "program-large" "program-small" "org-mode" "read-book"))
-  (setq cnfonts--profiles-steps '(("program-normal" . 4)
-                                  ("program-large" . 5)
-                                  ("program-small" . 3)
-                                  ("org-mode" . 6)
-                                  ("read-book" . 8))))
+    ;; Set profiles
+    (setq cnfonts-use-cache t)
+    (setq cnfonts-profiles
+          '("program-normal" "program-large" "program-small" "org-mode" "read-book"))
+    (setq cnfonts--profiles-steps '(("program-normal" . 4)
+                                    ("program-large" . 5)
+                                    ("program-small" . 3)
+                                    ("org-mode" . 6)
+                                    ("read-book" . 8)))))
 
 ;; Line and Column
 (setq-default fill-column 80)
@@ -242,10 +222,10 @@
   (setq x-gtk-use-system-tooltips nil))
 
 ;; Toggle fullscreen
-(bind-keys ([(control f11)] . toggle-frame-fullscreen)
-           ([(control super f)] . toggle-frame-fullscreen) ; Compatible with macOS
-           ([(super return)] . toggle-frame-fullscreen)
-           ([(meta shift return)] . toggle-frame-fullscreen))
+(bind-keys ("C-<f11>" . toggle-frame-fullscreen)
+           ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS
+           ("S-s-<return>" . toggle-frame-fullscreen)
+           ("M-S-<return>" . toggle-frame-fullscreen))
 
 (provide 'init-ui)
 

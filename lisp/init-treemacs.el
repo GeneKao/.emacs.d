@@ -30,9 +30,11 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (require 'init-const))
+
 ;; Require >=25.2
-(when (or (>= emacs-major-version 26)
-          (and (= emacs-major-version 25) (>= emacs-minor-version 2)))
+(when emacs/>=25.2p
   ;; A tree layout file explorer
   (use-package treemacs
     :defines winum-keymap
@@ -41,11 +43,12 @@
                treemacs-fringe-indicator-mode
                treemacs-git-mode)
     :bind (([f8]        . treemacs)
-           ("M-9"       . treemacs-select-window)
+           ("C-`"       . treemacs-select-window)
+           ("M-0"       . treemacs-select-window)
            ("C-x 1"     . treemacs-delete-other-windows)
            ("C-x t 1"   . treemacs-delete-other-windows)
            ("C-x t t"   . treemacs)
-           ("C-x t B"   . treemacs-bookmark)
+           ("C-x t b"   . treemacs-bookmark)
            ("C-x t C-t" . treemacs-find-file)
            ("C-x t M-t" . treemacs-find-tag)
            :map treemacs-mode-map
@@ -71,7 +74,7 @@
           treemacs-sorting                    'alphabetic-desc
           treemacs-tag-follow-cleanup         t
           treemacs-tag-follow-delay           1.5
-          treemacs-width                      35)
+          treemacs-width                      30)
 
     (treemacs-follow-mode t)
     (treemacs-filewatch-mode t)

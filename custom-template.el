@@ -9,18 +9,51 @@
 ;; (setq centaur-mail-address "user@email.com")   ; Email address
 ;; (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
 ;; (setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, melpa-mirror, emacs-china netease or tuna
-;; (setq centaur-theme 'doom)                     ; Color theme: default, doom, dark, light or daylight
-;; (setq centaur-dashboard t)                     ; Use dashboard at startup or not: t or nil
+;; (setq centaur-theme 'classic)                  ; Color theme: default, classic, doom, dark, light or daylight
+;; (setq centaur-cnfonts t)                       ; Use cnfonts not: t or nil
+;; (setq centaur-dashboard nil)                   ; Use dashboard at startup or not: t or nil
 ;; (setq centaur-lsp nil)                         ; Set LSP client: lsp-mode, eglot or nil
+;; (setq centaur-ivy-icon nil)                    ; Display icons in ivy or not.
 ;; (setq centaur-company-enable-yas t)            ; Enable yasnippet for company or not: t or nil
 ;; (setq centaur-benchmark t)                     ; Enable initialization benchmark or not: t or nil
 
 ;; For Emacs devel
-;; e.g. 24.5, 25.3 or 26.1 are releses, while 26.0.90 is a devel release.
-;; (when (= emacs-minor-version 0)
-;;   (setq package-user-dir (locate-user-emacs-file "elpa-devel"))
-;;   (setq desktop-base-file-name ".emacs-devel.desktop")
-;;   (setq desktop-base-lock-name ".emacs-devel.desktop.lock"))
+;; (setq package-user-dir (locate-user-emacs-file (format "elpa-%s" emacs-major-version)))
+;; (setq desktop-base-file-name (format ".emacs-%s.desktop" emacs-major-version))
+;; (setq desktop-base-lock-name (format ".emacs-%s.desktop.lock" emacs-major-version))
+
+;; Fonts
+(when (and (not centaur-cnfonts) (display-graphic-p))
+  ;; Set a default font
+  (cond
+   ((member "Source Code Pro" (font-family-list))
+    (set-face-attribute 'default nil :font "Source Code Pro"))
+   ((member "Menlo" (font-family-list))
+    (set-face-attribute 'default nil :font "Menlo"))
+   ((member "Monaco" (font-family-list))
+    (set-face-attribute 'default nil :font "Monaco"))
+   ((member "DejaVu Sans Mono" (font-family-list))
+    (set-face-attribute 'default nil :font "DejaVu Sans Mono"))
+   ((member "Consolas" (font-family-list))
+    (set-face-attribute 'default nil :font "Consolas")))
+
+  (cond
+   (sys/mac-x-p
+    (set-face-attribute 'default nil :height 130))
+   (sys/win32p
+    (set-face-attribute 'default nil :height 110)))
+
+  ;; Specify font for all unicode characters
+  (when (member "Symbola" (font-family-list))
+    (set-fontset-font t 'unicode "Symbola" nil 'prepend))
+
+  ;; Specify font for chinese characters
+  (when (member "WenQuanYi Micro Hei" (font-family-list))
+    (set-fontset-font t '(#x4e00 . #x9fff) "WenQuanYi Micro Hei" ))
+  )
+
+;; Misc.
+;; (setq confirm-kill-emacs 'y-or-n-p)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.

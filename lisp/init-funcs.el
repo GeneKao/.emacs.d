@@ -64,18 +64,19 @@
 (defun open-custom-file()
   "Open custom.el if exists, otherwise create it."
   (interactive)
-  (let ((custom-example (expand-file-name "custom-example.el" user-emacs-directory)))
-    (if (not (file-exists-p custom-file))
-        (if (file-exists-p custom-example)
-            (copy-file custom-file)
-          (error "Unable to find custom-example.el")))
+  (let ((custom-example
+         (expand-file-name "custom-example.el" user-emacs-directory)))
+    (unless (file-exists-p custom-file)
+      (if (file-exists-p custom-example)
+          (copy-file custom-file)
+        (error "Unable to find \"%s\"" custom-example)))
     (find-file custom-file)))
 
 ;; Update
-(defun update-config ()
-  "Update Emacs configurations to the latest version."
+(defun centaur-update-config ()
+  "Update Centaur Emacs configurations to the latest version."
   (interactive)
-  (let ((dir (expand-file-name "~/.emacs.d/")))
+  (let ((dir (expand-file-name user-emacs-directory)))
     (if (file-exists-p dir)
         (progn
           (message "Updating Emacs configurations...")
@@ -85,23 +86,35 @@
       (message "\"%s\" doesn't exist." dir))))
 
 (declare-function upgrade-packages 'init-package)
-(defun update-centaur()
+(defalias 'centaur-update-packages 'upgrade-packages)
+(defun centaur-update()
   "Update confgiurations and packages."
   (interactive)
-  (update-config)
-  (upgrade-packages nil))
+  (centaur-update-config)
+  (centaur-update-packages nil))
+
+(defun centaur-update-all()
+  "Update dotfiles, org files, Emacs confgiurations and packages, ."
+  (interactive)
+  (centaur-update)
+  (centaur-update-org)
+  (centaur-update-dotfiles))
 
 (declare-function upgrade-packages-and-restart 'init-package)
-(defun update-centaur-and-restart ()
+(defalias 'centaur-update-packages-and-restarut 'upgrade-packages-and-restart)
+(defun centaur-update-and-restart ()
   "Update configurations and packages, then restart."
   (interactive)
-  (update-config)
-  (upgrade-packages-and-restart nil))
+  (centaur-update-config)
+  (centaur-update-org)
+  (centaur-update-dotfiles)
+  (centaur-update-packages-and-restarut nil))
 
-(defun update-dotfiles ()
+(defun centaur-update-dotfiles ()
   "Update the dotfiles to the latest version."
   (interactive)
-  (let ((dir (expand-file-name "~/.dotfiles/")))
+  (let ((dir (or (getenv "DOTFILES")
+                 (expand-file-name "~/.dotfiles/"))))
     (if (file-exists-p dir)
         (progn
           (message "Updating dotfiles...")
@@ -110,7 +123,7 @@
           (message "Update finished."))
       (message "\"%s\" doesn't exist." dir))))
 
-(defun update-org ()
+(defun centaur-update-org ()
   "Update Org files to the latest version."
   (interactive)
   (let ((dir (expand-file-name "~/org/")))

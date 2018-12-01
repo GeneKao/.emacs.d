@@ -47,7 +47,7 @@
 
   (add-hook 'inferior-python-mode-hook
             (lambda ()
-              (bind-key "C-c C-z" #'kill-buffer-and-window inferior-python-mode-map)
+              ;; (bind-key "C-c C-z" #'kill-buffer-and-window inferior-python-mode-map)
               (process-query-on-exit-flag (get-process "Python"))))
 
   ;; Pdb setup, note the python version
@@ -63,19 +63,21 @@
   ;; Live Coding in Python
   (use-package live-py-mode)
 
-  ;; Autopep8
-  (use-package py-autopep8
-    :hook (python-mode . py-autopep8-enable-on-save))
+  ;; Format using YAPF
+  ;; Install: pip install yapf
+  (use-package yapfify
+    :diminish
+    :hook (python-mode . yapf-mode))
 
-  ;; Anaconda mode
   (unless centaur-lsp
+    ;; Anaconda mode
     (use-package anaconda-mode
       :defines anaconda-mode-localhost-address
       :diminish anaconda-mode
       :hook ((python-mode . anaconda-mode)
              (python-mode . anaconda-eldoc-mode))
       :config
-      ;; Workaround: https://github.com/proofit404/anaconda-mode#faq
+      ;; WORKAROUND: https://github.com/proofit404/anaconda-mode#faq
       (when sys/macp
         (setq anaconda-mode-localhost-address "localhost"))
       (use-package company-anaconda

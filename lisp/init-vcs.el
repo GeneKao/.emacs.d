@@ -44,13 +44,12 @@
   (magit-define-popup-switch 'magit-fetch-popup
     ?t "Fetch all tags" "--tags"))
 
-;; Github integration
+;; Magit interfaces for GitHub
 (use-package magithub
   :after magit
   :init
-  (magithub-feature-autoinject t)
   (setq magithub-api-timeout 5)
-  (setq magithub-clone-default-directory "~/workspace"))
+  (magithub-feature-autoinject t))
 
 ;; Gitflow externsion for Magit
 (use-package magit-gitflow
@@ -67,6 +66,10 @@
 (use-package magit-svn
   :diminish magit-svn-mode
   :hook (magit-mode . magit-svn-mode))
+
+;; Show source file TODOs in Magit
+(use-package magit-todos
+  :hook (magit-mode . magit-todos-mode))
 
 ;;; Pop up last commit information of current line
 (use-package git-messenger
@@ -91,7 +94,7 @@
               ("C" . smeargle-commits)
               ("R" . smeargle-clear)))
 
-;; Git modes
+;; Git related modes
 (use-package gitattributes-mode)
 (use-package gitconfig-mode)
 (use-package gitignore-mode)

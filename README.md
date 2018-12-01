@@ -77,7 +77,22 @@ Enjoy!
 ### Update
 
 ``` emacs-lisp
-M-x update-centaur
+# Update Centaur Emacs (then restart), including configurations and packages
+M-x centaur-update
+M-x centaur-update-and-restart
+
+# Update Emacs configurations only
+M-x centaur-update-config
+
+# Update ~/.dotfiles if it exists
+M-x centaur-update-dotfiles
+
+# Update packages only (then restart)
+M-x centaur-update-packages
+M-x centaur-update-packages-and-restarut
+
+# Update all including configurations, packages and dotfiles
+M-x centuar-update-all
 ```
 
 ## Customization
@@ -100,9 +115,11 @@ For Example:
 (setq centaur-mail-address "user@email.com")   ; Email address
 (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
 (setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, melpa-mirror, emacs-china, netease or tuna
-(setq centaur-theme 'doom)                     ; Color theme: default, doom, dark, light or daylight
-(setq centaur-dashboard t)                     ; Use dashboard at startup or not: t or nil
+(setq centaur-theme classic)                   ; Color theme: default, classic, dark, light or daylight
+(setq centaur-cnfonts t)                       ; Use cnfonts or not: t or nil
+(setq centaur-dashboard nil)                   ; Use dashboard at startup or not: t or nil
 (setq centaur-lsp nil)                         ; Set LSP client: lsp-mode, eglot or nil
+(setq centaur-ivy-icon nil)                    ; Display icons in ivy or not: t or nil
 (setq centaur-company-enable-yas t)            ; Enable yasnippet for company or not: t or nil
 (setq centaur-benchmark t)                     ; Enable initialization benchmark or not: t or nil
 ```
@@ -114,7 +131,15 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 ## Screenshots
 
-### Main (default theme)
+### Dashboard (default theme)
+
+![Dashboard](https://user-images.githubusercontent.com/140797/43999598-6514db6c-9e42-11e8-8219-05d297fbbe8d.png)
+
+### Replace (default theme with [doom-modeline](https://github.com/seagle0128/doom-modeline))
+
+![Replace](https://user-images.githubusercontent.com/140797/41302817-13cb7622-6e9e-11e8-894b-07aff95f91bc.png)
+
+### Main (classic theme)
 
 ![Main](https://user-images.githubusercontent.com/140797/30391180-20bd0ba8-987e-11e7-9cb4-2aa66a6fd69d.png)
 
@@ -134,20 +159,12 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 ![Magit](https://user-images.githubusercontent.com/140797/30391181-20bd848e-987e-11e7-9cda-3dac2865922e.png)
 
-### Dired and replace (doom theme with [doom-modeline](https://github.com/seagle0128/doom-modeline))
-
-![Doom](https://user-images.githubusercontent.com/140797/41302817-13cb7622-6e9e-11e8-894b-07aff95f91bc.png)
-
-### Dashboard (doom theme with [doom-modeline](https://github.com/seagle0128/doom-modeline))
-
-![Dashboard](https://user-images.githubusercontent.com/140797/43999598-6514db6c-9e42-11e8-8219-05d297fbbe8d.png)
-
 ## FAQ
 
 1. Why is the modline messy?
 
     Powerline fonts or all-the-icons are missing on your system. Please install
-    [powerline-fonts](https://github.com/powerline/fonts) for `spaceline` or
+    [powerline-fonts](https://github.com/powerline/fonts) for `telephone-line` or
     run `M-x all-the-icons-install-fonts` for `doom-modeline`.
 
 1. How to search Chinese via pinyin?
@@ -159,10 +176,10 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
     Set `(setq centaur-dashboard t)` in `~/.emacs.d/custom.el`. Dashboard will
     be opened at startup. After startup, you could use `F2` to reopen it anytime.
     In the dashboard, you could easily jump to Homepage(`H`), Restore
-    Session(`S`), Edit Config (`E`), Update(`U`), Recent Files (`r`),
+    Session(`R`), Edit Config (`E`), Update(`U`), Recent Files (`r`),
     Bookmarks(`m`) and Projects(`p`).
 
-1. Does Centuar Emacs support Language Server Protocol (LSP)?
+1. Does Centaur Emacs support Language Server Protocol (LSP)?
 
     LSP is supported and enabled by default in Centuar Emacs now. `eglot` is the
     default client, and `lsp-mode` is another choice. Before use it you should

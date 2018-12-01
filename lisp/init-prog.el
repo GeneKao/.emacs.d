@@ -60,16 +60,23 @@
       ("x" dumb-jump-go-prefer-external-other-window "Go external other window")
       ("i" dumb-jump-go-prompt "Prompt")
       ("l" dumb-jump-quick-look "Quick look")
-      ("b" dumb-jump-back "Back"))
+      ("b" dumb-jump-back "Back")
+      ("q" nil "quit"))
     (bind-key "C-M-j" #'dumb-jump-hydra/body dumb-jump-mode-map)))
 
 (use-package nxml-mode
   :ensure nil
   :mode (("\\.xaml$" . xml-mode)))
 
+;; Run commands quickly
 (use-package quickrun
   :bind (("<f7>" . quickrun)
          ("C-c x" . quickrun)))
+
+;; Focus on writing
+(use-package darkroom
+  :commands (darkroom-mode darkroom-tentative-mode)
+  :bind ("C-<f6>" . darkroom-mode))
 
 (use-package cask-mode)
 (use-package csharp-mode)
