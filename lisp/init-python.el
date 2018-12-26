@@ -50,23 +50,13 @@
               ;; (bind-key "C-c C-z" #'kill-buffer-and-window inferior-python-mode-map)
               (process-query-on-exit-flag (get-process "Python"))))
 
-  ;; Pdb setup, note the python version
-  (setq pdb-path 'pdb
-        gud-pdb-command-name (symbol-name pdb-path))
-  (defadvice pdb (before gud-query-cmdline activate)
-    "Provide a better default command line when called interactively."
-    (interactive
-     (list (gud-query-cmdline
-            pdb-path
-            (file-name-nondirectory buffer-file-name)))))
-
   ;; Live Coding in Python
   (use-package live-py-mode)
 
   ;; Format using YAPF
   ;; Install: pip install yapf
   (use-package yapfify
-    :diminish
+    :diminish yapf-mode
     :hook (python-mode . yapf-mode))
 
   (unless centaur-lsp
@@ -83,8 +73,7 @@
       (use-package company-anaconda
         :after company
         :defines company-backends
-        :functions company-backend-with-yas
-        :init (cl-pushnew (company-backend-with-yas 'company-anaconda) company-backends)))))
+        :init (cl-pushnew 'company-anaconda company-backends)))))
 
 (provide 'init-python)
 

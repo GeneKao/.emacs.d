@@ -63,9 +63,10 @@
 ;; Theme
 (defvar after-load-theme-hook nil
   "Hook run after a color theme is loaded using `load-theme'.")
-(defadvice load-theme (after run-after-load-theme-hook activate)
+(defun run-after-load-theme-hook (&rest _)
   "Run `after-load-theme-hook'."
   (run-hooks 'after-load-theme-hook))
+(advice-add #'load-theme :after #'run-after-load-theme-hook)
 
 (defun standardize-theme (theme)
   "Standardize THEME."
@@ -76,7 +77,7 @@
     ('dark 'doom-Iosvkem)
     ('light 'doom-one-light)
     ('daylight 'doom-tomorrow-day)
-    (t theme)))
+    (_ theme)))
 
 (defun is-doom-theme-p (theme)
   "Check whether the THEME is a doom theme. THEME is a symbol."
@@ -89,9 +90,8 @@
     (intern (completing-read "Load theme: "
                              '(default classic dark light daylight)))))
   (let ((theme (standardize-theme theme)))
-    (if (boundp 'counsel-load-theme)
-        (counsel-load-theme theme)
-      (load-theme theme t))))
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme theme t)))
 
 (if (is-doom-theme-p centaur-theme)
     (progn
@@ -103,15 +103,17 @@
         ;; Corrects (and improves) org-mode's native fontification.
         (doom-themes-org-config)
         ;; Enable custom treemacs theme (all-the-icons must be installed!)
-        (doom-themes-treemacs-config)
-        ;; Enable custom neotree theme (all-the-icons must be installed!)
-        (doom-themes-neotree-config))
+        (doom-themes-treemacs-config))
 
       ;; Make certain buffers grossly incandescent
       (use-package solaire-mode
         :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
                (minibuffer-setup . solaire-mode-in-minibuffer)
-               (after-load-theme . solaire-mode-swap-bg)))
+               (after-load-theme . solaire-mode-swap-bg))
+        :config
+        (solaire-mode-swap-bg)
+        (advice-add #'persp-load-state-from-file
+                    :after #'solaire-mode-restore-persp-mode-buffers))
 
       (use-package doom-modeline
         :hook (after-init . doom-modeline-init)))
@@ -135,29 +137,6 @@
            neotree-mode
            treemacs-mode)
           . hide-mode-line-mode)))
-
-;; Fonts
-(when (and centaur-cnfonts (display-graphic-p))
-  ;; cnfonts doesn't support terminal
-  (use-package cnfonts
-    :hook (after-init . cnfonts-enable)
-    :config
-    ;; NOTE: on macOS, the frame size is changed during the startup without below.
-    ;; Keep frame size
-    (setq cnfonts-keep-frame-size nil)
-    (add-hook 'window-setup-hook
-              (lambda ()
-                (setq cnfonts-keep-frame-size t)))
-
-    ;; Set profiles
-    (setq cnfonts-use-cache t)
-    (setq cnfonts-profiles
-          '("program-normal" "program-large" "program-small" "org-mode" "read-book"))
-    (setq cnfonts--profiles-steps '(("program-normal" . 4)
-                                    ("program-large" . 5)
-                                    ("program-small" . 3)
-                                    ("org-mode" . 6)
-                                    ("read-book" . 8)))))
 
 ;; Line and Column
 (setq-default fill-column 80)

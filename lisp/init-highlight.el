@@ -30,6 +30,9 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (require 'init-const))
+
 ;; Highlight the current line
 (use-package hl-line
   :ensure nil
@@ -114,9 +117,9 @@
   :defines desktop-minor-mode-table
   :commands diff-hl-magit-post-refresh
   :custom-face
-  (diff-hl-change ((t (:background "DeepSkyBlue"))))
-  (diff-hl-delete ((t (:background "OrangeRed"))))
-  (diff-hl-insert ((t (:background "YellowGreen"))))
+  (diff-hl-change ((t (:background "#46D9FF"))))
+  (diff-hl-delete ((t (:background "#ff6c6b"))))
+  (diff-hl-insert ((t (:background "#98be65"))))
   :bind (:map diff-hl-command-map
               ("SPC" . diff-hl-mark-hunk))
   :hook ((after-init . global-diff-hl-mode)
@@ -128,7 +131,7 @@
   ;; Set fringe style
   (setq diff-hl-draw-borders nil)
   (setq fringes-outside-margins t)
-  (set-fringe-mode '(4 . 8))
+  (if sys/mac-x-p (set-fringe-mode '(4 . 8)))
 
   (unless (display-graphic-p)
     ;; Fall back to the display margin since the fringe is unavailable in tty
@@ -179,44 +182,34 @@
       (if my-prev-whitespace-mode
           (whitespace-mode 1)))))
 
-;; Blink current line
-(use-package nav-flash
-  :defines compilation-highlight-overlay
-  :functions windmove-do-window-select
+;; Pulse current line
+(use-package pulse
+  :ensure nil
   :preface
-  (defun my-blink-cursor-maybe (orig-fn &rest args)
-    "Blink current line if the window has moved."
-    (ignore-errors
-      (let ((point (save-excursion (goto-char (window-start))
-                                   (point-marker))))
-        (apply orig-fn args)
-        (unless (or (derived-mode-p 'term-mode)
-                    (equal point
-                           (save-excursion (goto-char (window-start))
-                                           (point-marker))))
-          (my-blink-cursor)))))
+  (defun my-pulse-momentary (&rest _)
+    "Pulse the current line."
+    (let ((pulse-delay 0.05))
+      (pulse-momentary-highlight-one-line (point) 'next-error)))
 
-  (defun my-blink-cursor (&rest _)
-    "Blink current line using `nav-flash'."
-    (interactive)
-    (unless (minibufferp)
-      (nav-flash-show)
-      ;; Only show in the current window
-      (overlay-put compilation-highlight-overlay 'window (selected-window))))
-  :hook ((switch-window-finish . my-blink-cursor)
+  (defun my-recenter (&rest _)
+    "Recenter and pulse the current line."
+    (recenter)
+    (my-pulse-momentary))
+  :hook (((switch-window-finish) . my-pulse-momentary)
          ((bookmark-after-jump
            counsel-grep-post-action
            dumb-jump-after-jump
            imenu-after-jump
+           magit-diff-visit-file
+           next-error
            xref-after-jump
-           xref-after-return) . recenter))
-  :init
-  ;; NOTE In :feature jump `recenter' is hooked to a bunch of jumping commands,
-  ;; which will trigger nav-flash.
-  (advice-add #'windmove-do-window-select :around #'my-blink-cursor-maybe)
-  (advice-add #'other-window :around #'my-blink-cursor-maybe)
-  (advice-add #'ace-window :around #'my-blink-cursor-maybe)
-  (advice-add #'recenter :around #'my-blink-cursor-maybe))
+           xref-after-return) . my-recenter))
+  :init (dolist (cmd '(recenter-top-bottom
+                       other-window ace-window windmove-do-window-select
+                       pop-to-mark-command pop-global-mark
+                       symbol-overlay-basic-jump
+                       pager-page-down pager-page-up))
+          (advice-add cmd :after #'my-pulse-momentary)))
 
 (provide 'init-highlight)
 

@@ -73,10 +73,6 @@
           (const :tag "Daylight theme" daylight)
           symbol))
 
-(defcustom centaur-cnfonts nil
-  "Use cnfonts or not."
-  :type 'boolean)
-
 (defcustom centaur-dashboard t
   "Use dashboard at startup or not.
 
@@ -91,11 +87,7 @@ If Non-nil, use dashboard, otherwise will restore previous session."
           nil))
 
 (defcustom centaur-ivy-icon (and (not sys/win32p) (display-graphic-p))
-  "Display icons in ivy or not."
-  :type 'boolean)
-
-(defcustom centaur-company-enable-yas nil
-  "Enable yasnippet for company backends or not."
+  "Display icons in `ivy' or not."
   :type 'boolean)
 
 (defcustom centaur-benchmark nil

@@ -37,17 +37,42 @@
 (use-package persp-mode
   :diminish
   :defines ivy-sort-functions-alist
-  :commands (get-current-persp persp-contain-buffer-p)
-  :hook (after-init . (lambda ()
-                        (unless centaur-dashboard
-                          (toggle-frame-maximized)
-                          (persp-mode 1))))
+  :commands (get-current-persp persp-contain-buffer-p persp-add persp-by-name-and-exists)
+  :hook ((after-init . persp-mode)
+         (emacs-startup . toggle-frame-maximized))
   :init
   (setq persp-keymap-prefix (kbd "C-x p"))
-  (setq persp-nil-name "main")
+  (setq persp-set-last-persp-for-new-frames nil)
+  (if centaur-dashboard
+      (setq persp-auto-resume-time 0))
   :config
-  (add-to-list 'global-mode-string persp-lighter)
+  ;; NOTE: Redefine `persp-add-new' to address.
+  ;; Issue: Unable to create/handle persp-mode
+  ;; https://github.com/Bad-ptr/persp-mode.el/issues/96
+  ;; https://github.com/Bad-ptr/persp-mode-projectile-bridge.el/issues/4
+  ;; https://emacs-china.org/t/topic/6416/7
+  (defun* persp-add-new (name &optional (phash *persp-hash*))
+    "Create a new perspective with the given `NAME'. Add it to `PHASH'.
+  Return the created perspective."
+    (interactive "sA name for the new perspective: ")
+    (if (and name (not (equal "" name)))
+        (destructuring-bind (e . p)
+            (persp-by-name-and-exists name phash)
+          (if e p
+            (setq p (if (equal persp-nil-name name)
+                        nil (make-persp :name name)))
+            (persp-add p phash)
+            (run-hook-with-args 'persp-created-functions p phash)
+            p))
+      (message "[persp-mode] Error: Can't create a perspective with empty name.")
+      nil))
 
+  ;; Ignore temporary buffers
+  (add-hook 'persp-common-buffer-filter-functions
+            (lambda (b) (or (string-prefix-p "*" (buffer-name b))
+                       (string-prefix-p "magit" (buffer-name b)))))
+
+  ;; Integrate IVY
   (with-eval-after-load "ivy"
     (add-hook 'ivy-ignore-buffers
               #'(lambda (b)
@@ -65,20 +90,6 @@
                     (persp-switch        . nil)
                     (persp-window-switch . nil)
                     (persp-frame-switch  . nil))))))
-
-;; Projectile integration
-;; FIXME: void function make-persp-internal
-(use-package persp-mode-projectile-bridge
-  :disabled
-  :after projectile persp-mode
-  :commands (persp-mode-projectile-bridge-find-perspectives-for-all-buffers
-             persp-mode-projectile-bridge-kill-perspectives)
-  :hook ((persp-mode . persp-mode-projectile-bridge-mode)
-         (persp-mode-projectile-bridge-mode
-          . (lambda ()
-              (if persp-mode-projectile-bridge-mode
-                  (persp-mode-projectile-bridge-find-perspectives-for-all-buffers)
-                (persp-mode-projectile-bridge-kill-perspectives))))))
 
 (provide 'init-persp)
 

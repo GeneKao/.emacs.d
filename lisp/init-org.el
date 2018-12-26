@@ -97,21 +97,74 @@
   (org-babel-do-load-languages 'org-babel-load-languages
                                load-language-list)
 
+  ;; Rich text clipboard
+  (use-package org-rich-yank
+    :bind (:map org-mode-map
+                ("C-M-y" . org-rich-yank)))
+
   ;; Preview
   (use-package org-preview-html
     :diminish org-preview-html-mode)
 
   ;; Presentation
   (use-package org-tree-slide
-    :functions (org-display-inline-images org-remove-inline-images)
+    :diminish
+    :functions (org-display-inline-images
+                org-remove-inline-images
+                winner-undo)
+    :bind (:map org-mode-map
+                ("C-<f9>" . org-tree-slide-mode)
+                :map org-tree-slide-mode-map
+                ("<left>" . org-tree-slide-move-previous-tree)
+                ("<right>" . org-tree-slide-move-next-tree)
+                ("S-SPC" . org-tree-slide-move-previous-tree)
+                ("SPC" . org-tree-slide-move-next-tree))
     :hook ((org-tree-slide-play . (lambda ()
                                     (text-scale-set 4)
                                     (org-display-inline-images)
-                                    (read-only-mode 1)))
+                                    (read-only-mode 1)
+                                    (if (fboundp 'hide-mode-line-mode)
+                                        (hide-mode-line-mode 1))
+                                    (delete-other-windows)))
            (org-tree-slide-stop . (lambda ()
                                     (text-scale-set 0)
                                     (org-remove-inline-images)
-                                    (read-only-mode -1)))))
+                                    (read-only-mode -1)
+                                    (if (fboundp 'hide-mode-line-mode)
+                                        (hide-mode-line-mode -11)))))
+    :config
+    (org-tree-slide-simple-profile)
+    (setq org-tree-slide-skip-outline-level 2))
+
+  (use-package org-present
+    :diminish
+    :functions (org-display-inline-images
+                org-remove-inline-images
+                winner-undo)
+    :commands (org-present-big
+               org-present-hide-cursor
+               org-present-read-only
+               org-present-small
+               org-present-show-cursor
+               org-present-read-write)
+    :bind (:map org-mode-map
+                ("M-<f9>" . org-present))
+    :hook ((org-present-mode . (lambda ()
+                                 (org-present-big)
+                                 (org-display-inline-images)
+                                 (org-present-hide-cursor)
+                                 (org-present-read-only)
+                                 (if (fboundp 'hide-mode-line-mode)
+                                     (hide-mode-line-mode 1))
+                                 (delete-other-windows)))
+           (org-present-mode-quit . (lambda ()
+                                      (org-present-small)
+                                      (org-remove-inline-images)
+                                      (org-present-show-cursor)
+                                      (org-present-read-write)
+                                      (read-only-mode -1)
+                                      (if (fboundp 'hide-mode-line-mode)
+                                          (hide-mode-line-mode -1))))))
 
   ;; Pomodoro
   (use-package org-pomodoro
@@ -173,7 +226,7 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
 
     (bind-key "<"
               (lambda () (interactive)
-                (if (or (region-active-p) (looking-back "^" 1))
+                (if (or (region-active-p) (looking-back "^\s*" 1))
                     (hydra-org-template/body)
                   (self-insert-command 1)))
               org-mode-map)))

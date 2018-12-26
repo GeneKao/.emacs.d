@@ -115,10 +115,6 @@
   (setq ivy-format-function 'ivy-format-function-arrow)
   ;; (setq ivy-initial-inputs-alist nil)
 
-  (setq ivy-re-builders-alist
-        '((read-file-name-internal . ivy--regex-fuzzy)
-          (t . ivy--regex-plus)))
-
   (setq swiper-action-recenter t)
   (setq counsel-find-file-at-point t)
   (setq counsel-yank-pop-separator "\n-------\n")
@@ -172,20 +168,21 @@
       (when (and centaur-ivy-icon
                  (display-graphic-p)
                  (featurep 'all-the-icons))
-        (with-current-buffer (get-buffer candidate)
-          (let ((icon (all-the-icons-icon-for-mode major-mode)))
-            (propertize
-             (if (symbolp icon)
-                 (all-the-icons-icon-for-mode 'text-mode)
-               icon)
-             'face `(
-                     :height 1.1
-                     :family ,(all-the-icons-icon-family-for-mode
-                               (if (symbolp icon)
-                                   'text-mode
-                                 major-mode))
-                     :inherit
-                     ))))))
+        (when-let* ((buffer (get-buffer candidate))
+                    (major-mode (buffer-local-value 'major-mode buffer))
+                    (icon (all-the-icons-icon-for-mode major-mode)))
+          (propertize
+           (if (symbolp icon)
+               (all-the-icons-icon-for-mode 'text-mode)
+             icon)
+           'face `(
+                   :height 1.1
+                   :family ,(all-the-icons-icon-family-for-mode
+                             (if (symbolp icon)
+                                 'text-mode
+                               major-mode))
+                   :inherit
+                   )))))
 
     (defun ivy-rich-file-icon (candidate)
       "Show file icons in `ivy-rich'."
@@ -350,8 +347,7 @@
             (t
              nil)))
     :init (setq ivy-re-builders-alist
-                '((read-file-name-internal . ivy--regex-fuzzy)
-                  (t . re-builder-pinyin)))))
+                '((t . re-builder-pinyin)))))
 
 (provide 'init-ivy)
 

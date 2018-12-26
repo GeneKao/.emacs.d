@@ -31,10 +31,13 @@
 ;;; Code:
 
 (eval-when-compile
-  (require 'init-const))
+  (require 'init-const)
+  (require 'init-custom))
 
 ;; Git
 (use-package magit
+  :commands (magit-define-popup-switch magit-refresh-buffer)
+  :functions (all-the-icons-faicon all-the-icons-alltheicon)
   :bind (("C-x g" . magit-status)
          ("C-x M-g" . magit-dispatch-popup)
          ("C-c M-g" . magit-file-popup))
@@ -44,12 +47,8 @@
   (magit-define-popup-switch 'magit-fetch-popup
     ?t "Fetch all tags" "--tags"))
 
-;; Magit interfaces for GitHub
-(use-package magithub
-  :after magit
-  :init
-  (setq magithub-api-timeout 5)
-  (magithub-feature-autoinject t))
+;; Access Git forges from Magit
+(use-package forge)
 
 ;; Gitflow externsion for Magit
 (use-package magit-gitflow
@@ -69,7 +68,7 @@
 
 ;; Show source file TODOs in Magit
 (use-package magit-todos
-  :hook (magit-mode . magit-todos-mode))
+  :hook (magit-status-mode . magit-todos-mode))
 
 ;;; Pop up last commit information of current line
 (use-package git-messenger

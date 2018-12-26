@@ -8,11 +8,12 @@
 .cask/
 .vscode/
 /.agignore
+/.elfeed
 /.emacs*.desktop
 /.emacs*.desktop.lock
 /.emacs-buffers
-/.elfeed
 /.last-package-update-day
+/.lsp-session*
 /.markdown-preview.html
 /.mc-lists.el
 /.org-id-locations
@@ -57,8 +58,10 @@ thumbs/
 tutorial/
 url/
 var/
+workspace/
 session*
 tmp*
 ido.*
 flycheck_*.el*
 README.html
+*.sqlite

@@ -38,6 +38,7 @@
 ;; Restore old window configurations
 (use-package winner
   :ensure nil
+  :commands (winner-undo winner-redo)
   :hook (after-init . winner-mode)
   :init (setq winner-boring-buffers '("*Completions*"
                                       "*Compile-Log*"
@@ -54,7 +55,7 @@
 (use-package ace-window
   :bind ([remap other-window] . ace-window)
   :custom-face
-  (aw-leading-char-face ((t (:inherit 'font-lock-keyword-face :height 3.0))))
+  (aw-leading-char-face ((t (:inherit 'error :bold t :height 1.2))))
   (aw-mode-line-face ((t (:inherit 'mode-line-emphasis :bold t))))
   :hook (after-init . ace-window-display-mode)
   :config
@@ -122,10 +123,10 @@ _d_: kill-and-delete-frame     _n_: make-frame            _w_: ace-delete-window
   (defun shackle-close-popup-window-hack (&rest _)
     "Close current popup window via `C-g'."
     (setq shackle--popup-window-list
-          (loop for (window . buffer) in shackle--popup-window-list
-                if (and (window-live-p window)
-                        (equal (window-buffer window) buffer))
-                collect (cons window buffer)))
+          (cl-loop for (window . buffer) in shackle--popup-window-list
+                   if (and (window-live-p window)
+                           (equal (window-buffer window) buffer))
+                   collect (cons window buffer)))
     ;; `C-g' can deactivate region
     (when (and (called-interactively-p 'interactive)
                (not (region-active-p)))
@@ -149,13 +150,13 @@ _d_: kill-and-delete-frame     _n_: make-frame            _w_: ace-delete-window
   (advice-add #'shackle-display-buffer :around #'shackle-display-buffer-hack)
 
   ;; rules
-  (setq shackle-default-size 0.4)
+  (setq shackle-default-size 0.3)
   (setq shackle-rules
         '(("*Help*" :select t :align 'below :autoclose t)
           ("*compilation*" :size 0.25 :align 'below :autoclose t)
           ("*Completions*" :size 0.3 :align 'below :autoclose t)
           ("*Pp Eval Output*" :size 0.25 :align 'below :autoclose t)
-          ("*ert*" :same t)
+          ("*ert*" :align 'below :autoclose t)
           ("*Ibuffer*" :select t :inhibit-window-quit t :same t)
           ("*info*" :select t :inhibit-window-quit t :same t)
           ("*Backtrace*" :select t :size 20 :align 'below)

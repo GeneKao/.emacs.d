@@ -92,12 +92,13 @@
 
 ;; Edit text for browsers with GhostText or AtomicChrome extension
 (use-package atomic-chrome
-  :after markdown-mode
-  :hook (emacs-startup . atomic-chrome-start-server)
+  :hook ((emacs-startup . atomic-chrome-start-server)
+         (atomic-chrome-edit-mode . delete-other-windows))
+  :init (setq atomic-chrome-buffer-open-style 'frame)
   :config
-  (setq atomic-chrome-buffer-open-style 'frame)
-  (setq atomic-chrome-url-major-mode-alist
-        '(("github\\.com" . gfm-mode))))
+  (if (fboundp 'gfm-mode)
+      (setq atomic-chrome-url-major-mode-alist
+            '(("github\\.com" . gfm-mode)))))
 
 ;; Open files as another user
 (unless sys/win32p
@@ -140,6 +141,16 @@
   :hook (after-init . persistent-scratch-setup-default)
   :bind (:map lisp-interaction-mode-map
               ("C-x C-s" . my-save-buffer)))
+
+;; Nice writing
+(use-package olivetti
+  :diminish
+  :bind ("C-<f6>" . olivetti-mode)
+  :hook (olivetti-mode . (lambda ()
+                           (if olivetti-mode
+                               (text-scale-set 2)
+                             (text-scale-set 0))))
+  :init (setq olivetti-body-width 0.618))
 
 ;; Misc
 (use-package copyit)                    ; copy path, url, etc.

@@ -47,31 +47,31 @@
 (defun set-package-archives (archives)
   "Set specific package ARCHIVES repository."
   (interactive
-   (list
-    (intern (completing-read "Switch to archives: "
-                             '(melpa melpa-mirror emacs-china netease tuna)))))
+   (list (intern (completing-read "Choose package archives: "
+                                  '(melpa melpa-mirror emacs-china netease tuna)))))
 
-  (let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                      (not (gnutls-available-p))))
-         (proto (if no-ssl "http" "https")))
-    (pcase archives
-      ('melpa
-       (setq package-archives `(,(cons "gnu"   (concat proto "://elpa.gnu.org/packages/"))
-                                ,(cons "melpa" (concat proto "://melpa.org/packages/")))))
-      ('melpa-mirror
-       (setq package-archives `(,(cons "gnu"   (concat proto "://elpa.gnu.org/packages/"))
-                                ,(cons "melpa" (concat proto "://www.mirrorservice.org/sites/melpa.org/packages/")))))
-      ('emacs-china
-       (setq package-archives `(,(cons "gnu"   (concat proto "://elpa.emacs-china.org/gnu/"))
-                                ,(cons "melpa" (concat proto "://elpa.emacs-china.org/melpa/")))))
-      ('netease
-       (setq package-archives `(,(cons "gnu"   (concat proto "://mirrors.163.com/elpa/gnu/"))
-                                ,(cons "melpa" (concat proto "://mirrors.163.com/elpa/melpa/")))))
-      ('tuna
-       (setq package-archives `(,(cons "gnu"   (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"))
-                                ,(cons "melpa" (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")))))
-      (archives
-       (error "Unknown archives: '%s'" `,archives))))
+  (setq package-archives
+        (let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
+                            (not (gnutls-available-p))))
+               (proto (if no-ssl "http" "https")))
+          (pcase archives
+            ('melpa
+             `(,(cons "gnu"   (concat proto "://elpa.gnu.org/packages/"))
+               ,(cons "melpa" (concat proto "://melpa.org/packages/"))))
+            ('melpa-mirror
+             `(,(cons "gnu"   (concat proto "://elpa.gnu.org/packages/"))
+               ,(cons "melpa" (concat proto "://www.mirrorservice.org/sites/melpa.org/packages/"))))
+            ('emacs-china
+             `(,(cons "gnu"   (concat proto "://elpa.emacs-china.org/gnu/"))
+               ,(cons "melpa" (concat proto "://elpa.emacs-china.org/melpa/"))))
+            ('netease
+             `(,(cons "gnu"   (concat proto "://mirrors.163.com/elpa/gnu/"))
+               ,(cons "melpa" (concat proto "://mirrors.163.com/elpa/melpa/"))))
+            ('tuna
+             `(,(cons "gnu"   (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"))
+               ,(cons "melpa" (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"))))
+            (archives
+             (error "Unknown archives: '%s'" archives)))))
 
   (message "Set package archives to '%s'." archives))
 
@@ -105,7 +105,10 @@
   (use-package benchmark-init
     :commands (benchmark-init/activate)
     :hook (after-init . benchmark-init/deactivate)
-    :init (benchmark-init/activate)))
+    :init (benchmark-init/activate)
+    :config
+    (with-eval-after-load 'swiper
+      (add-to-list 'swiper-font-lock-exclude 'benchmark-init/tree-mode))))
 
 ;; Extensions
 (use-package package-utils
