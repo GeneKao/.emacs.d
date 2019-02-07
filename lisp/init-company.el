@@ -1,17 +1,11 @@
 ;; init-company.el --- Initialize company configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Company configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,55 +22,50 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Auto-completion configurations.
+;;
+
 ;;; Code:
+
+(eval-when-compile
+  (require 'init-custom))
 
 (use-package company
   :diminish company-mode
+  :defines (company-dabbrev-ignore-case company-dabbrev-downcase)
   :bind (("M-/" . company-complete)
          ("C-c C-y" . company-yasnippet)
          :map company-active-map
          ("C-p" . company-select-previous)
          ("C-n" . company-select-next)
-         ;; ("<tab>" . company-complete-selection)
+         ("TAB" . company-complete-common-or-cycle)
+         ("<tab>" . company-complete-common-or-cycle)
+         ("S-TAB" . company-select-previous)
+         ("<backtab>" . company-select-previous)
          :map company-search-map
          ("C-p" . company-select-previous)
          ("C-n" . company-select-next))
-  :init (add-hook 'after-init-hook #'global-company-mode)
+  :hook (after-init . global-company-mode)
   :config
-  ;; aligns annotation to the right hand side
-  (setq company-tooltip-align-annotations t)
-
-  (setq company-tooltip-limit 12                      ; bigger popup window
-        company-idle-delay .2                         ; decrease delay before autocompletion popup shows
-        company-echo-delay 0                          ; remove annoying blinking
+  (setq company-tooltip-align-annotations t ; aligns annotation to the right
+        company-tooltip-limit 12            ; bigger popup window
+        company-idle-delay .2               ; decrease delay before autocompletion popup shows
+        company-echo-delay 0                ; remove annoying blinking
         company-minimum-prefix-length 2
         company-require-match nil
         company-dabbrev-ignore-case nil
         company-dabbrev-downcase nil)
 
   ;; Popup documentation for completion candidates
-  (use-package company-quickhelp
-    :if (display-graphic-p)
-    :bind (:map company-active-map
-                ("M-h" . company-quickhelp-manual-begin))
-    :init (company-quickhelp-mode 1)
-    :config (setq company-quickhelp-delay 0.8))
-
-  ;; Support yas in commpany
-  ;; Note: Must be the last to involve all backends
-  (defvar company-enable-yas t
-    "Enable yasnippet for all backends.")
-
-  (defun company-backend-with-yas (backend)
-    (if (or (not company-enable-yas)
-            (and (listp backend) (member 'company-yasnippet backend)))
-        backend
-      (append (if (consp backend) backend (list backend))
-              '(:with company-yasnippet))))
-
-  (setq company-backends (mapcar #'company-backend-with-yas company-backends)))
+  (when (display-graphic-p)
+    (use-package company-quickhelp
+      :bind (:map company-active-map
+                  ("M-h" . company-quickhelp-manual-begin))
+      :hook (global-company-mode . company-quickhelp-mode)
+      :config (setq company-quickhelp-delay 0.8))))
 
 (provide 'init-company)
 

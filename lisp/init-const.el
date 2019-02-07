@@ -1,17 +1,11 @@
-;; init-const.el --- Desfine constants.	-*- lexical-binding: t -*-
-;;
+;; init-const.el --- Define constants.	-*- lexical-binding: t -*-
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Constants.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,9 +22,17 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Define constants.
+;;
+
 ;;; Code:
+
+(defconst centaur-homepage
+  "https://github.com/seagle0128/.emacs.d"
+  "The Github page of Centuar Emacs.")
 
 (defconst sys/win32p
   (eq system-type 'windows-nt)
@@ -59,6 +61,23 @@
 (defconst sys/rootp
   (string-equal "root" (getenv "USER"))
   "Are you using ROOT user?")
+
+(defconst emacs/>=25p
+  (>= emacs-major-version 25)
+  "Emacs is 25 or above.")
+
+(defconst emacs/>=26p
+  (>= emacs-major-version 26)
+  "Emacs is 26 or above.")
+
+(defconst emacs/>=27p
+  (>= emacs-major-version 27)
+  "Emacs is 27 or above.")
+
+(defconst emacs/>=25.2p
+  (or emacs/>=26p
+      (and (= emacs-major-version 25) (>= emacs-minor-version 2)))
+  "Emacs is 25.2 or above.")
 
 (provide 'init-const)
 

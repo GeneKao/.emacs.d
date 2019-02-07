@@ -1,17 +1,11 @@
 ;; init-markdown.el --- Initialize markdown configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Markdown configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,73 +22,88 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Markdown configurations.
+;;
+
 ;;; Code:
 
 (use-package markdown-mode
-  :mode (("README\\.md\\'" . gfm-mode))
-  :config
-  (when (executable-find "multimarkdown")
-    (setq markdown-command "multimarkdown"))
+  :defines flycheck-markdown-markdownlint-cli-config
+  :preface
+  ;; Install: pip install grip
+  (defun markdown-preview-grip ()
+    "Render and preview with `grip'."
+    (interactive)
+    (let ((program "grip")
+          (port "6419")
+          (buffer "*gfm-to-html*"))
 
-  (with-eval-after-load 'flycheck
-    (defun set-markdownlint-config ()
-      "Set the `mardkownlint' config file for the current buffer."
-      (when (and (executable-find "markdownlint") buffer-file-name)
-        (let ((md-lint ".markdownlint.json"))
-          (let ((md-lint-dir (locate-dominating-file buffer-file-name md-lint)))
-            (if md-lint-dir
-                (setq-local flycheck-markdown-markdownlint-cli-config (concat md-lint-dir md-lint)))))))
-    (add-hook 'markdown-mode-hook #'set-markdownlint-config))
+      ;; If process exists, kill it.
+      (markdown-preview-kill-grip buffer)
 
-  ;; Preview
-  (setq markdown-css-paths '("http://thomasf.github.io/solarized-css/solarized-light.min.css"))
-
-  (use-package markdown-preview-mode
-    :bind (:map markdown-mode-command-map
-                ("P" . markdown-preview-mode))
-    :config
-    (setq markdown-preview-stylesheets
-          (list "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/2.9.0/github-markdown.min.css"
-                "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" "
-  <style>
-   .markdown-body {
-     box-sizing: border-box;
-     min-width: 200px;
-     max-width: 980px;
-     margin: 0 auto;
-     padding: 45px;
-   }
-
-   @media (max-width: 767px) {
-     .markdown-body {
-       padding: 15px;
-     }
-   }
-  </style>
-"))
-    (setq markdown-preview-javascript
-          (list "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js" "
-  <script>
-   $(document).on('mdContentChange', function() {
-     $('pre code').each(function(i, block) {
-       hljs.highlightBlock(block);
-     });
-   });
-  </script>
-")))
-
-  ;; Render and preview via `grip'
-  (when (executable-find "grip")
-    (defun markdown-to-html ()
-      (interactive)
-      (start-process "grip" "*gfm-to-html*" "grip" (buffer-file-name) "5000")
-      (browse-url (format "http://localhost:5000/%s.%s"
+      ;; Start a new `grip' process.
+      (start-process program buffer program (buffer-file-name) port)
+      (sleep-for 1) ; wait for process start
+      (browse-url (format "http://localhost:%s/%s.%s"
+                          port
                           (file-name-base)
                           (file-name-extension
-                           (buffer-file-name)))))
-    (bind-key "V" #'markdown-to-html markdown-mode-command-map)))
+                           (buffer-file-name))))))
+
+  (defun markdown-preview-kill-grip (&optional buffer)
+    "Kill `grip' process."
+    (interactive)
+    (let ((process (get-buffer-process (or buffer "*gfm-to-html*"))))
+      (when process
+        (kill-process process)
+        (message "Process %s killed" process))))
+
+  ;; Install: npm i -g markdownlint-cli
+  (defun set-flycheck-markdownlint ()
+    "Set the `mardkownlint' config file for the current buffer."
+    (let* ((md-lint ".markdownlint.json")
+           (md-file buffer-file-name)
+           (md-lint-dir (and md-file
+                             (locate-dominating-file md-file md-lint))))
+      (setq-local flycheck-markdown-markdownlint-cli-config
+                  (concat md-lint-dir md-lint))))
+  :bind (:map markdown-mode-command-map
+              ("g" .  markdown-preview-grip)
+              ("k" .  markdown-preview-kill-grip))
+  :hook ((markdown-mode . flyspell-mode)
+         (markdown-mode . auto-fill-mode)
+         (markdown-mode . set-flycheck-markdownlint))
+  :mode (("README\\.md\\'" . gfm-mode))
+  :config
+  (setq markdown-command-needs-filename t)
+  (setq markdown-content-type "application/xhtml+xml")
+  (setq markdown-css-paths '("https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css"
+                             "http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css"))
+  (setq markdown-xhtml-header-content "
+<meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
+<style>
+body {
+  box-sizing: border-box;
+  max-width: 740px;
+  width: 100%;
+  margin: 40px auto;
+  padding: 0 10px;
+}
+</style>
+<script src='http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/highlight.min.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('markdown-body');
+  document.querySelectorAll('pre[lang] > code').forEach((code) => {
+    code.classList.add(code.parentElement.lang);
+    hljs.highlightBlock(code);
+  });
+});
+</script>
+"))
 
 (provide 'init-markdown)
 

@@ -1,17 +1,11 @@
 ;; init-eshell.el --- Initialize eshell configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             EShell configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,30 +22,35 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Eshell configurations.
+;;
+
 ;;; Code:
 
 ;; Emacs command shell
 (use-package eshell
   :ensure nil
-  :config
-  ;; Eshell prompt for git users
-  (use-package eshell-git-prompt
-    :init
-    (add-hook 'eshell-load-hook
-              (lambda () (eshell-git-prompt-use-theme "robbyrussell"))))
-
-  ;; cd to frequent directory in eshell
-  (use-package eshell-z
-    :init (add-hook 'eshell-mode-hook
-                    (lambda () (require 'eshell-z))))
-
+  :defines (compilation-last-buffer eshell-prompt-function)
+  :commands (eshell/alias
+             eshell-send-input eshell-flatten-list
+             eshell-interactive-output-p eshell-parse-command)
+  :hook (eshell-mode . (lambda ()
+                         (bind-key "C-l" 'eshell/clear eshell-mode-map)
+                         (eshell/alias "f" "find-file $1")
+                         (eshell/alias "fo" "find-file-other-window $1")
+                         (eshell/alias "d" "dired $1")
+                         (eshell/alias "ll" "ls -l")
+                         (eshell/alias "la" "ls -al")))
+  :preface
   (defun eshell/clear ()
     "Clear the eshell buffer."
     (interactive)
     (let ((inhibit-read-only t))
-      (erase-buffer)))
+      (erase-buffer)
+      (eshell-send-input)))
 
   (defun eshell/emacs (&rest args)
     "Open a file (ARGS) in Emacs.  Some habits die hard."
@@ -85,9 +84,8 @@
     "View FILE.  A version of `view-file' which properly rets the eshell prompt."
     (interactive "fView file: ")
     (unless (file-exists-p file) (error "%s does not exist" file))
-    (let ((had-a-buf (get-file-buffer file))
-          (buffer (find-file-noselect file)))
-      (if (eq (with-current-buffer buffer (get major-mode 'mode-class))
+    (let ((buffer (find-file-noselect file)))
+      (if (eq (get (buffer-local-value 'major-mode buffer) 'mode-class)
               'special)
           (progn
             (switch-to-buffer buffer)
@@ -109,7 +107,39 @@
             (forward-line line))
         (eshell-view-file (pop args)))))
 
-  (defalias 'eshell/more 'eshell/less))
+  (defalias 'eshell/more 'eshell/less)
+  :config
+  ;;  Display extra information for prompt
+  (use-package eshell-prompt-extras
+    :after esh-opt
+    :defines eshell-highlight-prompt
+    :commands (epe-theme-lambda epe-theme-dakrone epe-theme-pipeline)
+    :init (setq eshell-highlight-prompt nil
+                eshell-prompt-function 'epe-theme-lambda))
+
+  ;; Fish-like history autosuggestions
+  (use-package esh-autosuggest
+    :defines ivy-display-functions-alist
+    :bind (:map eshell-mode-map
+                ([remap eshell-pcomplete] . completion-at-point))
+    :hook (eshell-mode . esh-autosuggest-mode)
+    :config
+    (with-eval-after-load 'ivy
+      (defun setup-eshell-ivy-completion ()
+        (setq-local ivy-display-functions-alist
+                    (remq (assoc 'ivy-completion-in-region ivy-display-functions-alist)
+                          ivy-display-functions-alist)))
+      (add-hook 'eshell-mode-hook #'setup-eshell-ivy-completion)))
+
+  ;; Eldoc support
+  (use-package esh-help
+    :init (setup-esh-help-eldoc))
+
+  ;; `cd' to frequent directory in eshell
+  (use-package eshell-z
+    :hook (eshell-mode
+           .
+           (lambda () (require 'eshell-z)))))
 
 (provide 'init-eshell)
 

@@ -1,17 +1,11 @@
-;; init-lsp.el --- Initialize lsp (Language Server Protocol) configurations.	-*- lexical-binding: t -*-
-;;
+;; init-lsp.el --- Initialize lsp configurations.	-*- lexical-binding: t -*-
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Configurations for lsp.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,54 +22,89 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Language Server Protocol configurations.
+;;
+
 ;;; Code:
 
-(when (>= emacs-major-version 25)
-  ;; Emacs client for the Language Server Protocol
-  ;; https://github.com/emacs-lsp/lsp-mode
-  (use-package lsp-mode
-    :diminish lsp-mode
-    :config
-    (use-package lsp-ui
-      :commands (lsp-ui-mode lsp-ui-peek-find-definistions lsp-ui-peek-find-references)
-      :bind (:map lsp-ui-mode-map
-                  ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-                  ([remap xref-find-references] . lsp-ui-peek-find-references))
-      :init (add-hook 'lsp-mode-hook 'lsp-ui-mode))
+(eval-when-compile
+  (require 'init-custom))
 
-    (with-eval-after-load 'company
-      (use-package company-lsp
-        :init (cl-pushnew (company-backend-with-yas 'company-lsp) company-backends))))
+(pcase centaur-lsp
+  ('eglot
+   (use-package eglot
+     :hook (prog-mode . eglot-ensure)))
 
-  ;; Go support for lsp-mode using Sourcegraph's Go Language Server
-  ;; Install: go get github.com/sourcegraph/go-langserver
-  (use-package lsp-go
-    :commands lsp-go-enable
-    :init (add-hook 'go-mode-hook #'lsp-go-enable))
+  ('lsp-mode
+   ;; Emacs client for the Language Server Protocol
+   ;; https://github.com/emacs-lsp/lsp-mode#supported-languages
+   (use-package lsp-mode
+     :diminish lsp-mode
+     :hook (prog-mode . lsp)
+     :init
+     (setq lsp-auto-guess-root t)       ; Detect project root
+     (setq lsp-prefer-flymake nil)      ; Use lsp-ui and flycheck
 
-  ;; Python support for lsp-mode using pyls.
-  ;; Install: pip install python-language-server
-  (use-package lsp-python
-    :commands lsp-python-enable
-    :init (add-hook 'python-mode-hook #'lsp-python-enable))
+     ;; Support LSP in org babel
+     ;; https://github.com/emacs-lsp/lsp-mode/issues/377
+     (cl-defmacro lsp-org-babel-enbale (lang)
+       "Support LANG in org source code block."
+       ;; (cl-check-type lang symbolp)
+       (let* ((edit-pre (intern (format "org-babel-edit-prep:%s" lang)))
+              (intern-pre (intern (format "lsp--%s" (symbol-name edit-pre)))))
+         `(progn
+            (defun ,intern-pre (info)
+              (let ((lsp-file (or (->> info caddr (alist-get :file))
+                                  buffer-file-name)))
+                (setq-local buffer-file-name lsp-file)
+                (setq-local lsp-buffer-uri (lsp--path-to-uri lsp-file))
+                (lsp)))
+            (if (fboundp ',edit-pre)
+                (advice-add ',edit-pre :after ',intern-pre)
+              (progn
+                (defun ,edit-pre (info)
+                  (,intern-pre info))
+                (put ',edit-pre 'function-documentation
+                     (format "Prepare local buffer environment for org source block (%s)."
+                             (upcase ,lang))))))))
 
-  ;; Javascript, Typescript and Flow support for lsp-mode
-  ;; Install: npm i -g javascript-typescript-langserver
-  (use-package lsp-javascript-typescript
-    :commands lsp-javascript-typescript-enable
-    :init
-    (add-hook 'js2-mode-hook #'lsp-javascript-typescript-enable)
-    (add-hook 'typescript-mode-hook #'lsp-javascript-typescript-enable))
+     (defvar org-babel-lang-list
+       '("go" "python" "ipython" "ruby" "js" "css" "sass" "C" "rust" "java"))
+     (add-to-list 'org-babel-lang-list (if emacs/>=26p "shell" "sh"))
+     (dolist (lang org-babel-lang-list)
+       (eval `(lsp-org-babel-enbale ,lang)))
+     :config (require 'lsp-clients))
 
-  ;; Java support for lsp-mode using the Eclipse JDT Language Server.
-  ;; Install:
-  ;; wget http://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz
-  ;; tar jdt-language-server-latest.tar.gz -C ~/.emacs.d/eclipse.jdt.ls/server/
-  (use-package lsp-java
-    :commands lsp-java-enable
-    :init (add-hook 'java-mode-hook #'lsp-java-enable)))
+   (use-package lsp-ui
+     :bind (:map lsp-ui-mode-map
+                 ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+                 ([remap xref-find-references] . lsp-ui-peek-find-references)
+                 ("C-c u" . lsp-ui-imenu)))
+
+   (use-package company-lsp)
+
+   ;; C/C++/Objective-C support
+   (use-package ccls
+     :defines projectile-project-root-files-top-down-recurring
+     :hook ((c-mode c++-mode objc-mode cuda-mode) . (lambda ()
+                                                      (require 'ccls)
+                                                      (lsp)))
+     :config
+     (with-eval-after-load 'projectile
+       (setq projectile-project-root-files-top-down-recurring
+             (append '("compile_commands.json"
+                       ".ccls")
+                     projectile-project-root-files-top-down-recurring))))
+
+   ;; Java support
+   (use-package lsp-java
+     :hook (java-mode . (lambda ()
+                          (require 'lsp-java)
+                          (lsp))))
+   ))
 
 (provide 'init-lsp)
 

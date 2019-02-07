@@ -1,17 +1,11 @@
 ;; init-projectile.el --- Initialize projectile configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Projectile configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,22 +22,30 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Projectile configurations.
+;;
+
 ;;; Code:
 
-(eval-when-compile (require 'init-const))
+(eval-when-compile
+  (require 'init-const))
 
 ;; Manage and navigate projects
 (use-package projectile
-  :bind (("s-t" . projectile-find-file)) ; `cmd-t' or `super-t'
-  :init (add-hook 'after-init-hook #'projectile-mode)
-  :config
-  (setq projectile-mode-line
-        '(:eval (format "[%s]" (projectile-project-name))))
-
+  :diminish
+  :bind (:map projectile-mode-map
+              ("s-t" . projectile-find-file) ; `cmd-t' or `super-t'
+              ("C-c p" . projectile-command-map))
+  :hook (after-init . projectile-mode)
+  :init
+  (setq projectile-mode-line-prefix "")
   (setq projectile-sort-order 'recentf)
   (setq projectile-use-git-grep t)
+  :config
+  (projectile-update-mode-line)         ; Update mode-line at the first time
 
   ;; Use the faster searcher to handle project files:
   ;; ripgrep `rg', the platinum searcher `pt' or the silver searcher `ag'
@@ -78,7 +80,7 @@
       (setq projectile-enable-caching nil))
 
     ;; FIXME: too slow while getting submodule files on Windows
-    (setq projectile-git-submodule-command ""))
+    (setq projectile-git-submodule-command nil))
 
   ;; Support Perforce project
   (let ((val (or (getenv "P4CONFIG") ".p4config")))
@@ -87,7 +89,7 @@
   ;; Rails project
   (use-package projectile-rails
     :diminish projectile-rails-mode
-    :init (projectile-rails-global-mode 1)))
+    :hook (projectile-mode . projectile-rails-global-mode)))
 
 (provide 'init-projectile)
 

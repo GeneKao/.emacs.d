@@ -1,17 +1,11 @@
 ;; init-ui.el --- Initialize ui configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             UI configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,8 +22,12 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Visual (UI) configurations.
+;;
+
 ;;; Code:
 
 (eval-when-compile
@@ -37,75 +35,108 @@
   (require 'init-custom))
 
 ;; Logo
-(setq fancy-splash-image my-logo)
+(setq fancy-splash-image centaur-logo)
 
 ;; Title
 (setq frame-title-format
-      '("GNU Emacs " emacs-version "@" user-login-name " : "
+      '("Centaur Emacs - "
         (:eval (if (buffer-file-name)
                    (abbreviate-file-name (buffer-file-name))
                  "%b"))))
 (setq icon-title-format frame-title-format)
 
+(when sys/mac-x-p
+  (add-to-list 'default-frame-alist '(ns-appearance . dark))
+  (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+  (add-hook 'after-load-theme-hook
+            (lambda ()
+              (let ((bg (frame-parameter nil 'background-mode)))
+                (set-frame-parameter nil 'ns-appearance bg)
+                (setcdr (assq 'ns-appearance default-frame-alist) bg)))))
+
 ;; Menu/Tool/Scroll bars
-(unless sys/mac-x-p (menu-bar-mode -1))
-(and (bound-and-true-p tool-bar-mode) (tool-bar-mode -1))
-(and (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
-(and (bound-and-true-p horizontal-scroll-bar-mode) (horizontal-scroll-bar-mode -1))
+(unless emacs/>=27p        ; Move to early init-file in 27
+  (unless sys/mac-x-p (menu-bar-mode -1))
+  (and (bound-and-true-p tool-bar-mode) (tool-bar-mode -1))
+  (and (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)))
 
 ;; Theme
-(cond
- ((eq my-theme 'default)
-  (use-package monokai-theme
-    :init (load-theme 'monokai t)))
- ((eq my-theme 'doom)
-  (use-package doom-themes
-    :preface (defvar doom-nord-region-highlight t)
-    :init (load-theme 'doom-one t)
-    :config
-    (doom-themes-visual-bell-config)
-    (doom-themes-org-config)))
- ((eq my-theme 'dark)
-  (use-package spacemacs-theme
-    :init (load-theme 'spacemacs-dark t)))
- ((eq my-theme 'light)
-  (use-package spacemacs-theme
-    :init (load-theme 'spacemacs-light t)))
- ((eq my-theme 'daylight)
-  (use-package leuven-theme
-    :init (load-theme 'leuven t))))
+(defvar after-load-theme-hook nil
+  "Hook run after a color theme is loaded using `load-theme'.")
+(defun run-after-load-theme-hook (&rest _)
+  "Run `after-load-theme-hook'."
+  (run-hooks 'after-load-theme-hook))
+(advice-add #'load-theme :after #'run-after-load-theme-hook)
 
-;; Modeline
-(use-package spaceline-config
-  :ensure spaceline
-  :commands spaceline-spacemacs-theme
-  :init (add-hook 'after-init-hook #'spaceline-spacemacs-theme)
-  :config
-  (setq spaceline-pre-hook #'powerline-reset) ; Fix for changing themes
-  (setq spaceline-highlight-face-func 'spaceline-highlight-face-modified)
-  (setq powerline-default-separator (if window-system 'arrow 'utf-8))
-  (setq powerline-image-apple-rgb sys/mac-x-p))
+(defun standardize-theme (theme)
+  "Standardize THEME."
+  (pcase theme
+    ('default 'doom-one)
+    ('classic 'doom-molokai)
+    ('doom 'doom-one)
+    ('dark 'doom-Iosvkem)
+    ('light 'doom-one-light)
+    ('daylight 'doom-tomorrow-day)
+    (_ theme)))
 
-;; Fonts
-(use-package cnfonts
-  :init
-  (add-hook 'after-init-hook #'cnfonts-enable)
-  :config
-  (setq cnfonts-keep-frame-size nil)
-  (add-hook 'window-setup-hook
-            (lambda ()
-              (setq cnfonts-keep-frame-size t)))
-  ;; `cnfonts' has issue on Emacs 26
-  (balance-windows)
+(defun is-doom-theme-p (theme)
+  "Check whether the THEME is a doom theme. THEME is a symbol."
+  (string-prefix-p "doom" (symbol-name (standardize-theme theme))))
 
-  (setq cnfonts-use-cache t)
-  (setq cnfonts-profiles
-        '("program1" "program2" "program3" "org-mode" "read-book"))
-  (setq cnfonts--profiles-steps '(("program1" . 4)
-                                  ("program2" . 5)
-                                  ("program3" . 3)
-                                  ("org-mode" . 6)
-                                  ("read-book" . 8))))
+(defun centaur-load-theme (theme)
+  "Set color THEME."
+  (interactive
+   (list
+    (intern (completing-read "Load theme: "
+                             '(default classic dark light daylight)))))
+  (let ((theme (standardize-theme theme)))
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme theme t)))
+
+(if (is-doom-theme-p centaur-theme)
+    (progn
+      (use-package doom-themes
+        :init (centaur-load-theme centaur-theme)
+        :config
+        ;; Enable flashing mode-line on errors
+        (doom-themes-visual-bell-config)
+        ;; Corrects (and improves) org-mode's native fontification.
+        (doom-themes-org-config)
+        ;; Enable custom treemacs theme (all-the-icons must be installed!)
+        (doom-themes-treemacs-config))
+
+      ;; Make certain buffers grossly incandescent
+      (use-package solaire-mode
+        :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
+               (minibuffer-setup . solaire-mode-in-minibuffer)
+               (after-load-theme . solaire-mode-swap-bg))
+        :config
+        (solaire-mode-swap-bg)
+        (advice-add #'persp-load-state-from-file
+                    :after #'solaire-mode-restore-persp-mode-buffers))
+
+      (use-package doom-modeline
+        :hook (after-init . doom-modeline-init)))
+  (progn
+    (ignore-errors
+      (centaur-load-theme centaur-theme))
+
+    (use-package telephone-line
+      :init (setq ns-use-srgb-colorspace nil)
+      :hook (after-init . telephone-line-mode))))
+
+;; Mode-line
+(defun mode-line-height ()
+  "Get current height of mode-line."
+  (- (elt (window-pixel-edges) 3)
+     (elt (window-inside-pixel-edges) 3)))
+
+(use-package hide-mode-line
+  :hook (((completion-list-mode
+           completion-in-region-mode
+           neotree-mode
+           treemacs-mode)
+          . hide-mode-line-mode)))
 
 ;; Line and Column
 (setq-default fill-column 80)
@@ -116,28 +147,40 @@
 (if (fboundp 'display-line-numbers-mode)
     (use-package display-line-numbers
       :ensure nil
-      :init (add-hook 'prog-mode-hook #'display-line-numbers-mode))
+      :hook (prog-mode . display-line-numbers-mode))
   (use-package linum-off
     :demand
-    :init (add-hook 'after-init-hook #'global-linum-mode)
-    :config (setq linum-format "%4d ")))
+    :defines linum-format
+    :hook (after-init . global-linum-mode)
+    :config
+    (setq linum-format "%4d ")
+
+    ;; Highlight current line number
+    (use-package hlinum
+      :defines linum-highlight-in-all-buffersp
+      :hook (global-linum-mode . hlinum-activate)
+      :init
+      (setq linum-highlight-in-all-buffersp t)
+      (custom-set-faces
+       `(linum-highlight-face
+         ((t (:inherit 'default :background ,(face-background 'default) :foreground ,(face-foreground 'default)))))))))
 
 ;; Mouse & Smooth Scroll
 ;; Scroll one line at a time (less "jumpy" than defaults)
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))
 (setq mouse-wheel-progressive-speed nil)
 (setq scroll-step 1
-      scroll-margin 1
+      scroll-margin 0
       scroll-conservatively 100000)
 
 ;; Display Time
 (use-package time
   :ensure nil
   :unless (display-graphic-p)
-  :preface
+  :hook (after-init . display-time-mode)
+  :init
   (setq display-time-24hr-format t)
-  (setq display-time-day-and-date t)
-  :init (add-hook 'after-init-hook #'display-time-mode))
+  (setq display-time-day-and-date t))
 
 ;; Misc
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -147,6 +190,7 @@
 ;; (blink-cursor-mode -1)
 (setq track-eol t)                      ; Keep cursor at end of lines. Require line-move-visual is nil.
 (setq line-move-visual nil)
+(setq inhibit-compacting-font-caches t) ; Don’t compact font caches during GC.
 
 ;; Don't open a file in a new frame
 (when (boundp 'ns-pop-up-frames)
@@ -157,10 +201,10 @@
   (setq x-gtk-use-system-tooltips nil))
 
 ;; Toggle fullscreen
-(bind-keys ([(control f11)] . toggle-frame-fullscreen)
-           ([(control super f)] . toggle-frame-fullscreen) ; Compatible with macOS
-           ([(super return)] . toggle-frame-fullscreen)
-           ([(meta shift return)] . toggle-frame-fullscreen))
+(bind-keys ("C-<f11>" . toggle-frame-fullscreen)
+           ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS
+           ("S-s-<return>" . toggle-frame-fullscreen)
+           ("M-S-<return>" . toggle-frame-fullscreen))
 
 (provide 'init-ui)
 

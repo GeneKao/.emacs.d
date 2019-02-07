@@ -1,17 +1,11 @@
 ;; init-ruby.el --- Initialize ruby configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Ruby configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,9 +22,16 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Ruby configurations.
+;;
+
 ;;; Code:
+
+(eval-when-compile
+  (require 'init-custom))
 
 (use-package ruby-mode
   :ensure nil
@@ -38,35 +39,36 @@
   :interpreter "ruby"
   :config
   ;; Code navigation, documentation lookup and completion for Ruby
-  (use-package robe
-    :diminish robe-mode
-    :init
-    (add-hook 'ruby-mode-hook #'robe-mode)
-
-    (with-eval-after-load 'company
-      (cl-pushnew (company-backend-with-yas 'company-robe) company-backends)))
+  (unless centaur-lsp
+    (use-package robe
+      :diminish robe-mode
+      :defines company-backends
+      :hook (ruby-mode . robe-mode)
+      :config
+      (with-eval-after-load 'company
+        (cl-pushnew 'company-robe company-backends))))
 
   ;; Ruby refactoring helpers
   (use-package ruby-refactor
     :diminish ruby-refactor-mode
-    :init (add-hook 'ruby-mode-hook #'ruby-refactor-mode-launch))
+    :hook (ruby-mode . ruby-refactor-mode-launch))
 
   ;; Run a Ruby process in a buffer
   (use-package inf-ruby
-    :init
-    (add-hook 'ruby-mode-hook #'inf-ruby-minor-mode)
-    (add-hook 'compilation-filter-hook #'inf-ruby-auto-enter))
+    :hook ((ruby-mode . inf-ruby-minor-mode)
+           (compilation-filter . inf-ruby-auto-enter)))
 
   ;; Rubocop
+  ;; Install: gem install rubocop
   (use-package rubocop
     :diminish rubocop-mode
-    :init (add-hook 'ruby-mode-hook #'rubocop-mode))
+    :hook (ruby-mode . rubocop-mode))
 
   ;; RSpec
   (use-package rspec-mode
     :diminish rspec-mode
     :commands rspec-install-snippets
-    :init (add-hook 'dired-mode-hook #'rspec-dired-mode)
+    :hook (dired-mode . rspec-dired-mode)
     :config (with-eval-after-load 'yasnippet
               (rspec-install-snippets)))
 
@@ -80,7 +82,7 @@
   ;; Ruby YARD comments
   (use-package yard-mode
     :diminish yard-mode
-    :init (add-hook 'ruby-mode-hook #'yard-mode)))
+    :hook (ruby-mode . yard-mode)))
 
 ;; YAML mode
 (use-package yaml-mode)

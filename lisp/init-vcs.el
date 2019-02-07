@@ -1,17 +1,11 @@
 ;; init-vcs.el --- Initialize version control system configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Version control systems, e.g. Git, SVN.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,40 +22,53 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Version control systems.
+;;
+
 ;;; Code:
 
-(eval-when-compile (require 'init-const))
+(eval-when-compile
+  (require 'init-const)
+  (require 'init-custom))
 
 ;; Git
 (use-package magit
+  :commands (magit-define-popup-switch magit-refresh-buffer)
+  :functions (all-the-icons-faicon all-the-icons-alltheicon)
   :bind (("C-x g" . magit-status)
          ("C-x M-g" . magit-dispatch-popup)
          ("C-c M-g" . magit-file-popup))
   :config
   (when sys/win32p
     (setenv "GIT_ASKPASS" "git-gui--askpass"))
+  (magit-define-popup-switch 'magit-fetch-popup
+    ?t "Fetch all tags" "--tags"))
 
-  ;; Github integration (require Emacs>=25)
-  (when (>= emacs-major-version 25)
-    (use-package magithub
-      :init (magithub-feature-autoinject t)))
+;; Access Git forges from Magit
+(use-package forge)
 
-  ;; Gitflow externsion for Magit
-  (use-package magit-gitflow
-    :diminish magit-gitflow-mode
-    :bind (:map magit-status-mode-map
-                ("G" . magit-gitflow-popup))
-    :init (add-hook 'magit-mode-hook #'turn-on-magit-gitflow)
-    :config
-    (magit-define-popup-action 'magit-dispatch-popup
-      ?G "GitFlow" #'magit-gitflow-popup ?!))
+;; Gitflow externsion for Magit
+(use-package magit-gitflow
+  :diminish magit-gitflow-mode
+  :functions magit-define-popup-action
+  :bind (:map magit-status-mode-map
+              ("G" . magit-gitflow-popup))
+  :hook (magit-mode . turn-on-magit-gitflow)
+  :config
+  (magit-define-popup-action 'magit-dispatch-popup
+    ?G "GitFlow" #'magit-gitflow-popup ?!))
 
-  ;; Git-Svn extension for Magit
-  (use-package magit-svn
-    :diminish magit-svn-mode
-    :init (add-hook 'magit-mode-hook #'magit-svn-mode)))
+;; Git-Svn extension for Magit
+(use-package magit-svn
+  :diminish magit-svn-mode
+  :hook (magit-mode . magit-svn-mode))
+
+;; Show source file TODOs in Magit
+(use-package magit-todos
+  :hook (magit-status-mode . magit-todos-mode))
 
 ;;; Pop up last commit information of current line
 (use-package git-messenger
@@ -86,13 +93,10 @@
               ("C" . smeargle-commits)
               ("R" . smeargle-clear)))
 
-;; Git modes
+;; Git related modes
 (use-package gitattributes-mode)
 (use-package gitconfig-mode)
 (use-package gitignore-mode)
-
-;; Subversion
-(use-package psvn)
 
 ;; Open github/gitlab/bitbucket page
 (use-package browse-at-remote)

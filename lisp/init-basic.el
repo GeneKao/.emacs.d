@@ -1,17 +1,11 @@
 ;; init-basic.el --- Initialize basic configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Basic configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,8 +22,12 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Basic configuration.
+;;
+
 ;;; Code:
 
 (eval-when-compile
@@ -37,8 +35,8 @@
   (require 'init-custom))
 
 ;; Personal information
-(setq user-full-name my-full-name)
-(setq user-mail-address my-mail-address)
+(setq user-full-name centaur-full-name)
+(setq user-mail-address centaur-mail-address)
 
 ;; Key Modifiers
 (when sys/win32p
@@ -62,44 +60,45 @@
 ;; Start server
 (use-package server
   :ensure nil
-  :init (add-hook 'after-init-hook #'server-mode))
+  :hook (after-init . server-mode))
 
 ;; History
 (use-package saveplace
   :ensure nil
-  :init
-  ;; Emacs 25 has a proper mode for `save-place'
-  (if (fboundp 'save-place-mode)
-      (add-hook 'after-init-hook #'save-place-mode)
-    (setq save-place t)))
+  :hook (after-init . save-place-mode))
 
 (use-package recentf
   :ensure nil
-  :init
-  (setq recentf-max-saved-items 200)
-
   ;; lazy load recentf
-  ;; (add-hook 'after-init-hook #'recentf-mode)
-  (add-hook 'find-file-hook (lambda () (unless recentf-mode
-                                         (recentf-mode)
-                                         (recentf-track-opened-file))))
+  ;; :hook (find-file . (lambda () (unless recentf-mode
+  ;;                            (recentf-mode)
+  ;;                            (recentf-track-opened-file))))
+  :init
+  (add-hook 'after-init-hook #'recentf-mode)
+  (setq recentf-max-saved-items 200)
   :config
   (add-to-list 'recentf-exclude (expand-file-name package-user-dir))
+  (add-to-list 'recentf-exclude ".cache")
+  (add-to-list 'recentf-exclude ".cask")
+  (add-to-list 'recentf-exclude ".elfeed")
   (add-to-list 'recentf-exclude "bookmarks")
+  (add-to-list 'recentf-exclude "cache")
+  (add-to-list 'recentf-exclude "persp-confs")
+  (add-to-list 'recentf-exclude "recentf")
+  (add-to-list 'recentf-exclude "url")
   (add-to-list 'recentf-exclude "COMMIT_EDITMSG\\'"))
 
 (use-package savehist
   :ensure nil
-  :init
-  (setq enable-recursive-minibuffers t ; Allow commands in minibuffers
-        history-length 1000
-        savehist-additional-variables '(mark-ring
-                                        global-mark-ring
-                                        search-ring
-                                        regexp-search-ring
-                                        extended-command-history)
-        savehist-autosave-interval 60)
-  (add-hook 'after-init-hook #'savehist-mode))
+  :hook (after-init . savehist-mode)
+  :init (setq enable-recursive-minibuffers t ; Allow commands in minibuffers
+              history-length 1000
+              savehist-additional-variables '(mark-ring
+                                              global-mark-ring
+                                              search-ring
+                                              regexp-search-ring
+                                              extended-command-history)
+              savehist-autosave-interval 300))
 
 (provide 'init-basic)
 

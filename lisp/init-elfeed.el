@@ -1,4 +1,4 @@
-;; init-kill-ring.el --- Initialize kill-ring configurations.	-*- lexical-binding: t -*-
+;; init-elfeed.el --- Initialize elfeed.	-*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Vincent Zhang
 
@@ -25,22 +25,22 @@
 
 ;;; Commentary:
 ;;
-;; Kill ring configurations.
+;; A RSS feed reader.
 ;;
 
 ;;; Code:
 
-(setq kill-ring-max 200)
+(use-package elfeed
+  :bind ("C-x w" . elfeed)
+  :config
+  (setq elfeed-db-directory (expand-file-name ".elfeed" user-emacs-directory))
+  (setq elfeed-feeds
+        '("http://planet.emacsen.org/atom.xml"
+          "http://www.masteringemacs.org/feed/"
+          "https://oremacs.com/atom.xml"
+          "https://pinecast.com/feed/emacscast")))
 
-;; Save clipboard contents into kill-ring before replace them
-(setq save-interprogram-paste-before-kill t)
-
-;; Kill & Mark things easily
-(use-package easy-kill
-  :bind (([remap kill-ring-save] . easy-kill)
-         ([remap mark-sexp] . easy-mark)))
-
-(provide 'init-kill-ring)
+(provide 'init-elfeed)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-kill-ring.el ends here
+;;; init-elfeed.el ends here

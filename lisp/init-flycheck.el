@@ -1,17 +1,11 @@
 ;; init-flycheck.el --- Initialize flycheck configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Flycheck configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,26 +22,35 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Flycheck configurations.
+;;
+
 ;;; Code:
 
 (use-package flycheck
   :diminish flycheck-mode
-  :init (add-hook 'after-init-hook #'global-flycheck-mode)
+  :hook (after-init . global-flycheck-mode)
   :config
   (setq flycheck-indication-mode 'right-fringe)
   (setq flycheck-emacs-lisp-load-path 'inherit)
-  ;; (setq flycheck-check-syntax-automatically '(save mode-enabled))
+
+  ;; Only check while saving and opening files
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
 
   ;; Display Flycheck errors in GUI tooltips
-  (use-package flycheck-pos-tip
-    :init (flycheck-pos-tip-mode 1)
-    :config (setq flycheck-pos-tip-timeout 15))
+  (if (display-graphic-p)
+      (use-package flycheck-pos-tip
+        :hook (global-flycheck-mode . flycheck-pos-tip-mode)
+        :config (setq flycheck-pos-tip-timeout 30))
+    (use-package flycheck-popup-tip
+      :hook (global-flycheck-mode . flycheck-popup-tip-mode)))
 
   ;; Jump to and fix syntax errors via `avy'
   (use-package avy-flycheck
-    :init (avy-flycheck-setup)))
+    :hook (global-flycheck-mode . avy-flycheck-setup)))
 
 (provide 'init-flycheck)
 

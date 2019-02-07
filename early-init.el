@@ -1,4 +1,4 @@
-;; init-kill-ring.el --- Initialize kill-ring configurations.	-*- lexical-binding: t -*-
+;;; early-init.el --- Early initialization. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Vincent Zhang
 
@@ -25,22 +25,26 @@
 
 ;;; Commentary:
 ;;
-;; Kill ring configurations.
+;; Emacs HEAD (27+) introduces early-init.el, which is run before init.el,
+;; before package and UI initialization happens.
 ;;
 
 ;;; Code:
 
-(setq kill-ring-max 200)
+;; Defer garbage collection further back in the startup process
+(setq gc-cons-threshold 80000000)
 
-;; Save clipboard contents into kill-ring before replace them
-(setq save-interprogram-paste-before-kill t)
+;; Package initialize occurs automatically, before `user-init-file' is
+;; loaded, but after `early-init-file'. We handle package
+;; initialization, so we must prevent Emacs from doing it early!
+(setq package-enable-at-startup nil)
 
-;; Kill & Mark things easily
-(use-package easy-kill
-  :bind (([remap kill-ring-save] . easy-kill)
-         ([remap mark-sexp] . easy-mark)))
-
-(provide 'init-kill-ring)
+;; Faster to disable these here (before they've been initialized)
+(unless (and (display-graphic-p) (eq system-type 'darwin))
+  (setq menu-bar-mode nil))
+(setq tool-bar-mode nil)
+(setq scroll-bar-mode nil)
+(modify-all-frames-parameters '((vertical-scroll-bars)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-kill-ring.el ends here
+;;; early-init.el ends here

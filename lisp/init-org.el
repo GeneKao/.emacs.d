@@ -1,17 +1,11 @@
 ;; init-org.el --- Initialize org configurations.	-*- lexical-binding: t -*-
-;;
+
+;; Copyright (C) 2018 Vincent Zhang
+
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Version: 3.3.0
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Org configurations.
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,75 +22,172 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Org configurations.
+;;
+
 ;;; Code:
+
+(eval-when-compile
+  (require 'init-const))
 
 (use-package org
   :ensure nil
+  :commands org-try-structure-completion
+  :functions hydra-org-template/body
   :bind (("C-c a" . org-agenda)
-         ("C-c B" . org-switchb)
-         :map org-mode-map
-         ("C-c l" . org-store-link))
-  :init
-  (add-hook 'org-mode-hook (lambda ()
-                             (org-indent-mode 1)
-                             (diminish 'org-indent-mode)))
+         ("C-c b" . org-switchb))
+  :hook (org-indent-mode . (lambda() (diminish 'org-indent-mode)))
   :config
-  (setq org-agenda-files '("~/org"))
-  (setq org-todo-keywords
-        '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")))
-  (setq org-log-done 'time)
-  (setq org-src-fontify-natively t)
+  (setq org-agenda-files '("~/org")
+        org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)"
+                                      "|" "DONE(d)" "CANCEL(c)"))
+        org-log-done 'time
+        org-startup-indented t
+        org-ellipsis "  "
+        org-pretty-entities t
+        org-hide-emphasis-markers t)
+
   (add-to-list 'org-export-backends 'md)
 
-  ;; FIXME org-agenda-execute-calendar-command uses deprecated list-calendar-holidays
-  (unless (fboundp 'list-calendar-holidays)
-    (defalias 'list-calendar-holidays 'calendar-list-holidays))
+  ;; More fancy UI
+  (use-package org-bullets
+    :hook (org-mode . org-bullets-mode))
+
+  (unless sys/win32p
+    (use-package org-fancy-priorities
+      :diminish
+      :defines org-fancy-priorities-list
+      :hook (org-mode . org-fancy-priorities-mode)
+      :config (setq org-fancy-priorities-list '("⚡" "⬆" "⬇" "☕"))))
 
   ;; Babel
-  (setq org-confirm-babel-evaluate nil)
+  (setq org-confirm-babel-evaluate nil
+        org-src-fontify-natively t
+        org-src-tab-acts-natively t)
 
-  (defvar-local load-language-list '((emacs-lisp . t)
-                                     (perl . t)
-                                     (python . t)
-                                     (ruby . t)
-                                     (plantuml . t)))
+  (defvar load-language-list '((emacs-lisp . t)
+                               (perl . t)
+                               (python . t)
+                               (ruby . t)
+                               (js . t)
+                               (css . t)
+                               (sass . t)
+                               (C . t)
+                               (java . t)
+                               (plantuml . t)))
+
+  ;; ob-sh renamed to ob-shell since 26.1.
+  (if emacs/>=26p
+      (cl-pushnew '(shell . t) load-language-list)
+    (cl-pushnew '(sh . t) load-language-list))
+
   (use-package ob-go
-    :init
-    (if (executable-find "go")
-        (cl-pushnew '(go . t) load-language-list)))
+    :init (cl-pushnew '(go . t) load-language-list))
+
+  (use-package ob-rust
+    :init (cl-pushnew '(rust . t) load-language-list))
+
   (use-package ob-ipython
-    :init
-    (if (executable-find "jupyter")
-        (cl-pushnew '(ipython . t) load-language-list)))
+    :if (executable-find "jupyter")     ; DO NOT remove
+    :init (cl-pushnew '(ipython . t) load-language-list))
 
   (org-babel-do-load-languages 'org-babel-load-languages
                                load-language-list)
 
+  ;; Rich text clipboard
+  (use-package org-rich-yank
+    :bind (:map org-mode-map
+                ("C-M-y" . org-rich-yank)))
+
+  ;; Preview
+  (use-package org-preview-html
+    :diminish org-preview-html-mode)
+
   ;; Presentation
   (use-package org-tree-slide
+    :diminish
+    :functions (org-display-inline-images
+                org-remove-inline-images
+                winner-undo)
+    :bind (:map org-mode-map
+                ("C-<f9>" . org-tree-slide-mode)
+                :map org-tree-slide-mode-map
+                ("<left>" . org-tree-slide-move-previous-tree)
+                ("<right>" . org-tree-slide-move-next-tree)
+                ("S-SPC" . org-tree-slide-move-previous-tree)
+                ("SPC" . org-tree-slide-move-next-tree))
+    :hook ((org-tree-slide-play . (lambda ()
+                                    (text-scale-set 4)
+                                    (org-display-inline-images)
+                                    (read-only-mode 1)
+                                    (if (fboundp 'hide-mode-line-mode)
+                                        (hide-mode-line-mode 1))
+                                    (delete-other-windows)))
+           (org-tree-slide-stop . (lambda ()
+                                    (text-scale-set 0)
+                                    (org-remove-inline-images)
+                                    (read-only-mode -1)
+                                    (if (fboundp 'hide-mode-line-mode)
+                                        (hide-mode-line-mode -11)))))
     :config
-    (add-hook 'org-tree-slide-play-hook
-              (lambda ()
-                (text-scale-set 4)
-                (org-display-inline-images)
-                (read-only-mode 1)))
-    (add-hook 'org-tree-slide-stop-hook
-              (lambda ()
-                (text-scale-set 0)
-                (org-remove-inline-images)
-                (read-only-mode -1))))
+    (org-tree-slide-simple-profile)
+    (setq org-tree-slide-skip-outline-level 2))
+
+  (use-package org-present
+    :diminish
+    :functions (org-display-inline-images
+                org-remove-inline-images
+                winner-undo)
+    :commands (org-present-big
+               org-present-hide-cursor
+               org-present-read-only
+               org-present-small
+               org-present-show-cursor
+               org-present-read-write)
+    :bind (:map org-mode-map
+                ("M-<f9>" . org-present))
+    :hook ((org-present-mode . (lambda ()
+                                 (org-present-big)
+                                 (org-display-inline-images)
+                                 (org-present-hide-cursor)
+                                 (org-present-read-only)
+                                 (if (fboundp 'hide-mode-line-mode)
+                                     (hide-mode-line-mode 1))
+                                 (delete-other-windows)))
+           (org-present-mode-quit . (lambda ()
+                                      (org-present-small)
+                                      (org-remove-inline-images)
+                                      (org-present-show-cursor)
+                                      (org-present-read-write)
+                                      (read-only-mode -1)
+                                      (if (fboundp 'hide-mode-line-mode)
+                                          (hide-mode-line-mode -1))))))
 
   ;; Pomodoro
   (use-package org-pomodoro
-    :init (with-eval-after-load 'org-agenda
-            (bind-key "P" #'org-pomodoro org-agenda-mode-map)))
+    :after org-agenda
+    :bind (:map org-agenda-mode-map
+                ("P" . org-pomodoro)))
 
   ;; Visually summarize progress
   (use-package org-dashboard)
 
   (with-eval-after-load 'hydra
+    (eval-and-compile
+      (defun hot-expand (str &optional mod)
+        "Expand org template."
+        (let (text)
+          (when (region-active-p)
+            (setq text (buffer-substring (region-beginning) (region-end)))
+            (delete-region (region-beginning) (region-end)))
+          (insert str)
+          (org-try-structure-completion)
+          (when mod (insert mod) (forward-line))
+          (when text (insert text)))))
+
     (defhydra hydra-org-template (:color blue :hint nil)
       "
 _c_enter  qu_o_te     _e_macs-lisp    _L_aTeX:
@@ -133,20 +224,9 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
       ("<" self-insert-command "ins")
       ("q" nil "quit"))
 
-    (defun hot-expand (str &optional mod)
-      "Expand org template."
-      (let (text)
-        (when (region-active-p)
-          (setq text (buffer-substring (region-beginning) (region-end)))
-          (delete-region (region-beginning) (region-end)))
-        (insert str)
-        (org-try-structure-completion)
-        (when mod (insert mod) (forward-line))
-        (when text (insert text))))
-
     (bind-key "<"
               (lambda () (interactive)
-                (if (or (region-active-p) (looking-back "^"))
+                (if (or (region-active-p) (looking-back "^\s*" 1))
                     (hydra-org-template/body)
                   (self-insert-command 1)))
               org-mode-map)))

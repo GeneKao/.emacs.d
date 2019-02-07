@@ -1,31 +1,13 @@
-;;; init.el --- user init configuration.	-*- lexical-binding: t no-byte-compile: t; -*-
-;;
-;; Filename: init.el
-;; Description:
-;; Author: Vincent Zhang
-;; Version: 3.3.0
-;; Maintainer:
-;; Created: Wed Nov 29 00:57:38 2006
-;; Version:
-;; Last-Updated: Fri Aug 1 12:08:00 2016 (+0800)
-;;           By: Vincent Zhang
-;;     Update #: 8000
+;;; init.el --- Centaur Emacs configurations.	-*- lexical-binding: t no-byte-compile: t; -*-
+
+;; Copyright (C) 2018 Vincent Zhang
+
+;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Keywords:
-;; Compatibility:
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Commentary:
-;;             Vincent's Emacs configuration
-;;
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;;; Change log:
-;;
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Version: 5.0.0
+;; Keywords: .emacs.d centaur
+
+;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -42,17 +24,21 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Commentary:
 ;;
+;; Centaur Emacs configurations.
+;;
+
 ;;; Code:
 
-(when (version< emacs-version "24.4")
-  (error "This requires Emacs 24.4 and above!"))
+(when (version< emacs-version "25.1")
+  (error "This requires Emacs 25.1 and above!"))
 
 ;; Speed up startup
 (defvar default-file-name-handler-alist file-name-handler-alist)
 (setq file-name-handler-alist nil)
-(setq gc-cons-threshold 30000000)
+(setq gc-cons-threshold 80000000)
 (add-hook 'emacs-startup-hook
           (lambda ()
             "Restore defalut values after init."
@@ -64,8 +50,23 @@
 (setq load-prefer-newer t)
 
 ;; Load path
-(add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
-(add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
+;; Optimize: Force "lisp"" and "site-lisp" at the head to reduce the startup time.
+(defun update-load-path (&rest _)
+  "Update `load-path'."
+  (push (expand-file-name "site-lisp" user-emacs-directory) load-path)
+  (push (expand-file-name "lisp" user-emacs-directory) load-path))
+
+(defun add-subdirs-to-load-path (&rest _)
+  "Add subdirectories to `load-path'."
+  (let ((default-directory
+          (expand-file-name "site-lisp" user-emacs-directory)))
+    (normal-top-level-add-subdirs-to-load-path)))
+
+(advice-add #'package-initialize :after #'update-load-path)
+(advice-add #'package-initialize :after #'add-subdirs-to-load-path)
+
+(update-load-path)
+
 
 ;; Constants
 (require 'init-const)
@@ -79,33 +80,39 @@
 
 ;; Preferences
 (require 'init-basic)
-(require 'init-ui)
+(require 'init-funcs)
 
+(require 'init-ui)
 (require 'init-edit)
 (require 'init-ivy)
 (require 'init-company)
 (require 'init-yasnippet)
 
 (require 'init-calendar)
+(require 'init-dashboard)
 (require 'init-dired)
 (require 'init-highlight)
 (require 'init-ibuffer)
 (require 'init-kill-ring)
+(require 'init-persp)
 (require 'init-window)
+(require 'init-treemacs)
 
 (require 'init-eshell)
 (require 'init-shell)
 
 (require 'init-markdown)
 (require 'init-org)
+(require 'init-elfeed)
 
-(require 'init-funcs)
 (require 'init-utils)
+
 
 ;; Programming
 (require 'init-vcs)
 (require 'init-flycheck)
 (require 'init-projectile)
+(require 'init-lsp)
 
 (require 'init-emacs-lisp)
 (require 'init-c)
@@ -114,9 +121,6 @@
 (require 'init-ruby)
 (require 'init-web)
 (require 'init-prog)
-
-;; Restore
-(require 'init-restore)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; init.el ends here
