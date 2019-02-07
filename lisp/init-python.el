@@ -34,6 +34,7 @@
   (require 'init-const)
   (require 'init-custom))
 
+
 ;; Python Mode
 ;; Install:
 ;;   pip install pyflakes
@@ -76,13 +77,17 @@
 
         :init (cl-pushnew 'company-anaconda company-backends)))))
 
-  ;; Add conda environment
-  (use-package pyvenv
-    :init
-    (setenv "WORKON_HOME" "/usr/local/anaconda3/envs")
-    (pyvenv-mode 1))
+;; Add conda environment
 
-  )
+;; Add conda environment
+(use-package pyvenv
+  :init
+  (setenv "WORKON_HOME" "~/anaconda3/envs")
+  (pyvenv-mode 1))
+
+
+
+
 
 (provide 'init-python)
 
