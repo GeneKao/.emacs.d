@@ -1,6 +1,6 @@
 ;; init-funcs.el --- Define functions.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -50,17 +50,19 @@
   "Revert the current buffer."
   (interactive)
   (message "Revert this buffer.")
-  (text-scale-set 0)
-  (widen)
-  (if (fboundp 'fancy-widen)
-      (ignore-errors (fancy-widen)))
+  (ignore-errors
+    (widen)
+    (text-scale-set 0)
+    (if (fboundp 'fancy-widen)
+        (fancy-widen)))
   (revert-buffer t t))
-(bind-keys ("<f5>" . revert-current-buffer)
-           ("s-r" . revert-current-buffer))
+(bind-key "<f5>" #'revert-current-buffer)
+(if sys/mac-x-p
+    (bind-key "s-r" #'revert-current-buffer))
 
 ;; Browse the homepage
 (defun browse-homepage ()
-  "Browse the Github page of Centuar Emacs."
+  "Browse the Github page of Centaur Emacs."
   (interactive)
   (browse-url centaur-homepage))
 
@@ -77,7 +79,7 @@
     (find-file custom-file)))
 
 ;; Update
-(defun centaur-update-config ()
+(defun update-config ()
   "Update Centaur Emacs configurations to the latest version."
   (interactive)
   (let ((dir (expand-file-name user-emacs-directory)))
@@ -88,33 +90,26 @@
           (shell-command "git pull")
           (message "Update finished. Restart Emacs to complete the process."))
       (message "\"%s\" doesn't exist." dir))))
+(defalias 'centaur-update-config 'update-config)
 
 (declare-function upgrade-packages 'init-package)
 (defalias 'centaur-update-packages 'upgrade-packages)
-(defun centaur-update()
+(defun update-centaur()
   "Update confgiurations and packages."
   (interactive)
-  (centaur-update-config)
-  (centaur-update-packages nil))
+  (update-config)
+  (upgrade-packages nil))
+(defalias 'centaur-update 'update-centaur)
 
-(defun centaur-update-all()
+(defun update-all()
   "Update dotfiles, org files, Emacs confgiurations and packages, ."
   (interactive)
-  (centaur-update)
-  (centaur-update-org)
-  (centaur-update-dotfiles))
+  (update-centaur)
+  (update-org)
+  (update-dotfiles))
+(defalias 'centaur-update-all 'update-all)
 
-(declare-function upgrade-packages-and-restart 'init-package)
-(defalias 'centaur-update-packages-and-restart 'upgrade-packages-and-restart)
-(defun centaur-update-and-restart ()
-  "Update configurations and packages, then restart."
-  (interactive)
-  (centaur-update-config)
-  (centaur-update-org)
-  (centaur-update-dotfiles)
-  (centaur-update-packages-and-restart nil))
-
-(defun centaur-update-dotfiles ()
+(defun update-dotfiles ()
   "Update the dotfiles to the latest version."
   (interactive)
   (let ((dir (or (getenv "DOTFILES")
@@ -126,8 +121,9 @@
           (shell-command "git pull")
           (message "Update finished."))
       (message "\"%s\" doesn't exist." dir))))
+(defalias 'centaur-update-dotfiles 'update-dotfiles)
 
-(defun centaur-update-org ()
+(defun update-org ()
   "Update Org files to the latest version."
   (interactive)
   (let ((dir (expand-file-name "~/org/")))
@@ -138,6 +134,7 @@
           (shell-command "git pull")
           (message "Update finished."))
       (message "\"%s\" doesn't exist." dir))))
+(defalias 'centaur-update-org 'update-org)
 
 ;; Create a new scratch buffer
 (defun create-scratch-buffer ()
@@ -158,14 +155,18 @@
 (defun recompile-elpa ()
   "Recompile packages in elpa directory. Useful if you switch Emacs versions."
   (interactive)
-  (byte-recompile-directory package-user-dir nil t))
+  (if (fboundp 'async-byte-recompile-directory)
+      (async-byte-recompile-directory package-user-dir)
+    (byte-recompile-directory package-user-dir 0 t)))
 
 ;; Recompile site-lisp directory
 (defun recompile-site-lisp ()
   "Recompile packages in site-lisp directory."
   (interactive)
-  (byte-recompile-directory
-   (concat user-emacs-directory "site-lisp") 0 t))
+  (let ((dir (concat user-emacs-directory "site-lisp")))
+    (if (fboundp 'async-byte-recompile-directory)
+        (async-byte-recompile-directory dir)
+      (byte-recompile-directory dir 0 t))))
 
 ;;
 ;; Network Proxy
@@ -199,6 +200,8 @@
       (proxy-http-disable)
     (proxy-http-enable)))
 
+(defvar socks-noproxy)
+(defvar socks-server)
 (defun proxy-socks-enable ()
   "Enable Socks proxy."
   (interactive)

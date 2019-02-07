@@ -1,6 +1,6 @@
 ;; init-markdown.el --- Initialize markdown configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -78,7 +78,6 @@
          (markdown-mode . set-flycheck-markdownlint))
   :mode (("README\\.md\\'" . gfm-mode))
   :config
-  (setq markdown-command-needs-filename t)
   (setq markdown-content-type "application/xhtml+xml")
   (setq markdown-css-paths '("https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css"
                              "http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css"))

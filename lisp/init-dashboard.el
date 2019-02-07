@@ -1,6 +1,6 @@
 ;; init-dashboard.el --- Initialize dashboard configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -40,9 +40,34 @@
   (use-package dashboard
     :diminish (dashboard-mode page-break-lines-mode)
     :defines persp-special-last-buffer
-    :functions widget-forward winner-undo open-custom-file
+    :functions (widget-forward
+                winner-undo
+                open-custom-file
+                persp-load-state-from-file
+                persp-get-buffer-or-null
+                persp-switch-to-buffer)
     :commands dashboard-insert-startupify-lists
     :preface
+    (defvar dashboard-recover-layout-p nil)
+
+    (defun open-dashboard ()
+      "Open the *dashboard* buffer and jump to the first widget."
+      (interactive)
+      (if (get-buffer dashboard-buffer-name)
+          (kill-buffer dashboard-buffer-name))
+      (dashboard-insert-startupify-lists)
+      (switch-to-buffer dashboard-buffer-name)
+      (goto-char (point-min))
+      (dashboard-goto-recent-files)
+      (if (> (length (window-list-1))
+             ;; exclude `treemacs' window
+             (if (and (fboundp 'treemacs-current-visibility)
+                      (eq (treemacs-current-visibility) 'visible))
+                 2
+               1))
+          (setq dashboard-recover-layout-p t))
+      (delete-other-windows))
+
     (defun restore-session ()
       "Restore last session."
       (interactive)
@@ -55,41 +80,56 @@
         (when (persp-get-buffer-or-null persp-special-last-buffer)
           (persp-switch-to-buffer persp-special-last-buffer))))
 
-    (defun exit-dashboard ()
+    (defun quit-dashboard ()
       "Quit dashboard window."
       (interactive)
       (quit-window t)
-      (winner-undo))
+      (when (and dashboard-recover-layout-p
+                 (bound-and-true-p winner-mode))
+        (winner-undo)
+        (setq dashboard-recover-layout-p nil)))
 
     (defun dashboard-edit-config ()
       "Open custom config file."
       (interactive)
-      (exit-dashboard)
+      (quit-dashboard)
       (open-custom-file))
-    :bind (("<f2>" . (lambda ()
-                       "Open the *dashboard* buffer and jump to the first widget."
-                       (interactive)
-                       (if (get-buffer dashboard-buffer-name)
-                           (kill-buffer dashboard-buffer-name))
-                       (dashboard-insert-startupify-lists)
-                       (switch-to-buffer dashboard-buffer-name)
-                       (goto-char (point-min))
-                       (widget-forward 1)
-                       (delete-other-windows)))
+
+    (defun dashboard-goto-recent-files ()
+      "Go to recent files."
+      (interactive)
+      (funcall (local-key-binding "r")))
+
+    (defun dashboard-goto-projects ()
+      "Go to projects."
+      (interactive)
+      (funcall (local-key-binding "p")))
+
+    (defun dashboard-goto-bookmarks ()
+      "Go to bookmarks."
+      (interactive)
+      (funcall (local-key-binding "m")))
+
+    :bind (("<f2>" . open-dashboard)
            :map dashboard-mode-map
            ("H" . browse-homepage)
            ("E" . dashboard-edit-config)
            ("R" . restore-session)
            ("U" . centaur-update)
-           ("q" . exit-dashboard))
+           ("q" . quit-dashboard))
     :hook (after-init . dashboard-setup-startup-hook)
-    :init (setq inhibit-startup-screen t)
     :config
-    (setq dashboard-banner-logo-title "Welcome to Centaur Emacs")
-    (setq dashboard-startup-banner (if centaur-logo centaur-logo 'official))
+    (setq initial-buffer-choice (lambda () (get-buffer dashboard-buffer-name)))
+    (setq dashboard-banner-logo-title "CENTAUR EMACS - Enjoy programming and writing")
+    (setq dashboard-startup-banner (or centaur-logo 'official))
     (setq dashboard-items '((recents  . 10)
                             (bookmarks . 5)
                             (projects . 5)))
+
+    (defun my-get-banner-path (&rest _)
+      "Return the full path to banner."
+      (expand-file-name "banner.txt" user-emacs-directory))
+    (advice-add #'dashboard-get-banner-path :override #'my-get-banner-path)
 
     (defun dashboard-insert-buttons (_list-size)
       (insert "\n")
@@ -123,10 +163,37 @@
                      (propertize "Update" 'face 'font-lock-keyword-face))
       (insert "\n")
       (insert "\n")
+      (insert "\n")
       (insert (format "[%d packages loaded in %s]" (length package-activated-list) (emacs-init-time))))
 
     (add-to-list 'dashboard-item-generators  '(buttons . dashboard-insert-buttons))
-    (add-to-list 'dashboard-items '(buttons))))
+    (add-to-list 'dashboard-items '(buttons))
+
+    (dashboard-insert-startupify-lists)
+
+    (with-eval-after-load 'hydra
+      (defhydra dashboard-hydra (:color red :columns 3)
+        "Help"
+        ("<tab>" widget-forward "Next Widget")
+        ("C-i" widget-forward "Prompt")
+        ("<backtab>" widget-backward "Previous Widget")
+        ("RET" widget-button-press "Press Widget" :exit t)
+        ("g" dashboard-refresh-buffer "Refresh" :exit t)
+        ("}" dashboard-next-section "Next Section")
+        ("{" dashboard-previous-section "Previous Section")
+        ("r" dashboard-goto-recent-files "Recent Files")
+        ("p" dashboard-goto-projects "Projects")
+        ("m" dashboard-goto-bookmarks "Bookmarks")
+        ("H" browse-homepage "Browse Homepage" :exit t)
+        ("R" restore-session "Restore Previous Session" :exit t)
+        ("E" dashboard-edit-config "Open custom file" :exit t)
+        ("U" centaur-update "Update Centaur Emacs" :exit t)
+        ("<f2>" open-dashboard "Open Dashboard" :exit t)
+        ("q" quit-dashboard "Quit Dashboard" :exit t)
+        ("C-g" nil "quit"))
+      (bind-keys :map dashboard-mode-map
+                 ("h" . dashboard-hydra/body)
+                 ("?" . dashboard-hydra/body)))))
 
 (provide 'init-dashboard)
 

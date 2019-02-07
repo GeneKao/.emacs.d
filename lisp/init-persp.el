@@ -1,6 +1,6 @@
 ;;; init-persp.el --- Initialize perspectives configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -42,6 +42,7 @@
          (emacs-startup . toggle-frame-maximized))
   :init
   (setq persp-keymap-prefix (kbd "C-x p"))
+  (setq persp-nil-name "default")
   (setq persp-set-last-persp-for-new-frames nil)
   (if centaur-dashboard
       (setq persp-auto-resume-time 0))

@@ -95,6 +95,14 @@ M-x centaur-update-packages-and-restart
 M-x centuar-update-all
 ```
 
+### Docker
+
+``` shell
+cd ~/.emacs.d/Dockerfile
+docker build -t centaur/emacs .
+docker run -it centaur/emacs bash
+```
+
 ## Customization
 
 ### Customize-group

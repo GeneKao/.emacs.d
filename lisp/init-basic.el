@@ -1,6 +1,6 @@
 ;; init-basic.el --- Initialize basic configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -69,24 +69,20 @@
 
 (use-package recentf
   :ensure nil
-  ;; lazy load recentf
-  ;; :hook (find-file . (lambda () (unless recentf-mode
-  ;;                            (recentf-mode)
-  ;;                            (recentf-track-opened-file))))
+  :hook (after-init . recentf-mode)
   :init
-  (add-hook 'after-init-hook #'recentf-mode)
   (setq recentf-max-saved-items 200)
-  :config
-  (add-to-list 'recentf-exclude (expand-file-name package-user-dir))
-  (add-to-list 'recentf-exclude ".cache")
-  (add-to-list 'recentf-exclude ".cask")
-  (add-to-list 'recentf-exclude ".elfeed")
-  (add-to-list 'recentf-exclude "bookmarks")
-  (add-to-list 'recentf-exclude "cache")
-  (add-to-list 'recentf-exclude "persp-confs")
-  (add-to-list 'recentf-exclude "recentf")
-  (add-to-list 'recentf-exclude "url")
-  (add-to-list 'recentf-exclude "COMMIT_EDITMSG\\'"))
+  (setq recentf-exclude '((expand-file-name package-user-dir)
+                          ".cache"
+                          ".cask"
+                          ".elfeed"
+                          "bookmarks"
+                          "cache"
+                          "ido.*"
+                          "persp-confs"
+                          "recentf"
+                          "url"
+                          "COMMIT_EDITMSG\\'")))
 
 (use-package savehist
   :ensure nil

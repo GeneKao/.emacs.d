@@ -1,10 +1,10 @@
 ;;; init.el --- Centaur Emacs configurations.	-*- lexical-binding: t no-byte-compile: t; -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2006-2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 5.0.0
+;; Version: 5.2.0
 ;; Keywords: .emacs.d centaur
 
 ;; This file is not part of GNU Emacs.
@@ -44,7 +44,12 @@
             "Restore defalut values after init."
             (setq file-name-handler-alist default-file-name-handler-alist)
             (setq gc-cons-threshold 800000)
-            (add-hook 'focus-out-hook 'garbage-collect)))
+            (if (boundp 'after-focus-change-function)
+                (add-function :after after-focus-change-function
+                              (lambda ()
+                                (unless (frame-focus-state)
+                                  (garbage-collect))))
+              (add-hook 'focus-out-hook 'garbage-collect))))
 
 ;; Load path
 ;; Optimize: Force "lisp"" and "site-lisp" at the head to reduce the startup time.

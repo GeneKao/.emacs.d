@@ -1,6 +1,6 @@
 ;; init-ui.el --- Initialize ui configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -116,7 +116,7 @@
                     :after #'solaire-mode-restore-persp-mode-buffers))
 
       (use-package doom-modeline
-        :hook (after-init . doom-modeline-init)))
+        :hook (after-init . doom-modeline-mode)))
   (progn
     (ignore-errors
       (centaur-load-theme centaur-theme))

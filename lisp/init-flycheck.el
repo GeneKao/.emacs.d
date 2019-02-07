@@ -1,6 +1,6 @@
 ;; init-flycheck.el --- Initialize flycheck configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,6 +30,9 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (require 'init-const))
+
 (use-package flycheck
   :diminish flycheck-mode
   :hook (after-init . global-flycheck-mode)
@@ -42,11 +45,21 @@
 
   ;; Display Flycheck errors in GUI tooltips
   (if (display-graphic-p)
-      (use-package flycheck-pos-tip
-        :hook (global-flycheck-mode . flycheck-pos-tip-mode)
-        :config (setq flycheck-pos-tip-timeout 30))
+      (if emacs/>=26p
+          (use-package flycheck-posframe
+            :hook (flycheck-mode . (lambda ()
+                                     (unless (and (bound-and-true-p lsp-mode)
+                                                  (bound-and-true-p lsp-ui-flycheck-enable))
+                                       (flycheck-posframe-mode 1)))))
+        (use-package flycheck-pos-tip
+          :defines flycheck-pos-tip-timeout
+          :hook (global-flycheck-mode . flycheck-pos-tip-mode)
+          :config (setq flycheck-pos-tip-timeout 30)))
     (use-package flycheck-popup-tip
-      :hook (global-flycheck-mode . flycheck-popup-tip-mode)))
+      :hook (flycheck-mode . (lambda ()
+                               (unless (and (bound-and-true-p lsp-mode)
+                                            (bound-and-true-p lsp-ui-flycheck-enable))
+                                 (flycheck-popup-tip-mode 1))))))
 
   ;; Jump to and fix syntax errors via `avy'
   (use-package avy-flycheck

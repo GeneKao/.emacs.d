@@ -1,6 +1,6 @@
 ;; init-highlight.el --- Initialize highlighting configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -41,6 +41,11 @@
 ;; Highlight symbols
 (use-package symbol-overlay
   :diminish
+  :functions (symbol-overlay-switch-first symbol-overlay-switch-last)
+  :commands (symbol-overlay-get-symbol
+             symbol-overlay-assoc
+             symbol-overlay-get-list
+             symbol-overlay-jump-call)
   :bind (("M-i" . symbol-overlay-put)
          ("M-n" . symbol-overlay-jump-next)
          ("M-p" . symbol-overlay-jump-prev)
@@ -87,7 +92,18 @@
     :hook (prog-mode . highlight-indent-guides-mode)
     :config
     (setq highlight-indent-guides-method 'character)
-    (setq highlight-indent-guides-responsive t)))
+    (setq highlight-indent-guides-responsive t)
+
+    ;; Disable `highlight-indet-guides-mode' in `swiper'
+    ;; https://github.com/DarthFennec/highlight-indent-guides/issues/40
+    (with-eval-after-load 'ivy
+      (defadvice ivy-cleanup-string (after my-ivy-cleanup-hig activate)
+        (let ((pos 0) (next 0) (limit (length str)) (prop 'highlight-indent-guides-prop))
+          (while (and pos next)
+            (setq next (text-property-not-all pos limit prop nil str))
+            (when next
+              (setq pos (text-property-any next limit prop nil str))
+              (remove-text-properties next pos '(display nil face nil) str))))))))
 
 ;; Colorize color names in buffers
 (use-package rainbow-mode
@@ -186,30 +202,40 @@
 (use-package pulse
   :ensure nil
   :preface
+  (defun my-pulse-momentary-line (&rest _)
+    "Pulse the current line."
+    (pulse-momentary-highlight-one-line (point) 'next-error))
+
   (defun my-pulse-momentary (&rest _)
     "Pulse the current line."
-    (let ((pulse-delay 0.05))
-      (pulse-momentary-highlight-one-line (point) 'next-error)))
+    (if (fboundp 'xref-pulse-momentarily)
+        (xref-pulse-momentarily)
+      (my-pulse-momentary-line)))
 
-  (defun my-recenter (&rest _)
+  (defun my-recenter-and-pulse(&rest _)
     "Recenter and pulse the current line."
     (recenter)
     (my-pulse-momentary))
-  :hook (((switch-window-finish) . my-pulse-momentary)
+
+  (defun my-recenter-and-pulse-line (&rest _)
+    "Recenter and pulse the current line."
+    (recenter)
+    (my-pulse-momentary-line))
+  :hook (((dumb-jump-after-jump
+           imenu-after-jump) . my-recenter-and-pulse)
          ((bookmark-after-jump
-           counsel-grep-post-action
-           dumb-jump-after-jump
-           imenu-after-jump
            magit-diff-visit-file
-           next-error
-           xref-after-jump
-           xref-after-return) . my-recenter))
-  :init (dolist (cmd '(recenter-top-bottom
-                       other-window ace-window windmove-do-window-select
-                       pop-to-mark-command pop-global-mark
-                       symbol-overlay-basic-jump
-                       pager-page-down pager-page-up))
-          (advice-add cmd :after #'my-pulse-momentary)))
+           next-error) . my-recenter-and-pulse-line))
+  :init
+  (dolist (cmd '(recenter-top-bottom
+                 other-window ace-window windmove-do-window-select
+                 pager-page-down pager-page-up
+                 symbol-overlay-basic-jump))
+    (advice-add cmd :after #'my-pulse-momentary-line))
+  (dolist (cmd '(pop-to-mark-command
+                 pop-global-mark
+                 goto-last-change))
+    (advice-add cmd :after #'my-recenter-and-pulse)))
 
 (provide 'init-highlight)
 

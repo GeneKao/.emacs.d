@@ -22,7 +22,7 @@
 
 ;; Fonts
 (when (display-graphic-p)
-  ;; Set a default font
+  ;; Set default fonts
   (cond
    ((member "Source Code Pro" (font-family-list))
     (set-face-attribute 'default nil :font "Source Code Pro"))
@@ -41,14 +41,14 @@
    (sys/win32p
     (set-face-attribute 'default nil :height 110)))
 
-  ;; Specify font for all unicode characters
+  ;; Specify fonts for all unicode characters
   (cond
    ((member "Apple Color Emoji" (font-family-list))
     (set-fontset-font t 'unicode "Apple Color Emoji" nil 'prepend))
    ((member "Symbola" (font-family-list))
     (set-fontset-font t 'unicode "Symbola" nil 'prepend)))
 
-  ;; Specify font for chinese characters
+  ;; Specify fonts for Chinese characters
   (cond
    ((member "WenQuanYi Micro Hei" (font-family-list))
     (set-fontset-font t '(#x4e00 . #x9fff) "WenQuanYi Micro Hei"))

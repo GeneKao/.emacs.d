@@ -1,6 +1,6 @@
 ;; init-shell.el --- Initialize shell configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -62,6 +62,8 @@
   :hook ((shell-mode . ansi-color-for-comint-mode-on)
          (shell-mode . n-shell-mode-hook))
   :config
+  (setq system-uses-terminfo nil)       ; don't use system term info
+
   (add-hook 'comint-output-filter-functions #'comint-strip-ctrl-m)
 
   ;; Company mode backend for shell functions
