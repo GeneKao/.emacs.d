@@ -1,6 +1,6 @@
 ;; init-eshell.el --- Initialize eshell configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -120,16 +120,16 @@
   ;; Fish-like history autosuggestions
   (use-package esh-autosuggest
     :defines ivy-display-functions-alist
-    :bind (:map eshell-mode-map
-                ([remap eshell-pcomplete] . completion-at-point))
-    :hook (eshell-mode . esh-autosuggest-mode)
-    :config
-    (with-eval-after-load 'ivy
-      (defun setup-eshell-ivy-completion ()
+    :preface
+    (defun setup-eshell-ivy-completion ()
+      (when (featurep 'ivy)
         (setq-local ivy-display-functions-alist
                     (remq (assoc 'ivy-completion-in-region ivy-display-functions-alist)
-                          ivy-display-functions-alist)))
-      (add-hook 'eshell-mode-hook #'setup-eshell-ivy-completion)))
+                          ivy-display-functions-alist))))
+    :bind (:map eshell-mode-map
+                ([remap eshell-pcomplete] . completion-at-point))
+    :hook ((eshell-mode . esh-autosuggest-mode)
+           (eshell-mode . setup-eshell-ivy-completion)))
 
   ;; Eldoc support
   (use-package esh-help

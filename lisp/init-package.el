@@ -1,6 +1,6 @@
 ;;; init-package.el --- Initialize package configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -88,10 +88,11 @@
   (package-install 'use-package))
 
 ;; Should set before loading `use-package'
-(setq use-package-always-ensure t)
-(setq use-package-always-defer t)
-(setq use-package-expand-minimally t)
-(setq use-package-enable-imenu-support t)
+(eval-and-compile
+  (setq use-package-always-ensure t)
+  (setq use-package-always-defer t)
+  (setq use-package-expand-minimally t)
+  (setq use-package-enable-imenu-support t))
 
 (eval-when-compile
   (require 'use-package))
@@ -103,6 +104,7 @@
 ;; Initialization benchmark
 (when centaur-benchmark
   (use-package benchmark-init
+    :defines swiper-font-lock-exclude
     :commands (benchmark-init/activate)
     :hook (after-init . benchmark-init/deactivate)
     :init (benchmark-init/activate)
@@ -111,10 +113,13 @@
       (add-to-list 'swiper-font-lock-exclude 'benchmark-init/tree-mode))))
 
 ;; Extensions
-(use-package package-utils
+(use-package paradox
+  :commands paradox-enable
+  :hook (after-init . paradox-enable)
   :init
-  (defalias 'upgrade-packages 'package-utils-upgrade-all)
-  (defalias 'upgrade-packages-and-restart 'package-utils-upgrade-all-and-restart))
+  (setq paradox-execute-asynchronously t)
+  (setq paradox-github-token t)
+  (defalias 'upgrade-packages 'paradox-upgrade-packages))
 
 (provide 'init-package)
 

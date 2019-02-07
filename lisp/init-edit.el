@@ -1,6 +1,6 @@
 ;; init-edit.el --- Initialize editing configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -69,7 +69,7 @@
 ;; Automatically reload files was modified by external program
 (use-package autorevert
   :ensure nil
-  :diminish auto-revert-mode
+  :diminish
   :hook (after-init . global-auto-revert-mode))
 
 ;; Pass a URL to a WWW browser
@@ -113,12 +113,12 @@
 
 ;; Jump to Chinese characters
 (use-package ace-pinyin
-  :diminish ace-pinyin-mode
+  :diminish
   :hook (after-init . ace-pinyin-global-mode))
 
 ;; Minor mode to aggressively keep your code always indented
 (use-package aggressive-indent
-  :diminish aggressive-indent-mode
+  :diminish
   :hook ((after-init . global-aggressive-indent-mode)
          ;; FIXME: Disable in big files due to the performance issues
          ;; https://github.com/Malabarba/aggressive-indent-mode/issues/73
@@ -144,7 +144,7 @@
 
 ;; Show number of matches in mode-line while searching
 (use-package anzu
-  :diminish anzu-mode
+  :diminish
   :bind (([remap query-replace] . anzu-query-replace)
          ([remap query-replace-regexp] . anzu-query-replace-regexp)
          :map isearch-mode-map
@@ -154,11 +154,11 @@
 
 ;; An all-in-one comment command to rule them all
 (use-package comment-dwim-2
-  :bind ("M-;" . comment-dwim-2))
+  :bind ([remap comment-dwim] . comment-dwim-2)) ;
 
 ;; Drag stuff (lines, words, region, etc...) around
 (use-package drag-stuff
-  :diminish drag-stuff-mode
+  :diminish
   :commands drag-stuff-define-keys
   :hook (after-init . drag-stuff-global-mode)
   :config
@@ -221,27 +221,21 @@
 ;; On-the-fly spell checker
 (use-package flyspell
   :ensure nil
-  :diminish flyspell-mode
+  :diminish
   :if (executable-find "aspell")
   :hook (((text-mode outline-mode) . flyspell-mode)
          (prog-mode . flyspell-prog-mode)
          (flyspell-mode . (lambda ()
-                            (unbind-key "C-;" flyspell-mode-map)
-                            (unbind-key "C-," flyspell-mode-map)
-                            (unbind-key "C-." flyspell-mode-map))))
+                            (dolist (key '("C-;" "C-," "C-."))
+                              (unbind-key key flyspell-mode-map)))))
   :init
   (setq flyspell-issue-message-flag nil)
   (setq ispell-program-name "aspell")
   (setq ispell-extra-args '("--sug-mode=ultra" "--lang=en_US" "--run-together")))
 
-;; Goto last change
-(use-package goto-chg
-  :bind ("C-," . goto-last-change)
-  :config (advice-add #'goto-last-change :after #'recenter))
-
 ;; Hungry deletion
 (use-package hungry-delete
-  :diminish hungry-delete-mode
+  :diminish
   :hook (after-init . global-hungry-delete-mode)
   :config (setq-default hungry-delete-chars-to-skip " \t\f\v"))
 
@@ -252,14 +246,14 @@
 
 ;; Move to the beginning/end of line or code
 (use-package mwim
-  :bind (("C-a" . mwim-beginning-of-code-or-line)
-         ("C-e" . mwim-end-of-code-or-line)))
+  :bind (([remap move-beginning-of-line] . mwim-beginning-of-code-or-line)
+         ([remap move-end-of-line] . mwim-end-of-code-or-line)))
 
 ;; Windows-scroll commands
 (use-package pager
-  :bind (("\C-v"   . pager-page-down)
+  :bind (([remap scroll-up-command] . pager-page-down)
          ([next]   . pager-page-down)
-         ("\ev"    . pager-page-up)
+         ([remap scroll-down-command] . pager-page-up)
          ([prior]  . pager-page-up)
          ([M-up]   . pager-row-up)
          ([M-kp-8] . pager-row-up)
@@ -268,22 +262,26 @@
 
 ;; Treat undo history as a tree
 (use-package undo-tree
-  :diminish undo-tree-mode
+  :diminish
   :hook (after-init . global-undo-tree-mode))
+
+;; Goto last change
+(use-package goto-chg
+  :bind ("C-," . goto-last-change))
 
 ;; Handling capitalized subwords in a nomenclature
 (use-package subword
   :ensure nil
-  :diminish subword-mode
+  :diminish
   :hook ((prog-mode . subword-mode)
          (minibuffer-setup . subword-mode)))
 
 ;; Hideshow
 (use-package hideshow
   :ensure nil
+  :diminish hs-minor-mode
   :bind (:map hs-minor-mode-map
-              ("C-`" . hs-toggle-hiding))
-  :diminish hs-minor-mode)
+              ("C-`" . hs-toggle-hiding)))
 
 ;; Narrow/Widen
 (use-package fancy-narrow

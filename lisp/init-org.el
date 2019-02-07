@@ -1,6 +1,6 @@
 ;; init-org.el --- Initialize org configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -40,7 +40,7 @@
   :bind (("C-c a" . org-agenda)
          ("C-c b" . org-switchb))
   :hook (org-indent-mode . (lambda() (diminish 'org-indent-mode)))
-  :config
+  :init
   (setq org-agenda-files '("~/org")
         org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)"
                                       "|" "DONE(d)" "CANCEL(c)"))
@@ -49,7 +49,7 @@
         org-ellipsis "  "
         org-pretty-entities t
         org-hide-emphasis-markers t)
-
+  :config
   (add-to-list 'org-export-backends 'md)
 
   ;; More fancy UI

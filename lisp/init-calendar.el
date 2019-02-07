@@ -1,6 +1,6 @@
 ;; init-calendar.el --- Initialize calendar configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -33,8 +33,9 @@
 ;; Chinese calendar
 ;; `pC' can show lunar details
 (use-package cal-china-x
+  :after calendar
   :commands cal-china-x-setup
-  :hook (calendar-load . cal-china-x-setup)
+  :init (cal-china-x-setup)
   :config
   ;; `S' can show the time of sunrise and sunset on Calendar
   (setq calendar-location-name "Chengdu"
@@ -64,6 +65,30 @@
         (append cal-china-x-important-holidays
                 cal-china-x-general-holidays
                 holiday-other-holidays)))
+
+;; Better views of calendar
+(use-package calfw
+  :commands cfw:open-calendar-buffer
+  :init
+  (use-package calfw-org
+    :commands (cfw:open-org-calendar cfw:org-create-source))
+
+  (use-package calfw-ical
+    :commands (cfw:open-ical-calendar cfw:ical-create-source))
+
+  (defun open-calendar ()
+    "Open calendar."
+    (interactive)
+    (unless (ignore-errors
+              (cfw:open-calendar-buffer
+               :contents-sources
+               (list
+                (when org-agenda-files
+                  (cfw:org-create-source "YellowGreen"))
+                (when (bound-and-true-p centaur-ical)
+                  (cfw:ical-create-source "gcal" centaur-ical "IndianRed")))))
+      (cfw:open-calendar-buffer)))
+  (defalias 'centaur-open-calendar 'open-calendar))
 
 (provide 'init-calendar)
 

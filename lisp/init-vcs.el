@@ -1,6 +1,6 @@
 ;; init-vcs.el --- Initialize version control system configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -37,7 +37,6 @@
 ;; Git
 (use-package magit
   :commands (magit-define-popup-switch magit-refresh-buffer)
-  :functions (all-the-icons-faicon all-the-icons-alltheicon)
   :bind (("C-x g" . magit-status)
          ("C-x M-g" . magit-dispatch-popup)
          ("C-c M-g" . magit-file-popup))
@@ -48,7 +47,10 @@
     ?t "Fetch all tags" "--tags"))
 
 ;; Access Git forges from Magit
-(use-package forge)
+(if (executable-find "cc")
+    (use-package forge
+      :after magit
+      :demand))
 
 ;; Gitflow externsion for Magit
 (use-package magit-gitflow
@@ -66,13 +68,17 @@
   :diminish magit-svn-mode
   :hook (magit-mode . magit-svn-mode))
 
-;; Show source file TODOs in Magit
+;; Show tasks
 (use-package magit-todos
-  :hook (magit-status-mode . magit-todos-mode))
+  :hook (ater-init . magit-todos-mode))
 
-;;; Pop up last commit information of current line
+;; Walk through git revisions of a file
+(use-package git-timemachine
+  :bind (:map vc-prefix-map
+              ("t" . git-timemachine)))
+
+;; Pop up last commit information of current line
 (use-package git-messenger
-  :commands git-messenger:copy-message
   :bind (:map vc-prefix-map
               ("p" . git-messenger:popup-message)
               :map git-messenger-map
@@ -81,25 +87,63 @@
   ;; Use magit-show-commit for showing status/diff commands
   (setq git-messenger:use-magit-popup t))
 
-;; Walk through git revisions of a file
-(use-package git-timemachine
-  :bind (:map vc-prefix-map
-              ("t" . git-timemachine)))
+;; Resolve diff3 conflicts
+(use-package smerge-mode
+  :ensure nil
+  :diminish
+  :preface
+  (with-eval-after-load 'hydra
+    (defhydra smerge-hydra
+      (:color pink :hint nil :post (smerge-auto-leave))
+      "
+^Move^       ^Keep^               ^Diff^                 ^Other^
+^^-----------^^-------------------^^---------------------^^-------
+_n_ext       _b_ase               _<_: upper/base        _C_ombine
+_p_rev       _u_pper              _=_: upper/lower       _r_esolve
+^^           _l_ower              _>_: base/lower        _k_ill current
+^^           _a_ll                _R_efine
+^^           _RET_: current       _E_diff
+"
+      ("n" smerge-next)
+      ("p" smerge-prev)
+      ("b" smerge-keep-base)
+      ("u" smerge-keep-upper)
+      ("l" smerge-keep-lower)
+      ("a" smerge-keep-all)
+      ("RET" smerge-keep-current)
+      ("\C-m" smerge-keep-current)
+      ("<" smerge-diff-base-upper)
+      ("=" smerge-diff-upper-lower)
+      (">" smerge-diff-base-lower)
+      ("R" smerge-refine)
+      ("E" smerge-ediff)
+      ("C" smerge-combine-with-next)
+      ("r" smerge-resolve)
+      ("k" smerge-kill-current)
+      ("ZZ" (lambda ()
+              (interactive)
+              (save-buffer)
+              (bury-buffer))
+       "Save and bury buffer" :color blue)
+      ("q" nil "cancel" :color blue)))
+  :hook ((find-file . (lambda ()
+                        (save-excursion
+                          (goto-char (point-min))
+                          (when (re-search-forward "^<<<<<<< " nil t)
+                            (smerge-mode 1)))))
+         (magit-diff-visit-file . (lambda ()
+                                    (when smerge-mode
+                                      (smerge-hydra/body))))))
 
-;; Highlighting regions by last updated time
-(use-package smeargle
+;; Open github/gitlab/bitbucket page
+(use-package browse-at-remote
   :bind (:map vc-prefix-map
-              ("S" . smeargle)
-              ("C" . smeargle-commits)
-              ("R" . smeargle-clear)))
+              ("B" . browse-at-remote)))
 
 ;; Git related modes
 (use-package gitattributes-mode)
 (use-package gitconfig-mode)
 (use-package gitignore-mode)
-
-;; Open github/gitlab/bitbucket page
-(use-package browse-at-remote)
 
 (provide 'init-vcs)
 

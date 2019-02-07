@@ -1,10 +1,10 @@
 ;;; init-mini.el --- Centaur Emacs minimal configurations.	-*- lexical-binding: t no-byte-compile: t; -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2018-2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 5.0.0
+;; Version: 1.0.0
 ;; Keywords: .emacs.d centaur
 
 ;; This file is not part of GNU Emacs.
@@ -72,17 +72,15 @@
 (tool-bar-mode -1)
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 
-(load-theme 'wombat t)
+;; (global-hl-line-mode 1)
 
-(global-hl-line-mode 1)
 (if (fboundp 'display-line-numbers-mode)
     (global-display-line-numbers-mode 1)
   (global-linum-mode 1))
 
 ;; Basic modes
-(ido-mode 1)
 (recentf-mode 1)
-(savehist-mode 1)
+(ignore-errors (savehist-mode 1))
 (save-place-mode 1)
 (show-paren-mode 1)
 (delete-selection-mode 1)
@@ -94,7 +92,25 @@
 (add-hook 'prog-mode-hook #'subword-mode)
 (add-hook 'minibuffer-setup-hook #'subword-mode)
 
+;; IDO
+(ido-mode 1)
+(ido-everywhere 1)
+(setq ido-use-virtual-buffers t)
+(setq ido-use-filename-at-point 'guess)
+(setq ido-create-new-buffer 'always)
+(setq ido-enable-flex-matching t)
+
+(defun ido-recentf-open ()
+  "Use `ido-completing-read' to find a recent file."
+  (interactive)
+  (if (find-file (ido-completing-read "Find recent file: " recentf-list))
+      (message "Opening file...")
+    (message "Aborting")))
+
+(global-set-key (kbd "C-x C-r") 'ido-recentf-open)
+
 ;; Keybindings
+(global-set-key (kbd "C-.") #'imenu)
 (global-set-key (kbd "<C-return>") #'rectangle-mark-mode)
 
 (defun revert-current-buffer ()
@@ -105,6 +121,12 @@
   (widen)
   (revert-buffer t t))
 (global-set-key (kbd "<f5>") #'revert-current-buffer)
+
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c C-x") #'ielm)
+            (local-set-key (kbd "C-c C-c") #'eval-defun)
+            (local-set-key (kbd "C-c C-b") #'eval-buffer)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Init-mini.el ends here

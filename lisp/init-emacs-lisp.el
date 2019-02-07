@@ -1,6 +1,6 @@
 ;; init-emacs-lisp.el --- Initialize Emacs Lisp configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -39,7 +39,10 @@
   :bind (:map emacs-lisp-mode-map
               ("C-c C-x" . ielm)
               ("C-c C-c" . eval-defun)
-              ("C-c C-b" . eval-buffer)))
+              ("C-c C-b" . eval-buffer))
+  :config
+  (if (boundp 'elisp-flymake-byte-compile-load-path)
+      (add-to-list 'elisp-flymake-byte-compile-load-path load-path)))
 
 ;; Show function arglist or variable docstring
 ;; `global-eldoc-mode' is enabled by default.

@@ -1,6 +1,6 @@
 ;;; init-ivy.el --- Initialize ivy configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Vincent Zhang
+;; Copyright (C) 2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -112,27 +112,35 @@
   (setq ivy-height 10)
   (setq ivy-count-format "(%d/%d) ")
   (setq ivy-on-del-error-function nil)
-  (setq ivy-format-function 'ivy-format-function-arrow)
   ;; (setq ivy-initial-inputs-alist nil)
+
+  (setq ivy-format-function 'ivy-format-function-arrow)
+  (when (display-graphic-p)
+    (with-eval-after-load 'all-the-icons
+      (defun my-ivy-format-function (cands)
+        "Transform CANDS into a string for minibuffer."
+        (ivy--format-function-generic
+         (lambda (str)
+           (concat (all-the-icons-octicon "chevron-right" :v-adjust -0.04)
+                   " "
+                   (ivy--add-face str 'ivy-current-match)))
+         (lambda (str)
+           (concat "  " str))
+         cands
+         "\n"))
+      (setq ivy-format-function 'my-ivy-format-function)))
 
   (setq swiper-action-recenter t)
   (setq counsel-find-file-at-point t)
   (setq counsel-yank-pop-separator "\n-------\n")
 
   ;; Use faster search tools: ripgrep or the silver search
-  (let ((command
-         (cond
-          ((executable-find "rg")
-           "rg -i -M 120 --no-heading --line-number --color never '%s' %s")
-          ((executable-find "ag")
-           "ag -i --noheading --nocolor --nofilename --numbers '%s' %s")
-          (t counsel-grep-base-command))))
-    (setq counsel-grep-base-command command))
-
-  (when (executable-find "rg")
-    (setq counsel-git-cmd "rg --files")
-    (setq counsel-rg-base-command
-          "rg -i -M 120 --no-heading --line-number --color never %s ."))
+  (let ((cmd (cond ((executable-find "rg")
+                    "rg -S --no-heading --line-number --color never '%s' %s")
+                   ((executable-find "ag")
+                    "ag -S --noheading --nocolor --nofilename --numbers '%s' %s")
+                   (t counsel-grep-base-command))))
+    (setq counsel-grep-base-command cmd))
 
   ;; Integration with `projectile'
   (with-eval-after-load 'projectile
@@ -261,7 +269,9 @@
              ((ivy-rich-file-icon :width 2)
               (ivy-rich-candidate (:width 90))
               (ivy-rich-file-last-modified-time (:face font-lock-comment-face))))))
-    :init (ivy-rich-mode 1)
+    :init
+    (setq ivy-rich-parse-remote-buffer nil)
+    (ivy-rich-mode 1)
     :hook (ivy-rich-mode . (lambda ()
                              (setq ivy-virtual-abbreviate
                                    (or (and ivy-rich-mode 'abbreviate) 'name)))))
@@ -269,6 +279,10 @@
   ;; Select from xref candidates with Ivy
   (use-package ivy-xref
     :init (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
+
+  ;; Preview snippets with Ivy
+  (use-package ivy-yasnippet
+    :bind ("C-c C-y" . ivy-yasnippet))
 
   ;; Correcting words with flyspell via Ivy
   (use-package flyspell-correct-ivy
@@ -293,20 +307,18 @@
   ;; Improve `counsel-ag', also impact `counsel-rg', `counsel-pt'.
   ;; search the selection or current symbol by default
   (eval-and-compile
-    (declare-function ivy-thing-at-point "ivy")
+    (declare-function ivy-thing-at-point 'ivy)
     (defun my-counsel-ag(-counsel-ag &optional initial-input initial-directory extra-ag-args ag-prompt)
       "Search the selection or current symbol via `ag' by default."
-      (unless initial-input
-        (if (region-active-p)
-            (setq initial-input (buffer-substring-no-properties
-                                 (region-beginning) (region-end)))
-          (setq initial-input (ivy-thing-at-point))))
-      (unless initial-directory
-        (setq initial-directory default-directory))
-      (message "input: %s" initial-input)
-      (funcall -counsel-ag initial-input initial-directory extra-ag-args ag-prompt))
-
-    (advice-add 'counsel-ag :around #'my-counsel-ag))
+      (funcall -counsel-ag
+               (or initial-input
+                   (if (region-active-p)
+                       (buffer-substring-no-properties (region-beginning) (region-end))
+                     (ivy-thing-at-point)))
+               (or initial-directory default-directory)
+               extra-ag-args
+               ag-prompt))
+    (advice-add #'counsel-ag :around #'my-counsel-ag))
 
   ;; Support pinyin in Ivy
   ;; Input prefix ':' to match pinyin
