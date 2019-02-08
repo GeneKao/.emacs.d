@@ -77,15 +77,23 @@
 
         :init (cl-pushnew 'company-anaconda company-backends)))))
 
-;; Add conda environment
 
 ;; Add conda environment
-(use-package pyvenv
-  :init
-  (setenv "WORKON_HOME" "~/anaconda3/envs")
-  (pyvenv-mode 1))
+;; (use-package pyvenv
+;;   :init
+;;   (setenv "WORKON_HOME" "~/anaconda3/envs")
+;;   (pyvenv-mode 1))
 
+(require 'conda)
+;; if you want interactive shell support, include:
+(conda-env-initialize-interactive-shells)
+;; if you want eshell support, include:
+(conda-env-initialize-eshell)
+;; if you want auto-activation (see below for details), include:
+(conda-env-autoactivate-mode t)
 
+(custom-set-variables
+ '(conda-anaconda-home "~/anaconda3"))
 
 
 
