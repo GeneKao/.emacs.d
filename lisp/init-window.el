@@ -56,8 +56,8 @@
   :functions hydra-frame-window/body
   :bind ([remap other-window] . ace-window)
   :custom-face
-  (aw-leading-char-face ((t (:inherit 'font-lock-keyword-face :bold t :height 3.0))))
-  (aw-mode-line-face ((t (:inherit 'mode-line-emphasis :bold t))))
+  (aw-leading-char-face ((t (:inherit error :bold t :height 1.1))))
+  (aw-mode-line-face ((t (:inherit mode-line-emphasis :bold t))))
   :preface
   (defun toggle-window-split ()
     (interactive)
@@ -87,35 +87,34 @@
   :config
   ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 
-  (with-eval-after-load 'hydra
-    ;; https://github.com/abo-abo/ace-window/wiki/Hydra
-    ;; hydra-frame-window is designed from `ace-window' and
-    ;; matches aw-dispatch-alist with a few extra
-    (defhydra hydra-frame-window (:color red :hint nil)
-      "
+  ;; https://github.com/abo-abo/ace-window/wiki/Hydra
+  ;; hydra-frame-window is designed from `ace-window' and
+  ;; matches aw-dispatch-alist with a few extra
+  (defhydra hydra-frame-window (:color red :hint nil)
+    "
 ^Frame^                 ^Window^      Window Size^^^^^^    ^Text Zoom^               (__)
 _0_: delete             _t_oggle        ^ ^ _k_ ^ ^            _=_                   (oo)
 _1_: delete others      _s_wap          _h_ ^+^ _l_            ^+^             /------\\/
 _2_: new                _d_elete        ^ ^ _j_ ^ ^            _-_            / |    ||
 _F_ullscreen            ^ ^             _b_alance^^^^          ^ ^        *  /\\---/\\  ~~  C-c w/C-x o w
 "
-      ("0" delete-frame :exit t)
-      ("1" delete-other-frames :exit t)
-      ("2" make-frame  :exit t)
-      ("b" balance-windows)
-      ("s" ace-swap-window)
-      ("F" toggle-frame-fullscreen)
-      ("t" toggle-window-split)
-      ("d" ace-delete-window :exit t)
-      ("-" text-scale-decrease)
-      ("=" text-scale-increase)
-      ("h" shrink-window-horizontally)
-      ("k" shrink-window)
-      ("j" enlarge-window)
-      ("l" enlarge-window-horizontally)
-      ("q" nil "quit"))
-    (add-to-list 'aw-dispatch-alist '(?w hydra-frame-window/body) t)
-    (bind-key "C-c w" #'hydra-frame-window/body)))
+    ("0" delete-frame :exit t)
+    ("1" delete-other-frames :exit t)
+    ("2" make-frame  :exit t)
+    ("b" balance-windows)
+    ("s" ace-swap-window)
+    ("F" toggle-frame-fullscreen)
+    ("t" toggle-window-split)
+    ("d" ace-delete-window :exit t)
+    ("-" text-scale-decrease)
+    ("=" text-scale-increase)
+    ("h" shrink-window-horizontally)
+    ("k" shrink-window)
+    ("j" enlarge-window)
+    ("l" enlarge-window-horizontally)
+    ("q" nil "quit"))
+  (add-to-list 'aw-dispatch-alist '(?w hydra-frame-window/body) t)
+  (bind-key "C-c w" #'hydra-frame-window/body))
 
 ;; Enforce rules for popups
 (defvar shackle--popup-window-list nil) ; all popup windows
@@ -173,29 +172,44 @@ _F_ullscreen            ^ ^             _b_alance^^^^          ^ ^        *  /\\
     (advice-add #'shackle-display-buffer :around #'shackle-display-buffer-hack))
 
   ;; rules
-  (setq shackle-default-size 0.3)
+  (setq shackle-default-size 0.4)
+  (setq shackle-default-alignment 'below)
+  (setq shackle-default-rule nil)
   (setq shackle-rules
-        '(("*Help*" :select t :align 'below :autoclose t)
-          ("*compilation*" :size 0.25 :align 'below :autoclose t)
+        '(("*Help*" :select t :size 0.3 :align 'below :autoclose t)
+          ("*compilation*" :size 0.3 :align 'below :autoclose t)
           ("*Completions*" :size 0.3 :align 'below :autoclose t)
-          ("*Pp Eval Output*" :size 0.25 :align 'below :autoclose t)
+          ("*Pp Eval Output*" :size 15 :align 'below :autoclose t)
           ("*ert*" :align 'below :autoclose t)
-          ("*Ibuffer*" :select t :inhibit-window-quit t :same t)
-          ("*info*" :select t :inhibit-window-quit t :same t)
-          ("*Backtrace*" :select t :size 20 :align 'below)
-          ("*Warnings*" :size 12 :align 'below :autoclose t)
-          ("*Messages*" :size 12 :align 'below :autoclose t)
+          ("*Backtrace*" :select t :size 15 :align 'below)
+          ("*Warnings*" :size 0.3 :align 'below :autoclose t)
+          ("*Messages*" :size 0.3 :align 'below :autoclose t)
           ("^\\*.*Shell Command.*\\*$" :regexp t :size 0.3 :align 'below :autoclose t)
-          ("\\*[Wo]*Man.*\\*" :regexp t :select t :other t :inhibit-window-quit t)
+          ("\\*[Wo]*Man.*\\*" :regexp t :select t :align 'below :autoclose t)
           ("*Calendar*" :select t :size 0.3 :align 'below)
           (" *undo-tree*" :select t)
-          (apropos-mode :size 0.3 :align 'below :autoclose t)
-          (Buffer-menu-mode :size 20 :align 'below :autoclose t)
+          ("*Paradox Report*" :size 0.3 :align 'below :autoclose t)
+          ("*quickrun*" :select t :size 15 :align 'below)
+          ("*tldr*" :align 'below :autoclose t)
+          ("*Youdao Dictionary*" :size 0.3 :align 'below :autoclose t)
+          ("*Finder*" :select t :size 0.3 :align 'below :autoclose t)
+
+          (ag-mode :select t :align 'below)
+          (grep-mode :select t :align 'below)
+          (ivy-occur-grep-mode :select t :align 'below)
+          (pt-mode :select t :align 'below)
+          (rg-mode :select t :align 'below)
+
+          (flycheck-error-list-mode :select t :size 0.3 :align 'below :autoclose t)
+          (flymake-diagnostics-buffer-mode :select t :size 0.3 :align 'below :autoclose t)
+
+          (Buffer-menu-mode :select t :size 20 :align 'below :autoclose t)
           (comint-mode :align 'below)
-          (grep-mode :size 25 :align 'below :autoclose t)
-          (profiler-report-mode :popup t)
-          (tabulated-list-mode :align 'below)
-          ("^ ?\\*" :regexp t :select t :align 'below))))
+          (helpful-mode :select t :size 0.4 :align 'below :autoclose t)
+          (process-menu-mode :select t :size 0.3 :align 'below :autoclose t)
+          (list-environment-mode :select t :size 0.3 :align 'below :autoclose t)
+          (profiler-report-mode :select t :size 0.5 :align 'below)
+          (tabulated-list-mode :align 'below))))
 
 (provide 'init-window)
 

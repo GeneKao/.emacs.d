@@ -107,6 +107,7 @@
 
       ;; Make certain buffers grossly incandescent
       (use-package solaire-mode
+        :functions persp-load-state-from-file
         :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
                (minibuffer-setup . solaire-mode-in-minibuffer)
                (after-load-theme . solaire-mode-swap-bg))
@@ -116,7 +117,10 @@
                     :after #'solaire-mode-restore-persp-mode-buffers))
 
       (use-package doom-modeline
-        :hook (after-init . doom-modeline-mode)))
+        :hook (after-init . doom-modeline-mode)
+        :init
+        (setq doom-modeline-github t)
+        (setq doom-modeline-major-mode-color-icon t)))
   (progn
     (ignore-errors
       (centaur-load-theme centaur-theme))
@@ -134,9 +138,18 @@
 (use-package hide-mode-line
   :hook (((completion-list-mode
            completion-in-region-mode
+           lsp-ui-imenu-mode
            neotree-mode
            treemacs-mode)
           . hide-mode-line-mode)))
+
+;; Icons
+;; NOTE: Must run `M-x all-the-icons-install-fonts' manually on Windows
+(use-package all-the-icons
+  :if (display-graphic-p)
+  :config
+  (unless (or sys/win32p (member "all-the-icons" (font-family-list)))
+    (all-the-icons-install-fonts t)))
 
 ;; Line and Column
 (setq-default fill-column 80)
@@ -159,11 +172,14 @@
     (use-package hlinum
       :defines linum-highlight-in-all-buffersp
       :hook (global-linum-mode . hlinum-activate)
+      :custom-face (linum-highlight-face
+                    ((t `(
+                          :inherit default
+                          :background ,(face-background 'default)
+                          :foreground ,(face-foreground 'default)
+                          ))))
       :init
-      (setq linum-highlight-in-all-buffersp t)
-      (custom-set-faces
-       `(linum-highlight-face
-         ((t (:inherit 'default :background ,(face-background 'default) :foreground ,(face-foreground 'default)))))))))
+      (setq linum-highlight-in-all-buffersp t))))
 
 ;; Mouse & Smooth Scroll
 ;; Scroll one line at a time (less "jumpy" than defaults)

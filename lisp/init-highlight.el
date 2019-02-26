@@ -41,6 +41,7 @@
 ;; Highlight symbols
 (use-package symbol-overlay
   :diminish
+  :defines iedit-mode
   :functions (symbol-overlay-switch-first symbol-overlay-switch-last)
   :commands (symbol-overlay-get-symbol
              symbol-overlay-assoc
@@ -53,7 +54,9 @@
          ("M-P" . symbol-overlay-switch-backward)
          ("M-C" . symbol-overlay-remove-all)
          ([M-f3] . symbol-overlay-remove-all))
-  :hook (prog-mode . symbol-overlay-mode)
+  :hook ((prog-mode . symbol-overlay-mode)
+         (iedit-mode . (lambda () (symbol-overlay-mode -1)))
+         (iedit-mode-end . symbol-overlay-mode))
   :config
   (defun symbol-overlay-switch-first ()
     (interactive)
@@ -103,12 +106,40 @@
             (setq next (text-property-not-all pos limit prop nil str))
             (when next
               (setq pos (text-property-any next limit prop nil str))
-              (remove-text-properties next pos '(display nil face nil) str))))))))
+              (ignore-errors
+                (remove-text-properties next pos '(display nil face nil) str)))))))))
 
 ;; Colorize color names in buffers
 (use-package rainbow-mode
   :diminish
-  :hook ((emacs-lisp-mode web-mode css-mode) . rainbow-mode))
+  :hook (prog-mode . rainbow-mode)
+  :config
+  ;; Override `hl-line' faces
+  ;; HACK: Use overlay instead of text properties.
+  ;; https://emacs.stackexchange.com/questions/23958/combine-highlight-symbol-mode-and-hl-line-mode
+  (defun rainbow-colorize-match (color &optional match)
+    "Return a matched string propertized with a face whose
+background is COLOR. The foreground is computed using
+`rainbow-color-luminance', and is either white or black."
+    (let* ((match (or match 0))
+           (ov (make-overlay (match-beginning match) (match-end match))))
+      (overlay-put ov
+                   'face `((:foreground ,(if (> 0.5 (rainbow-x-color-luminance color))
+                                             "white" "black"))
+                           (:background ,color)))
+      (overlay-put ov 'symbol 'ovrainbow)))
+
+  (defun rainbow-turn-off ()
+    "Turn off rainbow-mode."
+    (font-lock-remove-keywords
+     nil
+     `(,@rainbow-hexadecimal-colors-font-lock-keywords
+       ,@rainbow-x-colors-font-lock-keywords
+       ,@rainbow-latex-rgb-colors-font-lock-keywords
+       ,@rainbow-r-colors-font-lock-keywords
+       ,@rainbow-html-colors-font-lock-keywords
+       ,@rainbow-html-rgb-colors-font-lock-keywords))
+    (remove-overlays (point-min) (point-max) 'symbol 'ovrainbow)))
 
 ;; Highlight brackets according to their depth
 (use-package rainbow-delimiters
@@ -116,7 +147,7 @@
 
 ;; Highlight TODO and similar keywords in comments and strings
 (use-package hl-todo
-  :custom-face (hl-todo ((t (:box t :bold t))))
+  :custom-face (hl-todo ((t (:box t :inherit))))
   :bind (:map hl-todo-mode-map
               ([C-f3] . hl-todo-occur)
               ("C-c t p" . hl-todo-previous)
@@ -125,8 +156,9 @@
   :hook (after-init . global-hl-todo-mode)
   :config
   (dolist (keyword '("BUG" "DEFECT" "ISSUE"))
-    (cl-pushnew `(,keyword . "#cd5c5c") hl-todo-keyword-faces))
-  (cl-pushnew '("WORKAROUND" . "#d0bf8f") hl-todo-keyword-faces))
+    (cl-pushnew `(,keyword . ,(face-foreground 'error)) hl-todo-keyword-faces))
+  (dolist (keyword '("WORKAROUND" "HACK" "TRICK"))
+    (cl-pushnew `(,keyword . ,(face-foreground 'warning)) hl-todo-keyword-faces)))
 
 ;; Highlight uncommitted changes
 (use-package diff-hl
