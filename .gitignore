@@ -53,8 +53,10 @@ irony/
 magithub/
 persp-confs/
 persistent-scratch/
+/transient/
 server/
 thumbs/
+tldr/
 tutorial/
 url/
 var/

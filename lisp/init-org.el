@@ -40,28 +40,30 @@
   :bind (("C-c a" . org-agenda)
          ("C-c b" . org-switchb))
   :hook (org-indent-mode . (lambda() (diminish 'org-indent-mode)))
-  :init
+  :config
   (setq org-agenda-files '("~/org")
         org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)"
                                       "|" "DONE(d)" "CANCEL(c)"))
         org-log-done 'time
         org-startup-indented t
-        org-ellipsis "  "
+        org-ellipsis (if (char-displayable-p ?) "  " nil)
         org-pretty-entities t
         org-hide-emphasis-markers t)
-  :config
+
   (add-to-list 'org-export-backends 'md)
 
   ;; More fancy UI
   (use-package org-bullets
+    :if (char-displayable-p ?◉)
     :hook (org-mode . org-bullets-mode))
 
-  (unless sys/win32p
-    (use-package org-fancy-priorities
-      :diminish
-      :defines org-fancy-priorities-list
-      :hook (org-mode . org-fancy-priorities-mode)
-      :config (setq org-fancy-priorities-list '("⚡" "⬆" "⬇" "☕"))))
+  (use-package org-fancy-priorities
+    :diminish
+    :defines org-fancy-priorities-list
+    :hook (org-mode . org-fancy-priorities-mode)
+    :config
+    (unless (char-displayable-p ?❗)
+      (setq org-fancy-priorities-list '("HIGH" "MID" "LOW" "OPTIONAL"))))
 
   ;; Babel
   (setq org-confirm-babel-evaluate nil
@@ -110,61 +112,25 @@
   (use-package org-tree-slide
     :diminish
     :functions (org-display-inline-images
-                org-remove-inline-images
-                winner-undo)
+                org-remove-inline-images)
     :bind (:map org-mode-map
-                ("C-<f9>" . org-tree-slide-mode)
+                ("C-<f7>" . org-tree-slide-mode)
                 :map org-tree-slide-mode-map
                 ("<left>" . org-tree-slide-move-previous-tree)
                 ("<right>" . org-tree-slide-move-next-tree)
                 ("S-SPC" . org-tree-slide-move-previous-tree)
                 ("SPC" . org-tree-slide-move-next-tree))
     :hook ((org-tree-slide-play . (lambda ()
-                                    (text-scale-set 4)
+                                    (text-scale-increase 4)
                                     (org-display-inline-images)
-                                    (read-only-mode 1)
-                                    (if (fboundp 'hide-mode-line-mode)
-                                        (hide-mode-line-mode 1))
-                                    (delete-other-windows)))
+                                    (read-only-mode 1)))
            (org-tree-slide-stop . (lambda ()
-                                    (text-scale-set 0)
+                                    (text-scale-increase 0)
                                     (org-remove-inline-images)
-                                    (read-only-mode -1)
-                                    (if (fboundp 'hide-mode-line-mode)
-                                        (hide-mode-line-mode -11)))))
+                                    (read-only-mode -1))))
     :config
     (org-tree-slide-simple-profile)
     (setq org-tree-slide-skip-outline-level 2))
-
-  (use-package org-present
-    :diminish
-    :functions (org-display-inline-images
-                org-remove-inline-images
-                winner-undo)
-    :commands (org-present-big
-               org-present-hide-cursor
-               org-present-read-only
-               org-present-small
-               org-present-show-cursor
-               org-present-read-write)
-    :bind (:map org-mode-map
-                ("M-<f9>" . org-present))
-    :hook ((org-present-mode . (lambda ()
-                                 (org-present-big)
-                                 (org-display-inline-images)
-                                 (org-present-hide-cursor)
-                                 (org-present-read-only)
-                                 (if (fboundp 'hide-mode-line-mode)
-                                     (hide-mode-line-mode 1))
-                                 (delete-other-windows)))
-           (org-present-mode-quit . (lambda ()
-                                      (org-present-small)
-                                      (org-remove-inline-images)
-                                      (org-present-show-cursor)
-                                      (org-present-read-write)
-                                      (read-only-mode -1)
-                                      (if (fboundp 'hide-mode-line-mode)
-                                          (hide-mode-line-mode -1))))))
 
   ;; Pomodoro
   (use-package org-pomodoro
@@ -175,21 +141,20 @@
   ;; Visually summarize progress
   (use-package org-dashboard)
 
-  (with-eval-after-load 'hydra
-    (eval-and-compile
-      (defun hot-expand (str &optional mod)
-        "Expand org template."
-        (let (text)
-          (when (region-active-p)
-            (setq text (buffer-substring (region-beginning) (region-end)))
-            (delete-region (region-beginning) (region-end)))
-          (insert str)
-          (org-try-structure-completion)
-          (when mod (insert mod) (forward-line))
-          (when text (insert text)))))
+  (eval-and-compile
+    (defun hot-expand (str &optional mod)
+      "Expand org template."
+      (let (text)
+        (when (region-active-p)
+          (setq text (buffer-substring (region-beginning) (region-end)))
+          (delete-region (region-beginning) (region-end)))
+        (insert str)
+        (org-try-structure-completion)
+        (when mod (insert mod) (forward-line))
+        (when text (insert text)))))
 
-    (defhydra hydra-org-template (:color blue :hint nil)
-      "
+  (defhydra hydra-org-template (:color blue :hint nil)
+    "
 _c_enter  qu_o_te     _e_macs-lisp    _L_aTeX:
 _l_atex   _E_xample   p_y_thon        _i_ndex:
 _a_scii   _v_erse     ip_Y_thon       _I_NCLUDE:
@@ -197,39 +162,39 @@ _s_rc     _g_o        _r_uby          _H_TML:
 _h_tml    _S_HELL     _p_erl          _A_SCII:
 ^ ^       ^ ^         _P_erl tangled  plant_u_ml
 "
-      ("s" (hot-expand "<s"))
-      ("E" (hot-expand "<e"))
-      ("o" (hot-expand "<q"))
-      ("v" (hot-expand "<v"))
-      ("c" (hot-expand "<c"))
-      ("l" (hot-expand "<l"))
-      ("h" (hot-expand "<h"))
-      ("a" (hot-expand "<a"))
-      ("L" (hot-expand "<L"))
-      ("i" (hot-expand "<i"))
-      ("e" (hot-expand "<s" "emacs-lisp"))
-      ("y" (hot-expand "<s" "python :results output"))
-      ("Y" (hot-expand "<s" "ipython :session :exports both :results raw drawer\n$0"))
-      ("g" (hot-expand "<s" "go :imports '\(\"fmt\"\)"))
-      ("p" (hot-expand "<s" "perl"))
-      ("r" (hot-expand "<s" "ruby"))
-      ("S" (hot-expand "<s" "sh"))
-      ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
-      ("P" (progn
-             (insert "#+HEADERS: :results output :exports both :shebang \"#!/usr/bin/env perl\"\n")
-             (hot-expand "<s" "perl")))
-      ("I" (hot-expand "<I"))
-      ("H" (hot-expand "<H"))
-      ("A" (hot-expand "<A"))
-      ("<" self-insert-command "ins")
-      ("q" nil "quit"))
+    ("s" (hot-expand "<s"))
+    ("E" (hot-expand "<e"))
+    ("o" (hot-expand "<q"))
+    ("v" (hot-expand "<v"))
+    ("c" (hot-expand "<c"))
+    ("l" (hot-expand "<l"))
+    ("h" (hot-expand "<h"))
+    ("a" (hot-expand "<a"))
+    ("L" (hot-expand "<L"))
+    ("i" (hot-expand "<i"))
+    ("e" (hot-expand "<s" "emacs-lisp"))
+    ("y" (hot-expand "<s" "python :results output"))
+    ("Y" (hot-expand "<s" "ipython :session :exports both :results raw drawer\n$0"))
+    ("g" (hot-expand "<s" "go :imports '\(\"fmt\"\)"))
+    ("p" (hot-expand "<s" "perl"))
+    ("r" (hot-expand "<s" "ruby"))
+    ("S" (hot-expand "<s" "sh"))
+    ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
+    ("P" (progn
+           (insert "#+HEADERS: :results output :exports both :shebang \"#!/usr/bin/env perl\"\n")
+           (hot-expand "<s" "perl")))
+    ("I" (hot-expand "<I"))
+    ("H" (hot-expand "<H"))
+    ("A" (hot-expand "<A"))
+    ("<" self-insert-command "ins")
+    ("q" nil "quit"))
 
-    (bind-key "<"
-              (lambda () (interactive)
-                (if (or (region-active-p) (looking-back "^\s*" 1))
-                    (hydra-org-template/body)
-                  (self-insert-command 1)))
-              org-mode-map)))
+  (bind-key "<"
+            (lambda () (interactive)
+              (if (or (region-active-p) (looking-back "^\s*" 1))
+                  (hydra-org-template/body)
+                (self-insert-command 1)))
+            org-mode-map))
 
 (provide 'init-org)
 

@@ -150,19 +150,11 @@
     :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
     :magic ("%PDF" . pdf-view-mode)
     :preface
-    :bind (:map pdf-view-mode-map
-                ("C-s" . isearch-forward))
-    :hook (pdf-view-mode . pdf-view-midnight-minor-mode)
-    :config
-    (defun set-pdf-view-midnight-colors ()
+    (defun my-pdf-set-midnight-colors ()
       (setq pdf-view-midnight-colors
             `(,(face-foreground 'default) . ,(face-background 'default))))
-    (set-pdf-view-midnight-colors)
-    (add-hook 'after-load-theme-hook #'set-pdf-view-midnight-colors)
 
-    (pdf-tools-install t nil t t)
-
-    ;; Workaround for pdf-tools not reopening to last-viewed page of the pdf:
+    ;; Workaround for pdf-tools not reopening to last-viewed page
     ;; https://github.com/politza/pdf-tools/issues/18
     (defun my-pdf-set-last-viewed-bookmark ()
       (interactive)
@@ -170,8 +162,7 @@
         (bookmark-set (my-pdf-generate-bookmark-name))))
 
     (defun my-pdf-jump-last-viewed-bookmark ()
-      (when
-          (my-pdf-has-last-viewed-bookmark)
+      (when (my-pdf-has-last-viewed-bookmark)
         (bookmark-jump (my-pdf-generate-bookmark-name))))
 
     (defun my-pdf-has-last-viewed-bookmark ()
@@ -185,20 +176,21 @@
       (dolist (buf (buffer-list))
         (with-current-buffer buf
           (my-pdf-set-last-viewed-bookmark))))
-
-    (add-hook 'kill-buffer-hook 'my-pdf-set-last-viewed-bookmark)
-    (add-hook 'pdf-view-mode-hook 'my-pdf-jump-last-viewed-bookmark)
-    (unless noninteractive  ; as `save-place-mode' does
-      (add-hook 'kill-emacs-hook #'my-pdf-set-all-last-viewed-bookmarks))))
+    :bind (:map pdf-view-mode-map
+                ("C-s" . isearch-forward))
+    :hook ((after-load-theme . my-pdf-set-midnight-colors)
+           (kill-buffer . my-pdf-set-last-viewed-bookmark)
+           (pdf-view-mode . my-pdf-jump-last-viewed-bookmark)
+           (kill-emacs . (lambda ()
+                           (unless noninteractive  ; as `save-place-mode' does
+                             (my-pdf-set-all-last-viewed-bookmarks)))))
+    :init (my-pdf-set-midnight-colors)
+    :config (pdf-tools-install t nil t t)))
 
 ;; Nice writing
 (use-package olivetti
   :diminish
-  :bind ("C-<f6>" . olivetti-mode)
-  :hook (olivetti-mode . (lambda ()
-                           (if olivetti-mode
-                               (text-scale-set 2)
-                             (text-scale-set 0))))
+  :bind ("<f7>" . olivetti-mode)
   :init (setq olivetti-body-width 0.618))
 
 ;; Misc
@@ -209,6 +201,7 @@
 (use-package htmlize)                   ; covert to html
 (use-package list-environment)
 (use-package memory-usage)
+(use-package tldr)
 (use-package ztree)                     ; text mode directory tree. Similar with beyond compare
 
 (provide 'init-utils)

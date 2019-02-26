@@ -112,23 +112,20 @@
   (setq ivy-height 10)
   (setq ivy-count-format "(%d/%d) ")
   (setq ivy-on-del-error-function nil)
+  ;; (setq ivy-format-function 'ivy-format-function-arrow)
   ;; (setq ivy-initial-inputs-alist nil)
 
-  (setq ivy-format-function 'ivy-format-function-arrow)
-  (when (display-graphic-p)
-    (with-eval-after-load 'all-the-icons
-      (defun my-ivy-format-function (cands)
-        "Transform CANDS into a string for minibuffer."
-        (ivy--format-function-generic
-         (lambda (str)
-           (concat (all-the-icons-octicon "chevron-right" :v-adjust -0.04)
-                   " "
-                   (ivy--add-face str 'ivy-current-match)))
-         (lambda (str)
-           (concat "  " str))
-         cands
-         "\n"))
-      (setq ivy-format-function 'my-ivy-format-function)))
+  (defun my-ivy-format-function-arrow (cands)
+    "Transform CANDS into a string for minibuffer."
+    (ivy--format-function-generic
+     (lambda (str)
+       (concat (if (char-displayable-p ?▶) "▶ " "> ")
+               (ivy--add-face str 'ivy-current-match)))
+     (lambda (str)
+       (concat "  " str))
+     cands
+     "\n"))
+  (setq ivy-format-function 'my-ivy-format-function-arrow)
 
   (setq swiper-action-recenter t)
   (setq counsel-find-file-at-point t)
@@ -161,58 +158,75 @@
     :bind (:map ivy-minibuffer-map
                 ("M-o" . ivy-dispatching-done-hydra)))
 
+  ;; Integrate yasnippet
+  (use-package ivy-yasnippet
+    :bind ("C-c C-y" . ivy-yasnippet)
+    :config (advice-add #'ivy-yasnippet--preview :override #'ignore))
+
   ;; More friendly display transformer for Ivy
   (use-package ivy-rich
-    :defines all-the-icons-mode-icon-alist
-    :functions (all-the-icons-icon-family-for-mode all-the-icons-icon-family-for-file)
+    :defines (all-the-icons-mode-icon-alist all-the-icons-dir-icon-alist)
+    :functions (all-the-icons-icon-family
+                all-the-icons-match-to-alist
+                all-the-icons-auto-mode-match?
+                all-the-icons-octicon
+                all-the-icons-dir-is-submodule)
+    :hook (ivy-rich-mode . (lambda ()
+                             (setq ivy-virtual-abbreviate
+                                   (or (and ivy-rich-mode 'abbreviate) 'name))))
     :preface
     (with-eval-after-load 'all-the-icons
       (add-to-list 'all-the-icons-mode-icon-alist
                    '(gfm-mode  all-the-icons-octicon "markdown" :v-adjust 0.0 :face all-the-icons-lblue)))
 
-    (defun ivy-rich-switch-buffer-icon (candidate)
-      "Show buffer icons in `ivy-rich'."
-      ;; Only on GUI
-      (when (and centaur-ivy-icon
-                 (display-graphic-p)
-                 (featurep 'all-the-icons))
+    (defun ivy-rich-buffer-icon (candidate)
+      "Display buffer icons in `ivy-rich'."
+      (when (display-graphic-p)
         (when-let* ((buffer (get-buffer candidate))
                     (major-mode (buffer-local-value 'major-mode buffer))
-                    (icon (all-the-icons-icon-for-mode major-mode)))
-          (propertize
-           (if (symbolp icon)
-               (all-the-icons-icon-for-mode 'text-mode)
-             icon)
-           'face `(
-                   :height 1.1
-                   :family ,(all-the-icons-icon-family-for-mode
-                             (if (symbolp icon)
-                                 'text-mode
-                               major-mode))
-                   :inherit
-                   )))))
+                    (icon (if (and (buffer-file-name buffer)
+                                   (all-the-icons-auto-mode-match? candidate))
+                              (all-the-icons-icon-for-file candidate)
+                            (all-the-icons-icon-for-mode major-mode))))
+          (if (symbolp icon)
+              (setq icon (all-the-icons-icon-for-mode 'fundamental-mode)))
+          (unless (symbolp icon)
+            (propertize icon
+                        'face `(
+                                :height 1.1
+                                :family ,(all-the-icons-icon-family icon)
+                                :inherit
+                                ))))))
 
     (defun ivy-rich-file-icon (candidate)
-      "Show file icons in `ivy-rich'."
-      ;; Only on GUI
-      (when (and centaur-ivy-icon
-                 (display-graphic-p)
-                 (featurep 'all-the-icons))
-        (let ((icon (all-the-icons-icon-for-file candidate)))
-          (propertize
-           (if (symbolp icon)
-               (all-the-icons-icon-for-mode 'text-mode)
-             icon)
-           'face `(
-                   :height 1.1
-                   :family ,(all-the-icons-icon-family-for-file candidate)
-                   :inherit
-                   )))))
+      "Display file icons in `ivy-rich'."
+      (when (display-graphic-p)
+        (let ((icon (if (file-directory-p candidate)
+                        (cond
+                         ((and (fboundp 'tramp-tramp-file-p)
+                               (tramp-tramp-file-p default-directory))
+                          (all-the-icons-octicon "file-directory"))
+                         ((file-symlink-p candidate)
+                          (all-the-icons-octicon "file-symlink-directory"))
+                         ((all-the-icons-dir-is-submodule candidate)
+                          (all-the-icons-octicon "file-submodule"))
+                         ((file-exists-p (format "%s/.git" candidate))
+                          (all-the-icons-octicon "repo"))
+                         (t (let ((matcher (all-the-icons-match-to-alist candidate all-the-icons-dir-icon-alist)))
+                              (apply (car matcher) (list (cadr matcher))))))
+                      (all-the-icons-icon-for-file candidate))))
+          (unless (symbolp icon)
+            (propertize icon
+                        'face `(
+                                :height 1.1
+                                :family ,(all-the-icons-icon-family icon)
+                                :inherit
+                                ))))))
 
     (setq ivy-rich--display-transformers-list
           '(ivy-switch-buffer
             (:columns
-             ((ivy-rich-switch-buffer-icon :width 2)
+             ((ivy-rich-buffer-icon :width 2)
               (ivy-rich-candidate (:width 30))
               (ivy-rich-switch-buffer-size (:width 7))
               (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
@@ -223,7 +237,7 @@
              (lambda (cand) (get-buffer cand)))
             ivy-switch-buffer-other-window
             (:columns
-             ((ivy-rich-switch-buffer-icon :width 2)
+             ((ivy-rich-buffer-icon :width 2)
               (ivy-rich-candidate (:width 30))
               (ivy-rich-switch-buffer-size (:width 7))
               (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
@@ -252,6 +266,10 @@
             (:columns
              ((ivy-rich-file-icon :width 2)
               (ivy-rich-candidate (:width 30))))
+            counsel-dired-jump
+            (:columns
+             ((ivy-rich-file-icon :width 2)
+              (ivy-rich-candidate (:width 30))))
             counsel-git
             (:columns
              ((ivy-rich-file-icon :width 2)
@@ -271,18 +289,11 @@
               (ivy-rich-file-last-modified-time (:face font-lock-comment-face))))))
     :init
     (setq ivy-rich-parse-remote-buffer nil)
-    (ivy-rich-mode 1)
-    :hook (ivy-rich-mode . (lambda ()
-                             (setq ivy-virtual-abbreviate
-                                   (or (and ivy-rich-mode 'abbreviate) 'name)))))
+    (ivy-rich-mode 1))
 
   ;; Select from xref candidates with Ivy
   (use-package ivy-xref
     :init (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
-
-  ;; Preview snippets with Ivy
-  (use-package ivy-yasnippet
-    :bind ("C-c C-y" . ivy-yasnippet))
 
   ;; Correcting words with flyspell via Ivy
   (use-package flyspell-correct-ivy
@@ -293,6 +304,15 @@
   ;; Ivy integration for Projectile
   (use-package counsel-projectile
     :init (counsel-projectile-mode 1))
+
+  ;; Quick launch apps
+  (cond
+   (sys/linux-x-p
+    (bind-key "C-<f6>" #'counsel-linux-app counsel-mode-map))
+   (sys/macp
+    (use-package counsel-osx-app
+      :bind (:map counsel-mode-map
+                  ("C-<f6>" . counsel-osx-app)))))
 
   ;; Display world clock using Ivy
   (use-package counsel-world-clock

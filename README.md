@@ -126,7 +126,6 @@ For Example:
 (setq centaur-theme classic)                   ; Color theme: default, classic, dark, light or daylight
 (setq centaur-dashboard nil)                   ; Use dashboard at startup or not: t or nil
 (setq centaur-lsp nil)                         ; Set LSP client: lsp-mode, eglot or nil
-(setq centaur-ivy-icon nil)                    ; Display icons in ivy or not: t or nil
 (setq centaur-benchmark t)                     ; Enable initialization benchmark or not: t or nil
 ```
 
@@ -137,7 +136,7 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 ## Screenshots
 
-![Dashboard](https://user-images.githubusercontent.com/140797/49697925-400f3600-fbf8-11e8-8781-2e2ee6cd90c9.png
+![Dashboard](https://user-images.githubusercontent.com/140797/53445253-b75ba580-3a42-11e9-8be5-c774d65fd8eb.png
 "Dashboard (default theme)")
 
 ![markdown_magit](https://user-images.githubusercontent.com/140797/49694620-8ba9eb80-fbc8-11e8-9800-f2486ab41991.png
