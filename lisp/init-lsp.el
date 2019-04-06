@@ -44,25 +44,45 @@
    (use-package lsp-mode
      :diminish lsp-mode
      :hook (prog-mode . lsp)
+     :bind (:map lsp-mode-map
+                 ("C-c C-d" . lsp-describe-thing-at-point))
      :init
      (setq lsp-auto-guess-root t)       ; Detect project root
      (setq lsp-prefer-flymake nil)      ; Use lsp-ui and flycheck
+     (setq flymake-fringe-indicator-position 'right-fringe)
      :config
      ;; Configure LSP clients
      (use-package lsp-clients
        :ensure nil
        :init
-       (setq lsp-clients-python-library-directories '("/usr/local/" "/usr/"))
-       (setq lsp-clients-go-language-server-flags
-             '("-gocodecompletion" "--format-style=\"goimports\""))))
+       (setq lsp-clients-python-library-directories '("/usr/local/" "/usr/"))))
 
    (use-package lsp-ui
+     :custom-face
+     (lsp-ui-doc-background ((t (:background nil))))
+     (lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic)))))
      :bind (:map lsp-ui-mode-map
                  ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
                  ([remap xref-find-references] . lsp-ui-peek-find-references)
-                 ("C-c u" . lsp-ui-imenu)))
+                 ("C-c u" . lsp-ui-imenu))
+     :init
+     (setq lsp-ui-doc-enable t
+           lsp-ui-doc-header t
+           lsp-ui-doc-include-signature t
+           lsp-ui-doc-position 'top
+           lsp-ui-doc-use-webkit t
+           lsp-ui-doc-border (face-foreground 'default)
 
-   (use-package company-lsp)
+           lsp-ui-sideline-enable nil
+           lsp-ui-sideline-ignore-duplicate t)
+     :config
+     ;; WORKAROUND Hide mode-line of the lsp-ui-imenu buffer
+     ;; https://github.com/emacs-lsp/lsp-ui/issues/243
+     (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
+       (setq mode-line-format nil)))
+
+   (use-package company-lsp
+     :init (setq company-lsp-cache-candidates 'auto))
 
    ;; C/C++/Objective-C support
    (use-package ccls
@@ -81,10 +101,9 @@
    (use-package lsp-java
      :hook (java-mode . (lambda ()
                           (require 'lsp-java)
-                          (lsp))))
-   ))
+                          (lsp))))))
 
-(unless centaur-lsp
+(when centaur-lsp
   ;; Enable LSP in org babel
   ;; https://github.com/emacs-lsp/lsp-mode/issues/377
   (cl-defmacro lsp-org-babel-enbale (lang)
@@ -94,13 +113,21 @@
            (intern-pre (intern (format "lsp--%s" (symbol-name edit-pre)))))
       `(progn
          (defun ,intern-pre (info)
-           (let ((lsp-file (or (->> info caddr (alist-get :file))
+           (let ((filename (or (->> info caddr (alist-get :file))
                                buffer-file-name)))
-             (setq-local buffer-file-name lsp-file)
-             (setq-local lsp-buffer-uri (lsp--path-to-uri lsp-file))
-             (pcase 'centaur-lsp
-               ('eglot (eglot))
-               ('lsp-mode (lsp)))))
+             (setq buffer-file-name filename)
+             (pcase centaur-lsp
+               ('eglot
+                (and (fboundp 'eglot) (eglot)))
+               ('lsp-mode
+                (and (fboundp 'lsp)
+                     ;; `lsp-auto-guess-root' MUST be non-nil.
+                     (setq lsp-buffer-uri (lsp--path-to-uri filename))
+                     (lsp))))))
+         (put ',intern-pre 'function-documentation
+              (format "Enable `%s' in the buffer of org source block (%s)."
+                      centaur-lsp (upcase ,lang)))
+
          (if (fboundp ',edit-pre)
              (advice-add ',edit-pre :after ',intern-pre)
            (progn

@@ -58,7 +58,7 @@
 (unless emacs/>=27p        ; Move to early init-file in 27
   (unless sys/mac-x-p (menu-bar-mode -1))
   (and (bound-and-true-p tool-bar-mode) (tool-bar-mode -1))
-  (and (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)))
+  (and (fboundp 'set-scroll-bar-mode) (set-scroll-bar-mode nil)))
 
 ;; Theme
 (defvar after-load-theme-hook nil
@@ -103,33 +103,47 @@
         ;; Corrects (and improves) org-mode's native fontification.
         (doom-themes-org-config)
         ;; Enable custom treemacs theme (all-the-icons must be installed!)
-        (doom-themes-treemacs-config))
+        (doom-themes-treemacs-config)
+
+        ;; Improve file type icons
+        (with-eval-after-load 'treemacs
+          (when doom-treemacs-use-generic-icons
+            (let ((all-the-icons-default-adjust 0))
+              (setq treemacs-icon-fallback (concat (all-the-icons-faicon "file-text-o" :height 0.93) " ")
+                    treemacs-icon-text treemacs-icon-fallback)
+              (dolist (item all-the-icons-icon-alist)
+                (let* ((extension (car item))
+                       (icon (apply (cdr item))))
+                  (ht-set! treemacs-icons-hash
+                           (s-replace-all '(("^" . "") ("\\" . "") ("$" . "") ("." . "")) extension)
+                           (concat (propertize icon
+                                               'face `(:height
+                                                       1.1
+                                                       :family
+                                                       ,(all-the-icons-icon-family icon)))
+                                   " "))))))))
 
       ;; Make certain buffers grossly incandescent
       (use-package solaire-mode
         :functions persp-load-state-from-file
-        :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
+        :hook (((after-change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
                (minibuffer-setup . solaire-mode-in-minibuffer)
                (after-load-theme . solaire-mode-swap-bg))
         :config
         (solaire-mode-swap-bg)
         (advice-add #'persp-load-state-from-file
-                    :after #'solaire-mode-restore-persp-mode-buffers))
-
-      (use-package doom-modeline
-        :hook (after-init . doom-modeline-mode)
-        :init
-        (setq doom-modeline-github t)
-        (setq doom-modeline-major-mode-color-icon t)))
+                    :after #'solaire-mode-restore-persp-mode-buffers)))
   (progn
     (ignore-errors
-      (centaur-load-theme centaur-theme))
-
-    (use-package telephone-line
-      :init (setq ns-use-srgb-colorspace nil)
-      :hook (after-init . telephone-line-mode))))
+      (centaur-load-theme centaur-theme))))
 
 ;; Mode-line
+(use-package doom-modeline
+  :hook (after-init . doom-modeline-mode)
+  :init
+  (setq doom-modeline-major-mode-color-icon t)
+  (setq doom-modeline-github t))
+
 (defun mode-line-height ()
   "Get current height of mode-line."
   (- (elt (window-pixel-edges) 3)
@@ -138,7 +152,6 @@
 (use-package hide-mode-line
   :hook (((completion-list-mode
            completion-in-region-mode
-           lsp-ui-imenu-mode
            neotree-mode
            treemacs-mode)
           . hide-mode-line-mode)))
@@ -147,9 +160,24 @@
 ;; NOTE: Must run `M-x all-the-icons-install-fonts' manually on Windows
 (use-package all-the-icons
   :if (display-graphic-p)
-  :config
+  :init
   (unless (or sys/win32p (member "all-the-icons" (font-family-list)))
-    (all-the-icons-install-fonts t)))
+    (all-the-icons-install-fonts t))
+  :config
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.ipynb" all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(ein:notebooklist-mode all-the-icons-faicon "book" :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(ein:notebook-mode all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(ein:notebook-multilang-mode all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.epub$" all-the-icons-faicon "book" :face all-the-icons-green))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(nov-mode all-the-icons-faicon "book" :face all-the-icons-green))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(gfm-mode  all-the-icons-octicon "markdown" :face all-the-icons-lblue)))
 
 ;; Line and Column
 (setq-default fill-column 80)
@@ -175,8 +203,8 @@
       :custom-face (linum-highlight-face
                     ((t `(
                           :inherit default
-                          :background ,(face-background 'default)
-                          :foreground ,(face-foreground 'default)
+                          :background nil
+                          :foreground nil
                           ))))
       :init
       (setq linum-highlight-in-all-buffersp t))))
@@ -198,9 +226,14 @@
   (setq display-time-24hr-format t)
   (setq display-time-day-and-date t))
 
+;; Suppress GUI features
+(setq use-file-dialog nil)
+(setq use-dialog-box nil)
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-echo-area-message t)
+
 ;; Misc
 (fset 'yes-or-no-p 'y-or-n-p)
-(setq inhibit-startup-screen t)
 (setq visible-bell t)
 (size-indication-mode 1)
 ;; (blink-cursor-mode -1)
@@ -216,7 +249,10 @@
 (when (boundp 'x-gtk-use-system-tooltips)
   (setq x-gtk-use-system-tooltips nil))
 
-;; Toggle fullscreen
+;; Fullscreen
+;; WORKAROUND: To address blank screen issue with child-frame in fullscreen
+(when sys/mac-x-p
+  (setq ns-use-native-fullscreen nil))
 (bind-keys ("C-<f11>" . toggle-frame-fullscreen)
            ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS
            ("S-s-<return>" . toggle-frame-fullscreen)

@@ -33,27 +33,25 @@
 (use-package ibuffer
   :ensure nil
   :functions (all-the-icons-icon-for-buffer
-              all-the-icons-icon-for-mode
               all-the-icons-icon-family)
   :commands (ibuffer-current-buffer
              ibuffer-find-file
              ibuffer-do-sort-by-alphabetic)
   :bind ("C-x C-b" . ibuffer)
   :init
-  (setq ibuffer-filter-group-name-face '(:inherit (font-lock-keyword-face bold)))
+  (setq ibuffer-filter-group-name-face '(:inherit (font-lock-string-face bold)))
 
   ;; Display buffer icons on GUI
   (when (display-graphic-p)
     (define-ibuffer-column icon (:name " ")
       (let ((icon (all-the-icons-icon-for-buffer)))
         (if (symbolp icon)
-            (setq icon (all-the-icons-icon-for-mode 'fundamental-mode)))
+            (setq icon (all-the-icons-faicon "file" :height 1.0 :v-adjust -0.0575)))
         (unless (symbolp icon)
           (propertize icon
                       'face `(
                               :height 1.1
                               :family ,(all-the-icons-icon-family icon)
-                              :inherit
                               )))))
 
     (setq ibuffer-formats '((mark modified read-only locked
