@@ -79,32 +79,32 @@
 
 
 ;; Add conda environment
-;; (use-package pyvenv
-;;   :init
-;;   (setenv "WORKON_HOME" "~/anaconda3/envs")
-;;   (pyvenv-mode 1))
+(use-package pyvenv
+  :init
+  (setenv "WORKON_HOME" "~/anaconda3/envs")
+  (pyvenv-mode 1))
 
-(require 'conda)
-;; if you want interactive shell support, include:
-(conda-env-initialize-interactive-shells)
-;; if you want eshell support, include:
-(conda-env-initialize-eshell)
-;; if you want auto-activation (see below for details), include:
-(conda-env-autoactivate-mode t)
+;; (require 'conda)
+;; ;; if you want interactive shell support, include:
+;; (conda-env-initialize-interactive-shells)
+;; ;; if you want eshell support, include:
+;; (conda-env-initialize-eshell)
+;; ;; if you want auto-activation (see below for details), include:
+;; (conda-env-autoactivate-mode t)
 
-(custom-set-variables
- '(conda-anaconda-home "~/anaconda3"))
+;; (custom-set-variables
+;;  '(conda-anaconda-home "~/anaconda3"))
 
 ;; Emacs IPython Notebook
-(use-package ein
-  :diminish ein:notebook-mode
-  :defines ein:completion-backend
-  :init
-  (setq ein:completion-backend 'ein:use-company-backend)
+;; (use-package ein
+;;   :diminish ein:notebook-mode
+;;   :defines ein:completion-backend
+;;   :init
+;;   (setq ein:completion-backend 'ein:use-company-backend)
 
-  ;; WORKAROUND:https://github.com/millejoh/emacs-ipython-notebook/issues/496
-  (with-eval-after-load 'ido
-    (defalias 'ido-completing-read 'completing-read)))
+;;   ;; WORKAROUND:https://github.com/millejoh/emacs-ipython-notebook/issues/496
+;;   (with-eval-after-load 'ido
+;;     (defalias 'ido-completing-read 'completing-read)))
 
 
 (provide 'init-python)
