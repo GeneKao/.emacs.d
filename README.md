@@ -22,25 +22,24 @@ latest stable release - currently **26.1**.
 - Out of box.
 - Clean and Fast.
 - Quick fuzzy search.
-- Better Org support.
+- Better Org/Markdown support.
 - Support multiple programming languages
-  - C/C++/C#/Java
-  - Ruby/Python/Perl/PHP/Shell/Powershell
+  - C/C++/Object-C/C#/Java
+  - Python/Ruby/Perl/PHP/Shell/Powershell
   - Javascript/Typescript/JSON/YAML
   - HTML/CSS/XML
-  - Golang/Swift
-  - Markdown
+  - Golang/Swift/Rust
   - ...
 - Auto completion.
 - Fly syntax check.
 - Fly spell check.
-- Git/SVN integration.
-- Projectile integration.
-- Workspace integration.
+- Git integration.
+- Project/Workspace integration.
 - Pomodor integration.
-- Youdao dictionary integration.
-- Support Chinese fonts and calendar.
-- Support Pinyin search.
+- Better Chinese support:
+  - Chinese calendar
+  - Youdao dictionary
+  - Pinyin search
 
 ## Prerequiste
 
@@ -48,7 +47,7 @@ latest stable release - currently **26.1**.
 
 - GNU Linux
 - macOS
-- Windows (Cygwin)
+- Windows (Cygwin/msys)
 
 ### GNU Emacs
 
@@ -136,7 +135,7 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 ## Screenshots
 
-![Dashboard](https://user-images.githubusercontent.com/140797/53445253-b75ba580-3a42-11e9-8be5-c774d65fd8eb.png
+![Dashboard](https://user-images.githubusercontent.com/140797/53698460-9c58af00-3e0f-11e9-9d32-8fd0c2c0ff77.png
 "Dashboard (default theme)")
 
 ![markdown_magit](https://user-images.githubusercontent.com/140797/49694620-8ba9eb80-fbc8-11e8-9800-f2486ab41991.png
@@ -158,44 +157,28 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 1. How to search Chinese via pinyin?
 
-    In Emacs, `C-s :`. If you just want to search `:`, use `C-s \:`.
+    In Emacs, `C-s !`. If you just want to search `!`, use `C-s \!`.
 
 1. How to use the Centaur Dashboard?
 
-    Set `(setq centaur-dashboard t)` in `~/.emacs.d/custom.el`. Dashboard will
-    be opened at startup. After startup, you could use `F2` to reopen it anytime.
-    In the dashboard, you could easily jump to Homepage(`H`), Restore
-    Session(`R`), Edit Config (`E`), Update(`U`), Recent Files (`r`),
+    If `centaur-dashboard` is non-nil the Centaur Dashboard will be opened at
+    startup automatically. After startup, you could use `F2` to reopen it
+    anytime. In the dashboard, please press `?` or `h` to get the help. You can
+    easily jump to the sections or buttons with keybindings, e.g. Homepage(`H`),
+    Session(`R`, `L`), Settings(`S`), Update(`U`), Recent Files (`r`),
     Bookmarks(`m`) and Projects(`p`).
 
 1. Does Centaur Emacs support Language Server Protocol (LSP)?
 
-    LSP is supported and enabled by default in Centuar Emacs now. `eglot` is the
-    default client, and `lsp-mode` is another choice. Before use it you should
-    install language servers as below. Use `(setq centaur-lsp nil)` to disable
-    `LSP` if you don't like it.
-    - Golang: `go get -u github.com/sourcegraph/go-langserver`
-    - Python: `pip install python-language-server`
-    - Ruby:  `gem install solargraph`
-    - Javascript/Typescript: `npm i -g javascript-typescript-langserver`
-    - CSS: `npm i -g vscode-css-languageserver-bin`
-    - HTML: `npm i -g vscode-html-languageserver-bin`
-    - Bash/Shell: `npm i -g bash-language-server`. Require Python2.5+, use
-      `--python` to specify.
-    - C/C++/Objective-C : `brew install cquery` or dwonload binary from
-      [here](https://github.com/cquery-project/cquery/releases).
-    - Rust: `rustup component add rls-preview rust-analysis rust-src`
-    - Java:
-      ``` shell
-      wget http://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz
-      tar jdt-language-server-latest.tar.gz -C ~/.emacs.d/eclipse.jdt.ls/server/
-      ```
-    - PHP: refer to the [installation
-      guide](https://github.com/felixfbecker/php-language-server#installation).
-      ``` shell
-      composer require felixfbecker/language-server
-      composer run-script --working-dir=vendor/felixfbecker/language-server parse-stubs
-      ```
+    The LSP feature is supported and enabled by default in Centuar Emacs.
+    `lsp-mode` is the default client, and `eglot` is another choice. Use `(setq
+    centaur-lsp nil)` to disable LSP if you don't like it.
+
+    Before use it you should install language servers. Refer to [lsp-mode:
+    supported-languages](https://github.com/emacs-lsp/lsp-mode#supported-languages)
+    or [eglot: Connecting to a
+    server](https://github.com/joaotavora/eglot#connecting-to-a-server) for
+    details.
 
 1. How to enable `plantuml` in `org-mode`?
 

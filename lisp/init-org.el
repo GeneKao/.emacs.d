@@ -42,8 +42,10 @@
   :hook (org-indent-mode . (lambda() (diminish 'org-indent-mode)))
   :config
   (setq org-agenda-files '("~/org")
-        org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)"
-                                      "|" "DONE(d)" "CANCEL(c)"))
+        org-todo-keywords '((sequence "TODO(T)" "DOING(I)" "HANGUP(H)" "|" "DONE(D)" "CANCEL(C)")
+                            (sequence "⚑(t)" "🏴(i)" "❓(h)" "|" "✔(d)" "✘(c)"))
+        org-todo-keyword-faces '(("HANGUP" . warning)
+                                 ("❓" . warning))
         org-log-done 'time
         org-startup-indented t
         org-ellipsis (if (char-displayable-p ?) "  " nil)
@@ -103,6 +105,10 @@
   (use-package org-rich-yank
     :bind (:map org-mode-map
                 ("C-M-y" . org-rich-yank)))
+
+  ;; Table of contents
+  (use-package toc-org
+    :hook (org-mode . toc-org-mode))
 
   ;; Preview
   (use-package org-preview-html

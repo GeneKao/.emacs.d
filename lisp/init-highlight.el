@@ -42,7 +42,6 @@
 (use-package symbol-overlay
   :diminish
   :defines iedit-mode
-  :functions (symbol-overlay-switch-first symbol-overlay-switch-last)
   :commands (symbol-overlay-get-symbol
              symbol-overlay-assoc
              symbol-overlay-get-list
@@ -56,31 +55,9 @@
          ([M-f3] . symbol-overlay-remove-all))
   :hook ((prog-mode . symbol-overlay-mode)
          (iedit-mode . (lambda () (symbol-overlay-mode -1)))
-         (iedit-mode-end . symbol-overlay-mode))
-  :config
-  (defun symbol-overlay-switch-first ()
-    (interactive)
-    (let* ((symbol (symbol-overlay-get-symbol))
-           (keyword (symbol-overlay-assoc symbol))
-           (a-symbol (car keyword))
-           (before (symbol-overlay-get-list a-symbol 'car))
-           (count (length before)))
-      (symbol-overlay-jump-call 'symbol-overlay-basic-jump (- count))))
+         (iedit-mode-end . symbol-overlay-mode)))
 
-  (defun symbol-overlay-switch-last ()
-    (interactive)
-    (let* ((symbol (symbol-overlay-get-symbol))
-           (keyword (symbol-overlay-assoc symbol))
-           (a-symbol (car keyword))
-           (after (symbol-overlay-get-list a-symbol 'cdr))
-           (count (length after)))
-      (symbol-overlay-jump-call 'symbol-overlay-basic-jump (- count 1))))
-
-  (bind-keys :map symbol-overlay-map
-             ("<" . symbol-overlay-switch-first)
-             (">" . symbol-overlay-switch-last)))
-
-;; Highlight matching paren
+;; Highlight matching parens
 (use-package paren
   :ensure nil
   :hook (after-init . show-paren-mode)
@@ -92,12 +69,16 @@
 (when (display-graphic-p)
   (use-package highlight-indent-guides
     :diminish
-    :hook (prog-mode . highlight-indent-guides-mode)
+    :hook (prog-mode . (lambda ()
+                         ;; WORKAROUND:Fix the issue of not displaying plots
+                         ;; @see https://github.com/DarthFennec/highlight-indent-guides/issues/55
+                         (unless (eq major-mode 'ein:notebook-multilang-mode)
+                           (highlight-indent-guides-mode 1))))
     :config
     (setq highlight-indent-guides-method 'character)
     (setq highlight-indent-guides-responsive t)
 
-    ;; Disable `highlight-indet-guides-mode' in `swiper'
+    ;; Disable `highlight-indent-guides-mode' in `swiper'
     ;; https://github.com/DarthFennec/highlight-indent-guides/issues/40
     (with-eval-after-load 'ivy
       (defadvice ivy-cleanup-string (after my-ivy-cleanup-hig activate)
@@ -127,7 +108,8 @@ background is COLOR. The foreground is computed using
                    'face `((:foreground ,(if (> 0.5 (rainbow-x-color-luminance color))
                                              "white" "black"))
                            (:background ,color)))
-      (overlay-put ov 'symbol 'ovrainbow)))
+      (ignore-errors
+        (overlay-put ov 'symbol 'ovrainbow))))
 
   (defun rainbow-turn-off ()
     "Turn off rainbow-mode."
@@ -139,7 +121,8 @@ background is COLOR. The foreground is computed using
        ,@rainbow-r-colors-font-lock-keywords
        ,@rainbow-html-colors-font-lock-keywords
        ,@rainbow-html-rgb-colors-font-lock-keywords))
-    (remove-overlays (point-min) (point-max) 'symbol 'ovrainbow)))
+    (ignore-errors
+      (remove-overlays (point-min) (point-max) 'symbol 'ovrainbow))))
 
 ;; Highlight brackets according to their depth
 (use-package rainbow-delimiters
@@ -162,7 +145,7 @@ background is COLOR. The foreground is computed using
 
 ;; Highlight uncommitted changes
 (use-package diff-hl
-  :defines desktop-minor-mode-table
+  :defines (diff-hl-margin-symbols-alist desktop-minor-mode-table)
   :commands diff-hl-magit-post-refresh
   :custom-face
   (diff-hl-change ((t (:background "#46D9FF"))))
@@ -177,11 +160,14 @@ background is COLOR. The foreground is computed using
   (diff-hl-flydiff-mode 1)
 
   ;; Set fringe style
+  (setq-default fringes-outside-margins t)
   (setq diff-hl-draw-borders nil)
-  (setq fringes-outside-margins t)
   (if sys/mac-x-p (set-fringe-mode '(4 . 8)))
 
   (unless (display-graphic-p)
+    (setq diff-hl-margin-symbols-alist
+          '((insert . " ") (delete . " ") (change . " ")
+            (unknown . " ") (ignored . " ")))
     ;; Fall back to the display margin since the fringe is unavailable in tty
     (diff-hl-margin-mode 1)
     ;; Avoid restoring `diff-hl-margin-mode'

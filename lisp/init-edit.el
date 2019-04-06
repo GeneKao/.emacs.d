@@ -145,7 +145,11 @@
 ;; Show number of matches in mode-line while searching
 (use-package anzu
   :diminish
-  :bind (([remap query-replace] . anzu-query-replace)
+  :bind (([remap query-replace] . (lambda (&rest arg)
+                                    (interactive)
+                                    (if (thing-at-point 'symbol)
+                                        (anzu-query-replace-at-cursor)
+                                      (anzu-query-replace arg))))
          ([remap query-replace-regexp] . anzu-query-replace-regexp)
          :map isearch-mode-map
          ([remap isearch-query-replace] . anzu-isearch-query-replace)
@@ -285,6 +289,30 @@
   :diminish hs-minor-mode
   :bind (:map hs-minor-mode-map
               ("C-`" . hs-toggle-hiding)))
+
+;; Flexible text folding
+(use-package origami
+  :hook (prog-mode . origami-mode)
+  :init (setq origami-show-fold-header t)
+  :config
+  (defhydra origami-hydra (:color blue :hint none)
+    "
+      _:_: recursively toggle node       _a_: toggle all nodes    _t_: toggle node
+      _o_: show only current node        _u_: undo                _r_: redo
+      _R_: reset
+      "
+    (":" origami-recursively-toggle-node)
+    ("a" origami-toggle-all-nodes)
+    ("t" origami-toggle-node)
+    ("o" origami-show-only-node)
+    ("u" origami-undo)
+    ("r" origami-redo)
+    ("R" origami-reset))
+
+  :bind (:map origami-mode-map
+              ("C-`" . origami-hydra/body))
+  :config
+  (face-spec-reset-face 'origami-fold-header-face))
 
 ;; Narrow/Widen
 (use-package fancy-narrow

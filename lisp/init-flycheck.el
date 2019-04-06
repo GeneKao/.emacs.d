@@ -39,6 +39,7 @@
   :config
   (setq flycheck-indication-mode 'right-fringe)
   (setq flycheck-emacs-lisp-load-path 'inherit)
+  (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc))
 
   ;; Only check while saving and opening files
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
@@ -47,23 +48,15 @@
   (if (display-graphic-p)
       (if emacs/>=26p
           (use-package flycheck-posframe
-            :hook (flycheck-mode . (lambda ()
-                                     (unless (and (bound-and-true-p lsp-mode)
-                                                  (not (bound-and-true-p lsp-prefer-flymake)))
-                                       (flycheck-posframe-mode 1)))))
+            :hook (flycheck-mode . flycheck-posframe-mode)
+            :config (add-to-list 'flycheck-posframe-inhibit-functions
+                                 #'(lambda () (bound-and-true-p company-backend))))
         (use-package flycheck-pos-tip
           :defines flycheck-pos-tip-timeout
           :hook (global-flycheck-mode . flycheck-pos-tip-mode)
           :config (setq flycheck-pos-tip-timeout 30)))
     (use-package flycheck-popup-tip
-      :hook (flycheck-mode . (lambda ()
-                               (unless (and (bound-and-true-p lsp-mode)
-                                            (not (bound-and-true-p lsp-prefer-flymake)))
-                                 (flycheck-popup-tip-mode 1))))))
-
-  ;; Jump to and fix syntax errors via `avy'
-  (use-package avy-flycheck
-    :hook (global-flycheck-mode . avy-flycheck-setup)))
+      :hook (flycheck-mode . flycheck-popup-tip-mode))))
 
 (provide 'init-flycheck)
 

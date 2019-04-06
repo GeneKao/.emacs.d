@@ -43,7 +43,6 @@
                treemacs-fringe-indicator-mode
                treemacs-git-mode)
     :bind (([f8]        . treemacs)
-           ("C-`"       . treemacs-select-window)
            ("M-0"       . treemacs-select-window)
            ("C-x 1"     . treemacs-delete-other-windows)
            ("C-x t 1"   . treemacs-delete-other-windows)
@@ -137,10 +136,11 @@
   (use-package treemacs-magit
     :after treemacs magit
     :commands treemacs-magit--schedule-update
-    :hook ((magit-post-commit . treemacs-magit--schedule-update)
-           (git-commit-post-finish . treemacs-magit--schedule-update)
-           (magit-post-stage-hook . treemacs-magit--schedule-update)
-           (magit-post-unstage-hook . treemacs-magit--schedule-update))))
+    :hook ((magit-post-commit
+            git-commit-post-finish
+            magit-post-stage
+            magit-post-unstage)
+           . treemacs-magit--schedule-update)))
 
 (provide 'init-treemacs)
 

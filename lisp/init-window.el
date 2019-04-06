@@ -53,7 +53,7 @@
 
 ;; Quickly switch windows
 (use-package ace-window
-  :functions hydra-frame-window/body
+  :functions (hydra-frame-window/body my-aw-window<)
   :bind ([remap other-window] . ace-window)
   :custom-face
   (aw-leading-char-face ((t (:inherit error :bold t :height 1.1))))
@@ -96,7 +96,7 @@
 _0_: delete             _t_oggle        ^ ^ _k_ ^ ^            _=_                   (oo)
 _1_: delete others      _s_wap          _h_ ^+^ _l_            ^+^             /------\\/
 _2_: new                _d_elete        ^ ^ _j_ ^ ^            _-_            / |    ||
-_F_ullscreen            ^ ^             _b_alance^^^^          ^ ^        *  /\\---/\\  ~~  C-c w/C-x o w
+_F_ullscreen            _o_ther         _b_alance^^^^          ^ ^        *  /\\---/\\  ~~  C-c w/C-x o w
 "
     ("0" delete-frame :exit t)
     ("1" delete-other-frames :exit t)
@@ -106,6 +106,7 @@ _F_ullscreen            ^ ^             _b_alance^^^^          ^ ^        *  /\\
     ("F" toggle-frame-fullscreen)
     ("t" toggle-window-split)
     ("d" ace-delete-window :exit t)
+    ("o" ace-window :exit t)
     ("-" text-scale-decrease)
     ("=" text-scale-increase)
     ("h" shrink-window-horizontally)

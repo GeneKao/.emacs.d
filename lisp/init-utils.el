@@ -40,10 +40,39 @@
   :bind (:map help-map ("C-h" . which-key-C-h-dispatch))
   :hook (after-init . which-key-mode))
 
-;; Youdao Dictionay
+;; Youdao Dictionary
 (use-package youdao-dictionary
+  :functions (posframe-show posframe-hide)
+  :preface
+  (with-eval-after-load 'posframe
+    (defun youdao-dictionary-search-at-point-posframe ()
+      "Search word at point and display result with `posframe'."
+      (interactive)
+      (let ((word (youdao-dictionary--region-or-word)))
+        (if word
+            (progn
+              (with-current-buffer (get-buffer-create youdao-dictionary-buffer-name)
+                (let ((inhibit-read-only t))
+                  (erase-buffer)
+                  (youdao-dictionary-mode)
+                  (insert (youdao-dictionary--format-result word))
+                  (goto-char (point-min))
+                  (set (make-local-variable 'youdao-dictionary-current-buffer-word) word)))
+              (posframe-show youdao-dictionary-buffer-name
+                             :position (point))
+              (unwind-protect
+                  (push (read-event) unread-command-events)
+                (posframe-hide youdao-dictionary-buffer-name)))
+          (message "Nothing to look up")))))
+
+  (defun my-youdao-search-at-point ()
+    (interactive)
+    (if (display-graphic-p)
+        (if (fboundp 'youdao-dictionary-search-at-point-posframe)
+            (youdao-dictionary-search-at-point-posframe)
+          (youdao-dictionary-search-at-point-tooltip))))
   :bind (("C-c y" . youdao-dictionary-search-at-point)
-         ("C-c Y" . youdao-dictionary-search-at-point-tooltip))
+         ("C-c Y" . my-youdao-search-at-point))
   :config
   ;; Cache documents
   (setq url-automatic-caching t)
@@ -51,44 +80,41 @@
   ;; Enable Chinese word segmentation support (支持中文分词)
   (setq youdao-dictionary-use-chinese-word-segmentation t))
 
-;; Search tools: `wgrep', `ag' and `rg'
+;;
+;; Search tools
+;;
+
+;; Writable `grep' buffer
 (use-package wgrep
   :init
   (setq wgrep-auto-save-buffer t)
   (setq wgrep-change-readonly-file t))
 
-(use-package ag
-  :defines projectile-command-map
-  :init
-  (with-eval-after-load 'projectile
-    (bind-key "s S" #'ag-project projectile-command-map))
-  :config
-  (setq ag-highlight-search t)
-  (setq ag-reuse-buffers t)
-  (setq ag-reuse-window t)
-  (use-package wgrep-ag))
+;; `find-dired' alternative using `fd'
+(when (executable-find "fd")
+  (use-package fd-dired))
 
-(use-package rg
-  :hook (after-init . rg-enable-default-bindings)
-  :config
-  (setq rg-group-result t)
-  (setq rg-show-columns t)
+;; `ripgrep'
+(when (executable-find "rg")
+  (use-package rg
+    :defines projectile-command-map
+    :hook (after-init . rg-enable-default-bindings)
+    :config
+    (setq rg-group-result t)
+    (setq rg-show-columns t)
 
-  (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
+    (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
 
-  (with-eval-after-load 'projectile
-    (defalias 'projectile-ripgrep 'rg-project)
-    (bind-key "s R" #'rg-project projectile-command-map))
+    (with-eval-after-load 'projectile
+      (defalias 'projectile-ripgrep 'rg-project)
+      (bind-key "s R" #'rg-project projectile-command-map))
 
-  (when (fboundp 'ag)
-    (bind-key "a" #'ag rg-global-map))
-
-  (with-eval-after-load 'counsel
-    (bind-keys :map rg-global-map
-               ("c r" . counsel-rg)
-               ("c s" . counsel-ag)
-               ("c p" . counsel-pt)
-               ("c f" . counsel-fzf))))
+    (with-eval-after-load 'counsel
+      (bind-keys :map rg-global-map
+                 ("c r" . counsel-rg)
+                 ("c s" . counsel-ag)
+                 ("c p" . counsel-pt)
+                 ("c f" . counsel-fzf)))))
 
 ;; Edit text for browsers with GhostText or AtomicChrome extension
 (use-package atomic-chrome
@@ -170,7 +196,7 @@
        (my-pdf-generate-bookmark-name) bookmark-alist))
 
     (defun my-pdf-generate-bookmark-name ()
-      (concat "PDF-LAST-VIEWED: " (buffer-file-name)))
+      (concat "LAST-VIEWED: " (buffer-name)))
 
     (defun my-pdf-set-all-last-viewed-bookmarks ()
       (dolist (buf (buffer-list))
@@ -187,6 +213,16 @@
     :init (my-pdf-set-midnight-colors)
     :config (pdf-tools-install t nil t t)))
 
+;; Epub reader
+(use-package nov
+  :mode ("\\.epub\\'" . nov-mode)
+  :preface
+  (defun my-nov-setup ()
+    (visual-line-mode 1)
+    (face-remap-add-relative 'variable-pitch :family "Times New Roman" :height 1.5)
+    (if (fboundp 'olivetti-mode) (olivetti-mode 1)))
+  :hook (nov-mode . my-nov-setup))
+
 ;; Nice writing
 (use-package olivetti
   :diminish
@@ -198,6 +234,7 @@
 (use-package daemons)                   ; system services/daemons
 (use-package diffview)                  ; side-by-side diff view
 (use-package esup)                      ; Emacs startup profiler
+(use-package focus)                     ; Focus on the current region
 (use-package htmlize)                   ; covert to html
 (use-package list-environment)
 (use-package memory-usage)
