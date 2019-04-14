@@ -202,6 +202,9 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
                 (self-insert-command 1)))
             org-mode-map))
 
+(setq org-latex-pdf-process
+      '("latexmk -pdflatex='pdflatex -interaction nonstopmode' -pdf -bibtex -f %f"))
+
 (provide 'init-org)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

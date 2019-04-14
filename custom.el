@@ -4,15 +4,16 @@
 ;;;       then restart Emacs.
 ;;; Code:
 
-(setq centaur-logo nil)                        ; Logo file or nil (official logo)
-(setq centaur-full-name "Gene Kao")           ; User full name
-(setq centaur-mail-address "kao.gene@gmail.com")   ; Email address
+;; (setq centaur-logo nil)                        ; Logo file or nil (official logo)
+(setq centaur-full-name "Gene Kao")               ; User full name
+(setq centaur-mail-address "kao.gene@gmail.com")  ; Email address
 ;; (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
-(setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, emacs-china or tuna
-(setq centaur-theme 'doom)                     ; Color theme: default, doom, dark, light or daylight
+(setq centaur-package-archives 'emacs-china)      ; Package repo: melpa, emacs-china or tuna
+(setq centaur-theme 'doom)                        ; Color theme: default, doom, dark, light or daylight
 ;; (setq centuar-company-enable-yas t)            ; Enable/disable yasnippet for company: t or nil
 ;; (setq centaur-emoji-enabled t)                 ; Enable/disable emoji: t or nil
 ;; (setq centaur-benchmark-enabled t)             ; Enable/disable initialization benchmark: t or nil
+;; (setq centaur-lsp nil)                         ; Set LSP client: lsp-mode, eglot or nil
 
 ;; For Emacs devel
 ;; e.g. 24.5, 25.3 or 26.1 are releses, while 26.0.90 is a devel release.
