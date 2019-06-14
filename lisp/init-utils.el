@@ -43,10 +43,18 @@
 ;; Youdao Dictionary
 (use-package youdao-dictionary
   :functions (posframe-show posframe-hide)
-  :preface
+  :bind (("C-c y" . my-youdao-search-at-point)
+         ("C-c Y" . youdao-dictionary-search-at-point))
+  :config
+  ;; Cache documents
+  (setq url-automatic-caching t)
+
+  ;; Enable Chinese word segmentation support (支持中文分词)
+  (setq youdao-dictionary-use-chinese-word-segmentation t)
+
   (with-eval-after-load 'posframe
     (defun youdao-dictionary-search-at-point-posframe ()
-      "Search word at point and display result with `posframe'."
+      "Search word at point and display result with posframe."
       (interactive)
       (let ((word (youdao-dictionary--region-or-word)))
         (if word
@@ -58,8 +66,7 @@
                   (insert (youdao-dictionary--format-result word))
                   (goto-char (point-min))
                   (set (make-local-variable 'youdao-dictionary-current-buffer-word) word)))
-              (posframe-show youdao-dictionary-buffer-name
-                             :position (point))
+              (posframe-show youdao-dictionary-buffer-name :position (point))
               (unwind-protect
                   (push (read-event) unread-command-events)
                 (posframe-hide youdao-dictionary-buffer-name)))
@@ -70,15 +77,8 @@
     (if (display-graphic-p)
         (if (fboundp 'youdao-dictionary-search-at-point-posframe)
             (youdao-dictionary-search-at-point-posframe)
-          (youdao-dictionary-search-at-point-tooltip))))
-  :bind (("C-c y" . youdao-dictionary-search-at-point)
-         ("C-c Y" . my-youdao-search-at-point))
-  :config
-  ;; Cache documents
-  (setq url-automatic-caching t)
-
-  ;; Enable Chinese word segmentation support (支持中文分词)
-  (setq youdao-dictionary-use-chinese-word-segmentation t))
+          (youdao-dictionary-search-at-point-tooltip))
+      (youdao-dictionary-search-at-point))))
 
 ;;
 ;; Search tools
@@ -116,19 +116,12 @@
                  ("c p" . counsel-pt)
                  ("c f" . counsel-fzf)))))
 
-;; Edit text for browsers with GhostText or AtomicChrome extension
-(use-package atomic-chrome
-  :hook ((emacs-startup . atomic-chrome-start-server)
-         (atomic-chrome-edit-mode . delete-other-windows))
-  :init (setq atomic-chrome-buffer-open-style 'frame)
-  :config
-  (if (fboundp 'gfm-mode)
-      (setq atomic-chrome-url-major-mode-alist
-            '(("github\\.com" . gfm-mode)))))
-
-;; Open files as another user
-(unless sys/win32p
-  (use-package sudo-edit))
+;; Docker
+(use-package docker
+  :bind ("C-c d" . docker)
+  :init
+  (setq docker-image-run-arguments '("-i" "-t" "--rm"))
+  (setq docker-container-shell-file-name "/bin/bash"))
 
 ;; Tramp
 (use-package docker-tramp)
@@ -170,48 +163,30 @@
 
 ;; PDF reader
 (when (display-graphic-p)
-  (use-package pdf-view
-    :ensure pdf-tools
+  (use-package pdf-tools
     :diminish (pdf-view-midnight-minor-mode pdf-view-printer-minor-mode)
+    :defines pdf-annot-activate-created-annotations
     :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
     :magic ("%PDF" . pdf-view-mode)
-    :preface
-    (defun my-pdf-set-midnight-colors ()
-      (setq pdf-view-midnight-colors
-            `(,(face-foreground 'default) . ,(face-background 'default))))
-
-    ;; Workaround for pdf-tools not reopening to last-viewed page
-    ;; https://github.com/politza/pdf-tools/issues/18
-    (defun my-pdf-set-last-viewed-bookmark ()
-      (interactive)
-      (when (eq major-mode 'pdf-view-mode)
-        (bookmark-set (my-pdf-generate-bookmark-name))))
-
-    (defun my-pdf-jump-last-viewed-bookmark ()
-      (when (my-pdf-has-last-viewed-bookmark)
-        (bookmark-jump (my-pdf-generate-bookmark-name))))
-
-    (defun my-pdf-has-last-viewed-bookmark ()
-      (assoc
-       (my-pdf-generate-bookmark-name) bookmark-alist))
-
-    (defun my-pdf-generate-bookmark-name ()
-      (concat "LAST-VIEWED: " (buffer-name)))
-
-    (defun my-pdf-set-all-last-viewed-bookmarks ()
-      (dolist (buf (buffer-list))
-        (with-current-buffer buf
-          (my-pdf-set-last-viewed-bookmark))))
     :bind (:map pdf-view-mode-map
                 ("C-s" . isearch-forward))
-    :hook ((after-load-theme . my-pdf-set-midnight-colors)
-           (kill-buffer . my-pdf-set-last-viewed-bookmark)
-           (pdf-view-mode . my-pdf-jump-last-viewed-bookmark)
-           (kill-emacs . (lambda ()
-                           (unless noninteractive  ; as `save-place-mode' does
-                             (my-pdf-set-all-last-viewed-bookmarks)))))
-    :init (my-pdf-set-midnight-colors)
-    :config (pdf-tools-install t nil t t)))
+    :init
+    (setq pdf-view-midnight-colors '("#ededed" . "#21242b")
+          pdf-annot-activate-created-annotations t)
+    :config
+    ;; WORKAROUND: Fix compilation errors on macOS.
+    ;; @see https://github.com/politza/pdf-tools/issues/480
+    (when sys/macp
+      (setenv "PKG_CONFIG_PATH"
+              "/usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig"))
+    (pdf-tools-install t nil t t)
+
+    ;; Recover last viewed position
+    (when emacs/>=26p
+      (use-package pdf-view-restore
+        :hook (pdf-view-mode . pdf-view-restore-mode)
+        :init (setq pdf-view-restore-filename
+                    (locate-user-emacs-file ".pdf-view-restore"))))))
 
 ;; Epub reader
 (use-package nov

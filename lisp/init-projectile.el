@@ -41,14 +41,15 @@
               ("C-c p" . projectile-command-map))
   :hook (after-init . projectile-mode)
   :init
-  (setq projectile-mode-line-prefix "")
-  (setq projectile-sort-order 'recentf)
-  (setq projectile-use-git-grep t)
+  (setq projectile-mode-line-prefix ""
+        projectile-sort-order 'recentf
+        projectile-use-git-grep t)
   :config
   ;; (projectile-update-mode-line)         ; Update mode-line at the first time
 
   ;; Use the faster searcher to handle project files: ripgrep `rg'.
-  (when (executable-find "rg")
+  (when (and (not (executable-find "fd"))
+             (executable-find "rg"))
     (setq projectile-generic-command
           (let ((rg-cmd ""))
             (dolist (dir projectile-globally-ignored-directories)
@@ -57,21 +58,16 @@
 
   ;; Faster searching on Windows
   (when sys/win32p
-    (when (executable-find "rg")
-      (setq projectile-indexing-method 'alien)
-      (setq projectile-enable-caching nil))
+    (when (or (executable-find "fd") (executable-find "rg"))
+      (setq projectile-indexing-method 'alien
+            projectile-enable-caching nil))
 
     ;; FIXME: too slow while getting submodule files on Windows
     (setq projectile-git-submodule-command nil))
 
   ;; Support Perforce project
   (let ((val (or (getenv "P4CONFIG") ".p4config")))
-    (add-to-list 'projectile-project-root-files-bottom-up val))
-
-  ;; Rails project
-  (use-package projectile-rails
-    :diminish projectile-rails-mode
-    :hook (projectile-mode . projectile-rails-global-mode)))
+    (add-to-list 'projectile-project-root-files-bottom-up val)))
 
 (provide 'init-projectile)
 

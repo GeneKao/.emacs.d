@@ -43,7 +43,7 @@
   ;; Disable complilation on save
   (setq scss-compile-at-save nil))
 
-;; New `less-cs-mde' in Emacs 26
+;; New `less-css-mde' in Emacs 26
 (unless (fboundp 'less-css-mode)
   (use-package less-css-mode))
 
@@ -55,7 +55,7 @@
 ;; JSON mode
 (use-package json-mode)
 
-;; Improved JavaScript editing mode
+;; JavaScript
 (use-package js2-mode
   :defines flycheck-javascript-eslint-executable
   :mode (("\\.js\\'" . js2-mode)
@@ -80,63 +80,14 @@
         (setq flycheck-javascript-eslint-executable "eslint_d")))
 
   (use-package js2-refactor
-    :diminish js2-refactor-mode
+    :diminish
     :hook (js2-mode . js2-refactor-mode)
     :config (js2r-add-keybindings-with-prefix "C-c C-m")))
 
-;; Run Mocha or Jasmine tests
-(use-package mocha
-  :config (use-package mocha-snippets))
-
-;; Major mode for CoffeeScript code
-(use-package coffee-mode
-  :config (setq coffee-tab-width 2))
-
-;; Typescript Interactive Development Environment
-(unless centaur-lsp
-  (use-package tide
-    :diminish tide-mode
-    :defines (company-backends tide-format-options)
-    :functions (tide-setup tide-hl-identifier-mode)
-    :preface
-    (defun setup-tide-mode ()
-      "Setup tide mode."
-      (interactive)
-      (tide-setup)
-      (eldoc-mode 1)
-      (tide-hl-identifier-mode 1))
-    :hook (((typescript-mode js2-mode) . setup-tide-mode)
-           (before-save . tide-format-before-save))
-    :config
-    (setq tide-format-options
-          '(:insertSpaceAfterFunctionKeywordForAnonymousFunctions
-            t
-            :placeOpenBraceOnNewLineForFunctions
-            nil))
-
-    (with-eval-after-load 'company
-      (cl-pushnew 'company-tide company-backends))))
-
-;; Major mode for editing web templates
-(use-package web-mode
-  :defines company-backends
-  :mode "\\.\\(phtml\\|php|[gj]sp\\|as[cp]x\\|erb\\|djhtml\\|html?\\|hbs\\|ejs\\|jade\\|swig\\|tm?pl\\|vue\\)$"
-  :config
-  (setq web-mode-markup-indent-offset 2)
-  (setq web-mode-css-indent-offset 2)
-  (setq web-mode-code-indent-offset 2)
-
-  ;; Complete for web,html,emmet,jade,slim modes
-  (unless centaur-lsp
-    (use-package company-web
-      :after company
-      :init (dolist (mode '(company-web-html company-web-jade company-web-slim))
-              (cl-pushnew mode company-backends)))))
-
 ;; Live browser JavaScript, CSS, and HTML interaction
 (use-package skewer-mode
-  :diminish skewer-mode
-  :hook ((js2-mode . skewer-mode)
+  :diminish
+  :hook (((js-mode js2-mode). skewer-mode)
          (css-mode . skewer-css-mode)
          (web-mode . skewer-html-mode)
          (html-mode . skewer-html-mode))
@@ -147,28 +98,47 @@
   (with-eval-after-load 'skewer-html
     (diminish 'skewer-html-mode)))
 
-;; Format HTML, CSS and JavaScript/JSON by js-beautify
-;; Insta;; npm -g install js-beautify
-(use-package web-beautify
-  :init
-  (with-eval-after-load 'js-mode
-    (bind-key "C-c b" #'web-beautify-js js-mode-map))
-  (with-eval-after-load 'js2-mode
-    (bind-key "C-c b" #'web-beautify-js js2-mode-map))
-  (with-eval-after-load 'json-mode
-    (bind-key "C-c b" #'web-beautify-js json-mode-map))
-  (with-eval-after-load 'web-mode
-    (bind-key "C-c b" #'web-beautify-html web-mode-map))
-  (with-eval-after-load 'sgml-mode
-    (bind-key "C-c b" #'web-beautify-html html-mode-map))
-  (with-eval-after-load 'css-mode
-    (bind-key "C-c b" #'web-beautify-css css-mode-map))
+;; Typescript
+(use-package typescript-mode)
+
+;; Run Mocha or Jasmine tests
+(use-package mocha
+  :config (use-package mocha-snippets))
+
+;; Major mode for CoffeeScript code
+(use-package coffee-mode
+  :config (setq coffee-tab-width 2))
+
+;; Major mode for editing web templates
+(use-package web-mode
+  :mode "\\.\\(phtml\\|php|[gj]sp\\|as[cp]x\\|erb\\|djhtml\\|html?\\|hbs\\|ejs\\|jade\\|swig\\|tm?pl\\|vue\\)$"
   :config
-  ;; Set indent size to 2
-  (setq web-beautify-args '("-s" "2" "-f" "-")))
+  (setq web-mode-markup-indent-offset 2)
+  (setq web-mode-css-indent-offset 2)
+  (setq web-mode-code-indent-offset 2))
+
+;; Format HTML, CSS and JavaScript/JSON
+;; Install: npm -g install prettier
+(use-package prettier-js
+  :hook ((js-mode js2-mode json-mode web-mode css-mode sgml-mode html-mode)
+         .
+         prettier-js-mode))
 
 (use-package haml-mode)
 (use-package php-mode)
+
+;; REST
+(use-package restclient
+  :mode ("\\.http\\'" . restclient-mode)
+  :config
+  (use-package restclient-test
+    :diminish
+    :hook (restclient-mode . restclient-test-mode))
+
+  (with-eval-after-load 'company
+    (use-package company-restclient
+      :defines company-backends
+      :init (add-to-list 'company-backends 'company-restclient))))
 
 (provide 'init-web)
 

@@ -71,9 +71,9 @@
              `(,(cons "gnu"   (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"))
                ,(cons "melpa" (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"))))
             (archives
-             (error "Unknown archives: '%s'" archives)))))
+             (error "Unknown archives: `%s'" archives)))))
 
-  (message "Set package archives to '%s'." archives))
+  (message "Set package archives to `%s'." archives))
 
 (set-package-archives centaur-package-archives)
 
@@ -101,6 +101,9 @@
 (use-package diminish)
 (use-package bind-key)
 
+;; Update GPG keyring for GNU ELPA
+(use-package gnu-elpa-keyring-update)
+
 ;; Initialization benchmark
 (when centaur-benchmark
   (use-package benchmark-init
@@ -112,16 +115,16 @@
     (with-eval-after-load 'swiper
       (add-to-list 'swiper-font-lock-exclude 'benchmark-init/tree-mode))))
 
-;; Extensions
+;; A modern Packages Menu
 (use-package paradox
-  :commands paradox-enable
   :init
   (setq paradox-execute-asynchronously t)
   (setq paradox-github-token t)
   (setq paradox-display-star-count nil)
 
-  (defalias 'upgrade-packages 'paradox-upgrade-packages)
+  (defalias 'upgrade-packages #'paradox-upgrade-packages)
 
+  ;; Replace default `list-packages'
   (defadvice list-packages (before my-list-packages activate)
     (paradox-enable)))
 

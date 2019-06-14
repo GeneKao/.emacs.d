@@ -46,22 +46,21 @@
   (if (fboundp 'transient-append-suffix)
       ;; Add switch: --tags
       (transient-append-suffix 'magit-fetch
-        "-p" '("-t" "Fetch all tags" ("-t" "--tags")))))
+        "-p" '("-t" "Fetch all tags" ("-t" "--tags"))))
 
-;; Access Git forges from Magit
-(if (executable-find "cc")
-    (use-package forge
-      :after magit
-      :demand))
+  ;; Access Git forges from Magit
+  (if (executable-find "cc")
+      (use-package forge :demand)))
 
-;; Show tasks
-(use-package magit-todos
-  :hook (ater-init . magit-todos-mode))
+;; Show TODOs in magit
+(when emacs/>=25.2p
+  (use-package magit-todos
+    :hook (emacs-startup . magit-todos-mode)))
 
 ;; Walk through git revisions of a file
 (use-package git-timemachine
   :custom-face
-  (git-timemachine-minibuffer-author-face ((t (:inherit font-lock-string-face))))
+  (git-timemachine-minibuffer-author-face ((t (:inherit success))))
   (git-timemachine-minibuffer-detail-face ((t (:inherit warning))))
   :bind (:map vc-prefix-map
               ("t" . git-timemachine)))
@@ -99,16 +98,16 @@
              smerge-resolve
              smerge-kill-current)
   :preface
-  (defhydra smerge-hydra
-    (:color pink :hint nil :post (smerge-auto-leave))
+  (defhydra hydra-smerge
+    (:color red :hint none :post (smerge-auto-leave))
     "
 ^Move^       ^Keep^               ^Diff^                 ^Other^
-^^-----------^^-------------------^^---------------------^^-------
+^^──────────-^^───────────────────^^─────────────────────^^──────────────────
 _n_ext       _b_ase               _<_: upper/base        _C_ombine
 _p_rev       _u_pper              _=_: upper/lower       _r_esolve
 ^^           _l_ower              _>_: base/lower        _k_ill current
-^^           _a_ll                _R_efine
-^^           _RET_: current       _E_diff
+^^           _a_ll                _R_efine               _ZZ_: Save and bury
+^^           _RET_: current       _E_diff                _q_: cancel
 "
     ("n" smerge-next)
     ("p" smerge-prev)
@@ -139,7 +138,7 @@ _p_rev       _u_pper              _=_: upper/lower       _r_esolve
                             (smerge-mode 1)))))
          (magit-diff-visit-file . (lambda ()
                                     (when smerge-mode
-                                      (smerge-hydra/body))))))
+                                      (hydra-smerge/body))))))
 
 ;; Open github/gitlab/bitbucket page
 (use-package browse-at-remote

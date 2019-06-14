@@ -37,24 +37,41 @@
   :ensure nil
   :commands org-try-structure-completion
   :functions hydra-org-template/body
+  :custom-face
+  (org-ellipsis ((t (:foreground nil))))
   :bind (("C-c a" . org-agenda)
          ("C-c b" . org-switchb))
   :hook (org-indent-mode . (lambda() (diminish 'org-indent-mode)))
   :config
   (setq org-agenda-files '("~/org")
-        org-todo-keywords '((sequence "TODO(T)" "DOING(I)" "HANGUP(H)" "|" "DONE(D)" "CANCEL(C)")
-                            (sequence "⚑(t)" "🏴(i)" "❓(h)" "|" "✔(d)" "✘(c)"))
+        org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")
+                            (sequence "⚑(T)" "🏴(I)" "❓(H)" "|" "✔(D)" "✘(C)"))
         org-todo-keyword-faces '(("HANGUP" . warning)
                                  ("❓" . warning))
         org-log-done 'time
+        org-catch-invisible-edits 'smart
         org-startup-indented t
-        org-ellipsis (if (char-displayable-p ?) "  " nil)
+        org-ellipsis (if (char-displayable-p ?) "  " nil)
         org-pretty-entities t
         org-hide-emphasis-markers t)
 
   (add-to-list 'org-export-backends 'md)
 
-  ;; More fancy UI
+  ;; Override `org-switch-to-buffer-other-window' for compatibility with `shackle'
+  (with-eval-after-load 'shackle
+    (advice-add #'org-switch-to-buffer-other-window :override #'switch-to-buffer-other-window))
+
+  ;; Prettify UI
+  (add-hook 'org-mode-hook
+            (lambda ()
+              "Beautify Org Checkbox Symbol"
+              (push '("[ ]" . "☐") prettify-symbols-alist)
+              (push '("[X]" . "☑") prettify-symbols-alist)
+              (push '("[-]" . "❍") prettify-symbols-alist)
+              (push '("#+BEGIN_SRC" . "λ") prettify-symbols-alist)
+              (push '("#+END_SRC" . "λ") prettify-symbols-alist)
+              (prettify-symbols-mode)))
+
   (use-package org-bullets
     :if (char-displayable-p ?◉)
     :hook (org-mode . org-bullets-mode))

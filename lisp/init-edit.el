@@ -30,6 +30,9 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (require 'init-custom))
+
 ;; Explicitly set the prefered coding systems to avoid annoying prompt
 ;; from emacs (especially on Microsoft Windows)
 (prefer-coding-system 'utf-8)
@@ -108,8 +111,22 @@
 
 ;; Quickly follow links
 (use-package ace-link
-  :bind (("M-o" . ace-link-addr))
-  :hook (after-init . ace-link-setup-default))
+  :defines (org-mode-map
+            gnus-summary-mode-map
+            gnus-article-mode-map
+            ert-results-mode-map)
+  :bind ("M-o" . ace-link-addr)
+  :hook (after-init . ace-link-setup-default)
+  :config
+  (with-eval-after-load 'org
+    (bind-key "M-o" #'ace-link-org org-mode-map))
+  (with-eval-after-load 'gnus
+    (bind-keys :map gnus-summary-mode-map
+               ("M-o" . ace-link-gnus)
+               :map gnus-article-mode-map
+               ("M-o" . ace-link-gnus)))
+  (with-eval-after-load 'ert
+    (bind-key "o" #'ace-link-help ert-results-mode-map)))
 
 ;; Jump to Chinese characters
 (use-package ace-pinyin
@@ -130,6 +147,9 @@
   (dolist (mode '(asm-mode web-mode html-mode css-mode robot-mode go-mode))
     (push mode aggressive-indent-excluded-modes))
 
+  ;; Disable in some commands
+  (add-to-list 'aggressive-indent-protected-commands #'delete-trailing-whitespace t)
+
   ;; Be slightly less aggressive in C/C++/C#/Java/Go/Swift
   (add-to-list
    'aggressive-indent-dont-indent-if
@@ -145,11 +165,7 @@
 ;; Show number of matches in mode-line while searching
 (use-package anzu
   :diminish
-  :bind (([remap query-replace] . (lambda (&rest arg)
-                                    (interactive)
-                                    (if (thing-at-point 'symbol)
-                                        (anzu-query-replace-at-cursor)
-                                      (anzu-query-replace arg))))
+  :bind (([remap query-replace] . anzu-query-replace)
          ([remap query-replace-regexp] . anzu-query-replace-regexp)
          :map isearch-mode-map
          ([remap isearch-query-replace] . anzu-isearch-query-replace)
@@ -228,7 +244,7 @@
   :diminish
   :if (executable-find "aspell")
   :hook (((text-mode outline-mode) . flyspell-mode)
-         (prog-mode . flyspell-prog-mode)
+         ;; (prog-mode . flyspell-prog-mode)
          (flyspell-mode . (lambda ()
                             (dolist (key '("C-;" "C-," "C-."))
                               (unbind-key key flyspell-mode-map)))))
@@ -270,7 +286,16 @@
 ;; Treat undo history as a tree
 (use-package undo-tree
   :diminish
-  :hook (after-init . global-undo-tree-mode))
+  :hook (after-init . global-undo-tree-mode)
+  :init (setq undo-tree-visualizer-timestamps t
+              undo-tree-visualizer-diff t
+              undo-tree-enable-undo-in-region nil
+              undo-tree-auto-save-history nil
+              undo-tree-history-directory-alist
+              `(("." . ,(locate-user-emacs-file "undo-tree-hist/"))))
+  :config
+  ;; FIXME:  keep the diff window
+  (make-variable-buffer-local 'undo-tree-visualizer-diff))
 
 ;; Goto last change
 (use-package goto-chg
@@ -294,30 +319,53 @@
 (use-package origami
   :hook (prog-mode . origami-mode)
   :init (setq origami-show-fold-header t)
+  :bind (:map origami-mode-map
+              ("C-`" . hydra-origami/body))
   :config
-  (defhydra origami-hydra (:color blue :hint none)
+  (face-spec-reset-face 'origami-fold-header-face)
+
+  (when centaur-lsp
+    ;; Support LSP
+    (use-package lsp-origami
+      :hook (origami-mode . (lambda ()
+                              (if (bound-and-true-p lsp-mode)
+                                  (lsp-origami-mode))))))
+
+  (defhydra hydra-origami (:color blue :hint none)
     "
-      _:_: recursively toggle node       _a_: toggle all nodes    _t_: toggle node
-      _o_: show only current node        _u_: undo                _r_: redo
-      _R_: reset
-      "
+^Node^                     ^Other^
+^^─────────────────────────^^────────────
+_:_: toggle recursively    _u_: undo
+_a_: toggle all            _r_: redo
+_t_: toggle current        _R_: reset
+_o_: only show current
+"
     (":" origami-recursively-toggle-node)
     ("a" origami-toggle-all-nodes)
     ("t" origami-toggle-node)
     ("o" origami-show-only-node)
     ("u" origami-undo)
     ("r" origami-redo)
-    ("R" origami-reset))
+    ("R" origami-reset)))
 
-  :bind (:map origami-mode-map
-              ("C-`" . origami-hydra/body))
-  :config
-  (face-spec-reset-face 'origami-fold-header-face))
+;; Open files as another user
+(unless sys/win32p
+  (use-package sudo-edit))
 
 ;; Narrow/Widen
 (use-package fancy-narrow
   :diminish
   :hook (after-init . fancy-narrow-mode))
+
+;; Edit text for browsers with GhostText or AtomicChrome extension
+(use-package atomic-chrome
+  :hook ((emacs-startup . atomic-chrome-start-server)
+         (atomic-chrome-edit-mode . delete-other-windows))
+  :init (setq atomic-chrome-buffer-open-style 'frame)
+  :config
+  (if (fboundp 'gfm-mode)
+      (setq atomic-chrome-url-major-mode-alist
+            '(("github\\.com" . gfm-mode)))))
 
 (provide 'init-edit)
 
