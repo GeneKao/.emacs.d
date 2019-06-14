@@ -82,7 +82,37 @@
                           (advice-remove ',function ',advice)
                           (revert-buffer nil t)))
                      'follow-link t))))
-              (setq ad-index (1+ ad-index)))))))))
+              (setq ad-index (1+ ad-index))))))))
+
+  ;; Remove hook
+  (defun remove-hook-at-point ()
+    "Remove the hook at the point in the *Help* buffer."
+    (interactive)
+    (unless (or (eq major-mode 'help-mode)
+                (string= (buffer-name) "*Help*"))
+      (error "Only for help-mode"))
+    (let ((orig-point (point)))
+      (save-excursion
+        (when-let
+            ((hook (progn (goto-char (point-min)) (symbol-at-point)))
+             (func (when (and
+                          (or (re-search-forward (format "^Value:[\s|\n]") nil t)
+                              (goto-char orig-point))
+                          (sexp-at-point))
+                     (end-of-sexp)
+                     (backward-char 1)
+                     (catch 'break
+                       (while t
+                         (condition-case _err
+                             (backward-sexp)
+                           (scan-error (throw 'break nil)))
+                         (let ((bounds (bounds-of-thing-at-point 'sexp)))
+                           (when (< (car bounds) orig-point (cdr bounds))
+                             (throw 'break (sexp-at-point)))))))))
+          (when (yes-or-no-p (format "Remove %s from %s? " func hook))
+            (remove-hook hook func)
+            (revert-buffer nil t))))))
+  (bind-key "C-c d" #'remove-hook-at-point help-mode-map))
 
 ;; Show function arglist or variable docstring
 ;; `global-eldoc-mode' is enabled by default.
@@ -102,16 +132,7 @@
 
 ;; A better *Help* buffer
 (use-package helpful
-  :defines ivy-initial-inputs-alist
-  :bind (("C-c C-d" . helpful-at-point))
-  :config
-  (with-eval-after-load 'ivy
-    (dolist (cmd '(helpful-callable
-                   helpful-variable
-                   helpful-function
-                   helpful-macro
-                   helpful-command))
-      (cl-pushnew `(,cmd . "^") ivy-initial-inputs-alist))))
+  :bind (("C-c C-d" . helpful-at-point)))
 
 (provide 'init-emacs-lisp)
 

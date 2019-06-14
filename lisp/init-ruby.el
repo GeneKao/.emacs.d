@@ -38,16 +38,6 @@
   :mode "\\.\\(rb\\|rake\\|\\gemspec\\|ru\\|\\(Rake\\|Gem\\|Guard\\|Cap\\|Vagrant\\)file\\)$"
   :interpreter "ruby"
   :config
-  ;; Code navigation, documentation lookup and completion for Ruby
-  (unless centaur-lsp
-    (use-package robe
-      :diminish robe-mode
-      :defines company-backends
-      :hook (ruby-mode . robe-mode)
-      :config
-      (with-eval-after-load 'company
-        (cl-pushnew 'company-robe company-backends))))
-
   ;; Ruby refactoring helpers
   (use-package ruby-refactor
     :diminish ruby-refactor-mode
@@ -57,6 +47,12 @@
   (use-package inf-ruby
     :hook ((ruby-mode . inf-ruby-minor-mode)
            (compilation-filter . inf-ruby-auto-enter)))
+
+  ;; Rails
+  (use-package projectile-rails
+    :after projectile
+    :diminish projectile-rails-mode
+    :hook (projectile-mode . projectile-rails-global-mode))
 
   ;; Rubocop
   ;; Install: gem install rubocop
@@ -71,9 +67,6 @@
     :hook (dired-mode . rspec-dired-mode)
     :config (with-eval-after-load 'yasnippet
               (rspec-install-snippets)))
-
-  ;; Coverage for SimpleCov
-  (use-package coverage)
 
   ;; Yet Another RI interface for Emacs
   (use-package yari

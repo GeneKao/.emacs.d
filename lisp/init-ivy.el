@@ -35,8 +35,10 @@
 
 (use-package counsel
   :diminish ivy-mode counsel-mode
-  :defines (projectile-completion-system magit-completing-read-function)
-  :bind (("C-s" . swiper)
+  :defines (projectile-completion-system magit-completing-read-function recentf-list)
+  :commands swiper-isearch
+  :bind (("C-s" . swiper-isearch)
+         ("s-f" . swiper)
          ("C-S-s" . swiper-all)
 
          ("C-c C-r" . ivy-resume)
@@ -49,6 +51,7 @@
          ([remap dired] . counsel-dired)
          ("C-x C-r" . counsel-recentf)
          ("C-x j" . counsel-mark-ring)
+         ("C-h F" . counsel-describe-face)
 
          ("C-c L" . counsel-load-library)
          ("C-c P" . counsel-package)
@@ -89,20 +92,15 @@
          :map ivy-minibuffer-map
          ("C-w" . ivy-yank-word)
 
-         ;; Search at point
-         ;; "M-j": word-at-point
-         ;; "M-n"/"C-w": symbol-at-point
-         ;; Refer to https://www.emacswiki.org/emacs/SearchAtPoint#toc8
-         ;; and https://github.com/abo-abo/swiper/wiki/FAQ
-         ;; ("C-w" . (lambda ()
-         ;;            (interactive)
-         ;;            (insert (format "%s" (with-ivy-window (ivy-thing-at-point))))))
-
          :map counsel-find-file-map
          ("C-h" . counsel-up-directory)
 
          :map swiper-map
-         ("M-%" . swiper-query-replace))
+         ("M-s" . swiper-isearch-toggle)
+         ("M-%" . swiper-query-replace)
+
+         :map isearch-mode-map
+         ("M-s" . swiper-isearch-toggle))
   :hook ((after-init . ivy-mode)
          (ivy-mode . counsel-mode))
   :config
@@ -113,8 +111,23 @@
   (setq ivy-height 10)
   (setq ivy-count-format "(%d/%d) ")
   (setq ivy-on-del-error-function nil)
-  (setq ivy-format-function 'ivy-format-function-arrow)
-  ;; (setq ivy-initial-inputs-alist nil)
+  ;; (setq ivy-format-function 'ivy-format-function-arrow)
+  (setq ivy-initial-inputs-alist nil)
+
+  (defun my-ivy-format-function-arrow (cands)
+    "Transform CANDS into a string for minibuffer."
+    (ivy--format-function-generic
+     (lambda (str)
+       (concat (if (display-graphic-p)
+                   (all-the-icons-octicon "chevron-right" :height 0.8 :v-adjust -0.05)
+                 ">")
+               (propertize " " 'display `(space :align-to 2))
+               (ivy--add-face str 'ivy-current-match)))
+     (lambda (str)
+       (concat (propertize " " 'display `(space :align-to 2)) str))
+     cands
+     "\n"))
+  (setq ivy-format-function 'my-ivy-format-function-arrow)
 
   (setq swiper-action-recenter t)
   (setq counsel-find-file-at-point t)
@@ -128,14 +141,33 @@
                    (t counsel-grep-base-command))))
     (setq counsel-grep-base-command cmd))
 
-  ;; Pre-fill for commands
+  ;; Build abbreviated recent file list.
+  (defun my-counsel-recentf ()
+    "Find a file on `recentf-list'."
+    (interactive)
+    (require 'recentf)
+    (recentf-mode)
+    (ivy-read "Recentf: " (mapcar #'abbreviate-file-name recentf-list)
+              :action (lambda (f)
+                        (with-ivy-window
+                          (find-file f)))
+              :require-match t
+              :caller 'counsel-recentf))
+  (advice-add #'counsel-recentf :override #'my-counsel-recentf)
+
+  ;; Pre-fill search keywords
   ;; @see https://www.reddit.com/r/emacs/comments/b7g1px/withemacs_execute_commands_like_marty_mcfly/
   (defvar my-ivy-fly-commands
     '(query-replace-regexp
       flush-lines
       keep-lines
       ivy-read
+      swiper
+      swiper-all
+      swiper-isearch
+      counsel-grep-or-swiper
       counsel-grep
+      counsel-ack
       counsel-ag
       counsel-rg
       counsel-pt))
@@ -148,8 +180,10 @@
            (setq unread-command-events
                  (append unread-command-events
                          (listify-key-sequence (kbd "M-p")))))
-          ((or (memq this-command '(self-insert-command))
-               (memq this-command '(ivy-yank-word)))
+          ((memq this-command '(self-insert-command
+                                yank
+                                ivy-yank-word
+                                counsel-yank-pop))
            (delete-region (point)
                           (point-max)))))
 
@@ -169,13 +203,30 @@
 
   (add-hook 'minibuffer-setup-hook #'my-ivy-fly-time-travel)
 
-  (push (cons 'swiper 'my-fly-swiper) ivy-hooks-alist)
-  (defun my-fly-swiper ()
-    (let ((sym (with-ivy-window (ivy-thing-at-point))))
-      (when sym
-        (add-hook 'pre-command-hook 'my-ivy-fly-back-to-present nil t)
-        (save-excursion
-          (insert (propertize sym 'face 'shadow))))))
+  ;; Improve search experience of `swiper'
+  ;; @see https://emacs-china.org/t/swiper-swiper-isearch/9007/12
+  (defun my-swiper-toggle-counsel-rg ()
+    "Toggle `counsel-rg' with current swiper input."
+    (interactive)
+    (let ((text (replace-regexp-in-string
+                 "\n" ""
+                 (replace-regexp-in-string
+                  "\\\\_<" ""
+                  (replace-regexp-in-string
+                   "\\\\_>" ""
+                   (replace-regexp-in-string "^.*Swiper: " ""
+                                             (thing-at-point 'line t)))))))
+      (ivy-quit-and-run
+        (counsel-rg text default-directory))))
+  (bind-key "<C-return>" #'my-swiper-toggle-counsel-rg swiper-map)
+
+  (with-eval-after-load 'rg
+    (defun my-swiper-toggle-rg-dwim ()
+      "Toggle `rg-dwim' with current swiper input."
+      (interactive)
+      (ivy-quit-and-run (rg-dwim default-directory)))
+    (bind-key "<M-return>" #'my-swiper-toggle-rg-dwim swiper-map)
+    (bind-key "<M-return>" #'my-swiper-toggle-rg-dwim ivy-minibuffer-map))
 
   ;; Integration with `projectile'
   (with-eval-after-load 'projectile
@@ -185,11 +236,22 @@
   (with-eval-after-load 'magit
     (setq magit-completing-read-function 'ivy-completing-read))
 
-  ;; Enhance fuzzy matching
-  (use-package flx)
-
   ;; Enhance M-x
-  (use-package amx)
+  (use-package amx
+    :init (setq amx-history-length 20))
+
+  ;; Enhance fuzzy matching
+  (use-package flx
+    :config (setq ivy-re-builders-alist
+                  '((swiper . ivy--regex-plus)
+                    (swiper-all . ivy--regex-plus)
+                    (swiper-isearch . ivy--regex-plus)
+                    (counsel-ag . ivy--regex-plus)
+                    (counsel-rg . ivy--regex-plus)
+                    (counsel-pt . ivy--regex-plus)
+                    (counsel-ack . ivy--regex-plus)
+                    (counsel-grep . ivy--regex-plus)
+                    (t . ivy--regex-fuzzy))))
 
   ;; Additional key bindings for Ivy
   (use-package ivy-hydra
@@ -202,160 +264,6 @@
     (setq counsel-projectile-grep-initial-input '(ivy-thing-at-point))
     (counsel-projectile-mode 1))
 
-  ;; More friendly display transformer for Ivy
-  (use-package ivy-rich
-    :defines bookmark-alist
-    :functions (all-the-icons-icon-for-file
-                all-the-icons-icon-for-mode
-                all-the-icons-icon-for-dir
-                all-the-icons-icon-family
-                all-the-icons-auto-mode-match?
-                all-the-icons-dir-is-submodule)
-    :preface
-    (defun ivy-rich-bookmark-name (candidate)
-      (car (assoc candidate bookmark-alist)))
-
-    (defun ivy-rich-buffer-icon (candidate)
-      "Display buffer icons in `ivy-rich'."
-      (when (display-graphic-p)
-        (when-let* ((buffer (get-buffer candidate))
-                    (major-mode (buffer-local-value 'major-mode buffer))
-                    (icon (if (and (buffer-file-name buffer)
-                                   (all-the-icons-auto-mode-match? candidate))
-                              (all-the-icons-icon-for-file candidate)
-                            (all-the-icons-icon-for-mode major-mode))))
-          (if (symbolp icon)
-              (setq icon (all-the-icons-faicon "file" :height 1.0 :v-adjust -0.0575)))
-          (unless (symbolp icon)
-            (propertize icon
-                        'face `(
-                                :height 1.1
-                                :family ,(all-the-icons-icon-family icon)
-                                ))))))
-
-    (defun ivy-rich-file-icon (candidate)
-      "Display file icons in `ivy-rich'."
-      (when (display-graphic-p)
-        (let ((icon (if (file-directory-p (expand-file-name candidate))
-                        (all-the-icons-icon-for-dir candidate nil "")
-                      (all-the-icons-icon-for-file candidate))))
-          (unless (symbolp icon)
-            (propertize icon
-                        'face `(
-                                :height 1.1
-                                :family ,(all-the-icons-icon-family icon)
-                                ))))))
-    :hook (ivy-rich-mode . (lambda ()
-                             (setq ivy-virtual-abbreviate
-                                   (or (and ivy-rich-mode 'abbreviate) 'name))))
-    :init
-    (setq ivy-rich-display-transformers-list
-          '(ivy-switch-buffer
-            (:columns
-             ((ivy-rich-buffer-icon)
-              (ivy-rich-candidate (:width 30))
-              (ivy-rich-switch-buffer-size (:width 7))
-              (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-              (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-              (ivy-rich-switch-buffer-project (:width 15 :face success))
-              (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
-             :predicate
-             (lambda (cand) (get-buffer cand)))
-            ivy-switch-buffer-other-window
-            (:columns
-             ((ivy-rich-buffer-icon)
-              (ivy-rich-candidate (:width 30))
-              (ivy-rich-switch-buffer-size (:width 7))
-              (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-              (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-              (ivy-rich-switch-buffer-project (:width 15 :face success))
-              (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
-             :predicate
-             (lambda (cand) (get-buffer cand)))
-            counsel-switch-buffer
-            (:columns
-             ((ivy-rich-buffer-icon)
-              (ivy-rich-candidate (:width 30))
-              (ivy-rich-switch-buffer-size (:width 7))
-              (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-              (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-              (ivy-rich-switch-buffer-project (:width 15 :face success))
-              (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
-             :predicate
-             (lambda (cand) (get-buffer cand)))
-            persp-switch-to-buffer
-            (:columns
-             ((ivy-rich-buffer-icon)
-              (ivy-rich-candidate (:width 30))
-              (ivy-rich-switch-buffer-size (:width 7))
-              (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-              (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-              (ivy-rich-switch-buffer-project (:width 15 :face success))
-              (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
-             :predicate
-             (lambda (cand) (get-buffer cand)))
-            counsel-M-x
-            (:columns
-             ((counsel-M-x-transformer (:width 50))
-              (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
-            counsel-describe-function
-            (:columns
-             ((counsel-describe-function-transformer (:width 50))
-              (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
-            counsel-describe-variable
-            (:columns
-             ((counsel-describe-variable-transformer (:width 50))
-              (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
-            counsel-find-file
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-read-file-transformer)))
-            counsel-file-jump
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-rich-candidate)))
-            counsel-dired
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-read-file-transformer)))
-            counsel-dired-jump
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-rich-candidate)))
-            counsel-git
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-rich-candidate)))
-            counsel-recentf
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-rich-candidate (:width 0.8))
-              (ivy-rich-file-last-modified-time (:face font-lock-comment-face))))
-            counsel-bookmark
-            (:columns
-             ((ivy-rich-bookmark-type)
-              (ivy-rich-bookmark-name (:width 40))
-              (ivy-rich-bookmark-info)))
-            counsel-projectile-switch-project
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-rich-candidate)))
-            counsel-projectile-find-file
-            (:columns
-             ((ivy-rich-file-icon)
-              (counsel-projectile-find-file-transformer)))
-            counsel-projectile-find-dir
-            (:columns
-             ((ivy-rich-file-icon)
-              (counsel-projectile-find-dir-transformer)))
-            treemacs-projectile
-            (:columns
-             ((ivy-rich-file-icon)
-              (ivy-rich-candidate)))))
-
-    (setq ivy-rich-parse-remote-buffer nil)
-    (ivy-rich-mode 1))
-
   ;; Integrate yasnippet
   (use-package ivy-yasnippet
     :commands ivy-yasnippet--preview
@@ -364,7 +272,10 @@
 
   ;; Select from xref candidates with Ivy
   (use-package ivy-xref
-    :init (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
+    :init
+    (when (boundp 'xref-show-definitions-function)
+      (setq xref-show-definitions-function #'ivy-xref-show-defs))
+    (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
 
   ;; Correcting words with flyspell via Ivy
   (use-package flyspell-correct-ivy
@@ -399,7 +310,7 @@
     :functions ivy--regex-plus ivy--regex-ignore-order
     :commands pinyinlib-build-regexp-string
     :preface
-    (defun re-builder-pinyin (str)
+    (defun ivy--regex-pinyin (str)
       "The regex builder wrapper to support pinyin."
       (or (pinyin-to-utf8 str)
           (ivy--regex-plus str)
@@ -429,8 +340,259 @@
                         ""))
             (t
              nil)))
-    :init (setq ivy-re-builders-alist
-                '((t . re-builder-pinyin)))))
+    :init
+    (push '(swiper . ivy--regex-pinyin) ivy-re-builders-alist)
+    (push '(swiper-all . ivy--regex-pinyin) ivy-re-builders-alist)
+    (push '(swiper-isearch . ivy--regex-pinyin) ivy-re-builders-alist)))
+
+;; More friendly display transformer for Ivy
+(use-package ivy-rich
+  :defines (all-the-icons-icon-alist
+            all-the-icons-dir-icon-alist
+            bookmark-alist)
+  :functions (all-the-icons-icon-for-file
+              all-the-icons-icon-for-mode
+              all-the-icons-icon-family
+              all-the-icons-match-to-alist
+              all-the-icons-faicon
+              all-the-icons-octicon
+              all-the-icons-dir-is-submodule)
+  :preface
+  (defun ivy-rich-bookmark-name (candidate)
+    (car (assoc candidate bookmark-alist)))
+
+  (defun ivy-rich-buffer-icon (candidate)
+    "Display buffer icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (let* ((buffer (get-buffer candidate))
+             (buffer-file-name (buffer-file-name buffer))
+             (major-mode (buffer-local-value 'major-mode buffer))
+             (icon (if (and buffer-file-name
+                            (all-the-icons-auto-mode-match?))
+                       (all-the-icons-icon-for-file (file-name-nondirectory buffer-file-name) :v-adjust -0.05)
+                     (all-the-icons-icon-for-mode major-mode :v-adjust -0.05))))
+        (if (symbolp icon)
+            (all-the-icons-faicon "file-o" :face 'all-the-icons-dsilver :height 0.8 :v-adjust 0.0)
+          icon))))
+
+  (defun ivy-rich-file-icon (candidate)
+    "Display file icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (let* ((path (file-local-name (concat ivy--directory candidate)))
+             (file (file-name-nondirectory path))
+             (icon (cond
+                    ((file-directory-p path)
+                     (cond
+                      ((and (fboundp 'tramp-tramp-file-p)
+                            (tramp-tramp-file-p default-directory))
+                       (all-the-icons-octicon "file-directory" :height 1.0 :v-adjust 0.01))
+                      ((file-symlink-p path)
+                       (all-the-icons-octicon "file-symlink-directory" :height 1.0 :v-adjust 0.01))
+                      ((all-the-icons-dir-is-submodule path)
+                       (all-the-icons-octicon "file-submodule" :height 1.0 :v-adjust 0.01))
+                      ((file-exists-p (format "%s/.git" path))
+                       (all-the-icons-octicon "repo" :height 1.1 :v-adjust 0.01))
+                      (t (let ((matcher (all-the-icons-match-to-alist path all-the-icons-dir-icon-alist)))
+                           (apply (car matcher) (list (cadr matcher) :v-adjust 0.01))))))
+                    ((string-match "^/.*:$" path)
+                     (all-the-icons-material "settings_remote" :height 1.0 :v-adjust -0.2))
+                    ((not (string-empty-p file))
+                     (all-the-icons-icon-for-file file :v-adjust -0.05)))))
+        (if (symbolp icon)
+            (all-the-icons-faicon "file-o" :face 'all-the-icons-dsilver :height 0.8 :v-adjust 0.0)
+          icon))))
+
+  (defun ivy-rich-function-icon (_candidate)
+    "Display function icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (all-the-icons-faicon "cube" :height 0.9 :v-adjust -0.05 :face 'all-the-icons-purple)))
+
+  (defun ivy-rich-variable-icon (_candidate)
+    "Display variable icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (all-the-icons-faicon "tag" :height 0.9 :v-adjust -0.05 :face 'all-the-icons-lblue)))
+
+  (defun ivy-rich-face-icon (_candidate)
+    "Display face icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (all-the-icons-material "palette" :height 1.0 :v-adjust -0.2)))
+
+  (defun ivy-rich-keybinding-icon (_candidate)
+    "Display keybindings icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (all-the-icons-material "keyboard" :height 1.0 :v-adjust -0.2)))
+
+  (when (display-graphic-p)
+    (defun ivy-rich-bookmark-type-plus (candidate)
+      (let ((filename (file-local-name (ivy-rich-bookmark-filename candidate))))
+        (cond ((null filename)
+               (all-the-icons-material "block" :v-adjust -0.2 :face 'warning))  ; fixed #38
+              ((file-remote-p filename)
+               (all-the-icons-material "wifi_tethering" :v-adjust -0.2 :face 'mode-line-buffer-id))
+              ((not (file-exists-p filename))
+               (all-the-icons-material "block" :v-adjust -0.2 :face 'error))
+              ((file-directory-p filename)
+               (all-the-icons-octicon "file-directory" :height 0.9 :v-adjust -0.05))
+              (t (all-the-icons-icon-for-file (file-name-nondirectory filename) :height 0.9 :v-adjust -0.05)))))
+    (advice-add #'ivy-rich-bookmark-type :override #'ivy-rich-bookmark-type-plus))
+  :hook ((ivy-mode . ivy-rich-mode)
+         (ivy-rich-mode . (lambda ()
+                            (setq ivy-virtual-abbreviate
+                                  (or (and ivy-rich-mode 'abbreviate) 'name)))))
+  :init
+  ;; For better performance
+  (setq ivy-rich-parse-remote-buffer nil)
+
+  ;; Setting tab size to 1, to insert tabs as delimiters
+  (add-hook 'minibuffer-setup-hook
+            (lambda ()
+              (setq tab-width 1)))
+
+  (setq ivy-rich-display-transformers-list
+        '(ivy-switch-buffer
+          (:columns
+           ((ivy-rich-buffer-icon)
+            (ivy-rich-candidate (:width 30))
+            (ivy-rich-switch-buffer-size (:width 7))
+            (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+            (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+            (ivy-rich-switch-buffer-project (:width 15 :face success))
+            (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
+           :predicate
+           (lambda (cand) (get-buffer cand))
+           :delimiter "\t")
+          ivy-switch-buffer-other-window
+          (:columns
+           ((ivy-rich-buffer-icon)
+            (ivy-rich-candidate (:width 30))
+            (ivy-rich-switch-buffer-size (:width 7))
+            (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+            (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+            (ivy-rich-switch-buffer-project (:width 15 :face success))
+            (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
+           :predicate
+           (lambda (cand) (get-buffer cand))
+           :delimiter "\t")
+          counsel-switch-buffer
+          (:columns
+           ((ivy-rich-buffer-icon)
+            (ivy-rich-candidate (:width 30))
+            (ivy-rich-switch-buffer-size (:width 7))
+            (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+            (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+            (ivy-rich-switch-buffer-project (:width 15 :face success))
+            (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
+           :predicate
+           (lambda (cand) (get-buffer cand))
+           :delimiter "\t")
+          counsel-switch-buffer-other-window
+          (:columns
+           ((ivy-rich-buffer-icon)
+            (ivy-rich-candidate (:width 30))
+            (ivy-rich-switch-buffer-size (:width 7))
+            (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+            (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+            (ivy-rich-switch-buffer-project (:width 15 :face success))
+            (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
+           :predicate
+           (lambda (cand) (get-buffer cand))
+           :delimiter "\t")
+          persp-switch-to-buffer
+          (:columns
+           ((ivy-rich-buffer-icon)
+            (ivy-rich-candidate (:width 30))
+            (ivy-rich-switch-buffer-size (:width 7))
+            (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+            (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+            (ivy-rich-switch-buffer-project (:width 15 :face success))
+            (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
+           :predicate
+           (lambda (cand) (get-buffer cand))
+           :delimiter "\t")
+          counsel-M-x
+          (:columns
+           ((ivy-rich-function-icon)
+            (counsel-M-x-transformer (:width 50))
+            (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+          counsel-describe-function
+          (:columns
+           ((ivy-rich-function-icon)
+            (counsel-describe-function-transformer (:width 50))
+            (ivy-rich-counsel-function-docstring (:face font-lock-doc-face)))
+           :delimiter "\t")
+          counsel-describe-variable
+          (:columns
+           ((ivy-rich-variable-icon)
+            (counsel-describe-variable-transformer (:width 50))
+            (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face)))
+           :delimiter "\t")
+          counsel-describe-face
+          (:columns
+           ((ivy-rich-face-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t")
+          counsel-descbinds
+          (:columns
+           ((ivy-rich-keybinding-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t")
+          counsel-find-file
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-read-file-transformer))
+           :delimiter "\t")
+          counsel-file-jump
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t")
+          counsel-dired
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-read-file-transformer))
+           :delimiter "\t")
+          counsel-dired-jump
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t")
+          counsel-git
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t")
+          counsel-recentf
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-rich-candidate (:width 0.8))
+            (ivy-rich-file-last-modified-time (:face font-lock-comment-face)))
+           :delimiter "\t")
+          counsel-bookmark
+          (:columns
+           ((ivy-rich-bookmark-type)
+            (ivy-rich-bookmark-name (:width 40))
+            (ivy-rich-bookmark-info))
+           :delimiter "\t")
+          counsel-projectile-switch-project
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t")
+          counsel-projectile-find-file
+          (:columns
+           ((ivy-rich-file-icon)
+            (counsel-projectile-find-file-transformer))
+           :delimiter "\t")
+          counsel-projectile-find-dir
+          (:columns
+           ((ivy-rich-file-icon)
+            (counsel-projectile-find-dir-transformer))
+           :delimiter "\t")
+          treemacs-projectile
+          (:columns
+           ((ivy-rich-file-icon)
+            (ivy-rich-candidate))
+           :delimiter "\t"))))
 
 (provide 'init-ivy)
 

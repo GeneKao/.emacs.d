@@ -57,34 +57,7 @@
   ;; Install: pip install yapf
   (use-package yapfify
     :diminish yapf-mode
-    :hook (python-mode . yapf-mode))
-
-  (unless centaur-lsp
-    ;; Anaconda mode
-    (use-package anaconda-mode
-      :defines anaconda-mode-localhost-address
-      :diminish anaconda-mode
-      :hook ((python-mode . anaconda-mode)
-             (python-mode . anaconda-eldoc-mode))
-      :config
-      ;; WORKAROUND: https://github.com/proofit404/anaconda-mode#faq
-      (when sys/macp
-        (setq anaconda-mode-localhost-address "localhost"))
-      (use-package company-anaconda
-        :after company
-        :defines company-backends
-        :init (cl-pushnew 'company-anaconda company-backends)))))
-
-;; Emacs IPython Notebook
-(use-package ein
-  :diminish ein:notebook-mode
-  :defines ein:completion-backend
-  :init
-  (setq ein:completion-backend 'ein:use-company-backend)
-
-  ;; WORKAROUND:https://github.com/millejoh/emacs-ipython-notebook/issues/496
-  (with-eval-after-load 'ido
-    (defalias 'ido-completing-read 'completing-read)))
+    :hook (python-mode . yapf-mode)))
 
 (provide 'init-python)
 

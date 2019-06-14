@@ -15,7 +15,7 @@ Emacs power users.
 
 It's able to run on Windows, GNU Linux and macOS. It is compatible **ONLY with
 GNU Emacs 25.1 and above**. In general you're advised to always run with the
-latest stable release - currently **26.1**.
+latest stable release - currently **26.2**.
 
 ## Features
 
@@ -25,10 +25,10 @@ latest stable release - currently **26.1**.
 - Better Org/Markdown support.
 - Support multiple programming languages
   - C/C++/Object-C/C#/Java
-  - Python/Ruby/Perl/PHP/Shell/Powershell
+  - Python/Ruby/Perl/PHP/Shell/Powershell/Bat
   - Javascript/Typescript/JSON/YAML
   - HTML/CSS/XML
-  - Golang/Swift/Rust
+  - Golang/Swift/Rust/Dart/Elirix
   - ...
 - Auto completion.
 - Fly syntax check.
@@ -36,12 +36,13 @@ latest stable release - currently **26.1**.
 - Git integration.
 - Project/Workspace integration.
 - Pomodor integration.
+- Support docker.
 - Better Chinese support:
   - Chinese calendar
   - Youdao dictionary
   - Pinyin search
 
-## Prerequiste
+## Prerequisite
 
 ### OS
 
@@ -70,7 +71,7 @@ or download the [zip
 package](https://github.com/seagle0128/.emacs.d/archive/master.zip) directly and
 extract to `~/.emacs.d`.
 
-Then start emacs. Wait for a while to install packages at the first startup.
+Then start Emacs. Wait for a while to install packages at the first startup.
 Enjoy!
 
 ### Update
@@ -91,7 +92,7 @@ M-x centaur-update-packages
 M-x centaur-update-packages-and-restart
 
 # Update all including configurations, packages and dotfiles
-M-x centuar-update-all
+M-x centaur-update-all
 ```
 
 ### Docker
@@ -124,36 +125,42 @@ For Example:
 (setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, melpa-mirror, emacs-china, netease or tuna
 (setq centaur-theme classic)                   ; Color theme: default, classic, dark, light or daylight
 (setq centaur-dashboard nil)                   ; Use dashboard at startup or not: t or nil
-(setq centaur-lsp nil)                         ; Set LSP client: lsp-mode, eglot or nil
+(setq centaur-lsp 'eglot)                      ; Set LSP client: lsp-mode, eglot or nil
+(setq centaur-chinese-calendar nil)            ; Use Chinese calendar or not: t or nil
 (setq centaur-benchmark t)                     ; Enable initialization benchmark or not: t or nil
 ```
 
-The default pacakge archives is `melpa`. You can change it in `custom.el`, or
+The default package archives is `melpa`. You can change it in `custom.el`, or
 switch manually via `M-x switch-package-archives` anytime.
 
 For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 ## Screenshots
 
-![Dashboard](https://user-images.githubusercontent.com/140797/53698460-9c58af00-3e0f-11e9-9d32-8fd0c2c0ff77.png
+![Dashboard](https://user-images.githubusercontent.com/140797/56488858-4e5c4f80-6512-11e9-9637-b9395c46400f.png
 "Dashboard (default theme)")
 
-![markdown_magit](https://user-images.githubusercontent.com/140797/49694620-8ba9eb80-fbc8-11e8-9800-f2486ab41991.png
+![color_icons](https://user-images.githubusercontent.com/140797/56474931-8bddc000-64b3-11e9-93d8-0204c3752790.png
+"Main (color icons)")
+
+![markdown_magit](https://user-images.githubusercontent.com/140797/56489193-7f894f80-6513-11e9-9c95-ea1ef41efb1f.png
 "Markdown and Magit")
 
-![org](https://user-images.githubusercontent.com/140797/49694696-a761c180-fbc9-11e8-9edc-0199f4ea7ca0.png
+![org_classic](https://user-images.githubusercontent.com/140797/56489410-2837af00-6514-11e9-9e04-a1663ac479e8.png
 "Org (classic theme)")
 
-![main](https://user-images.githubusercontent.com/140797/49694704-cfe9bb80-fbc9-11e8-9506-df9fee48e304.png
+![main_light](https://user-images.githubusercontent.com/140797/56489516-85cbfb80-6514-11e9-9dd4-8602bf8a4ec7.png
 "Main (light theme)")
 
 ## FAQ
 
-1. Why is the modline messy?
+1. How to display icons correctly in `Centaur Emacs`?
 
-    Powerline fonts or all-the-icons are missing on your system. Please install
-    [powerline-fonts](https://github.com/powerline/fonts) for `telephone-line` or
-    run `M-x all-the-icons-install-fonts` for `doom-modeline`.
+    `all-the-icons` are necessary. Run `M-x all-the-icons-install-fonts` to
+    install the resource fonts. On Windows, the fonts should be installed manually.
+    `all-the-icons` only support GUI. If you don't like color icons,
+    `(setq all-the-icons-color-icons nil)` to disable. Please refer to
+    [all-the-icons.el](https://github.com/domtronn/all-the-icons.el) for details.
 
 1. How to search Chinese via pinyin?
 
@@ -170,7 +177,7 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 1. Does Centaur Emacs support Language Server Protocol (LSP)?
 
-    The LSP feature is supported and enabled by default in Centuar Emacs.
+    The LSP feature is supported and enabled by default in Centaur Emacs.
     `lsp-mode` is the default client, and `eglot` is another choice. Use `(setq
     centaur-lsp nil)` to disable LSP if you don't like it.
 
@@ -189,4 +196,4 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
     Please refer to #33. You should instead set environment variables in startup
     files like .profile, .bash_profile or .zshenv, then `Centaur Emacs` is able
-    to recoginze and import the environment variables.
+    to recognize and import the environment variables.

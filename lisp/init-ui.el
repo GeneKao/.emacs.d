@@ -38,16 +38,12 @@
 (setq fancy-splash-image centaur-logo)
 
 ;; Title
-(setq frame-title-format
-      '("Centaur Emacs - "
-        (:eval (if (buffer-file-name)
-                   (abbreviate-file-name (buffer-file-name))
-                 "%b"))))
-(setq icon-title-format frame-title-format)
+(setq frame-title-format '("Centaur Emacs - %b")
+      icon-title-format frame-title-format)
 
 (when sys/mac-x-p
-  (add-to-list 'default-frame-alist '(ns-appearance . dark))
   (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+  (add-to-list 'default-frame-alist '(ns-appearance . dark))
   (add-hook 'after-load-theme-hook
             (lambda ()
               (let ((bg (frame-parameter nil 'background-mode)))
@@ -56,9 +52,27 @@
 
 ;; Menu/Tool/Scroll bars
 (unless emacs/>=27p        ; Move to early init-file in 27
-  (unless sys/mac-x-p (menu-bar-mode -1))
-  (and (bound-and-true-p tool-bar-mode) (tool-bar-mode -1))
-  (and (fboundp 'set-scroll-bar-mode) (set-scroll-bar-mode nil)))
+  (unless sys/mac-x-p
+    (push '(menu-bar-lines . 0) default-frame-alist))
+  (push '(tool-bar-lines . 0) default-frame-alist)
+  (push '(vertical-scroll-bars) default-frame-alist))
+
+;; Mode-line
+(use-package doom-modeline
+  :hook (after-init . doom-modeline-mode)
+  :init
+  ;; prevent flash of unstyled modeline at startup
+  (unless after-init-time
+    (setq-default mode-line-format nil))
+
+  (setq doom-modeline-major-mode-color-icon t
+        doom-modeline-minor-modes nil
+        doom-modeline-mu4e nil
+        doom-modeline-github t
+        doom-modeline-github-interval 300))
+
+(use-package hide-mode-line
+  :hook (((completion-list-mode completion-in-region-mode) . hide-mode-line-mode)))
 
 ;; Theme
 (defvar after-load-theme-hook nil
@@ -77,7 +91,7 @@
     ('dark 'doom-Iosvkem)
     ('light 'doom-one-light)
     ('daylight 'doom-tomorrow-day)
-    (_ theme)))
+    (_ (or theme 'doom-one))))
 
 (defun is-doom-theme-p (theme)
   "Check whether the THEME is a doom theme. THEME is a symbol."
@@ -105,23 +119,44 @@
         ;; Enable custom treemacs theme (all-the-icons must be installed!)
         (doom-themes-treemacs-config)
 
-        ;; Improve file type icons
+        ;; Improve treemacs icons
         (with-eval-after-load 'treemacs
-          (when doom-treemacs-use-generic-icons
-            (let ((all-the-icons-default-adjust 0))
-              (setq treemacs-icon-fallback (concat (all-the-icons-faicon "file-text-o" :height 0.93) " ")
-                    treemacs-icon-text treemacs-icon-fallback)
-              (dolist (item all-the-icons-icon-alist)
-                (let* ((extension (car item))
-                       (icon (apply (cdr item))))
-                  (ht-set! treemacs-icons-hash
-                           (s-replace-all '(("^" . "") ("\\" . "") ("$" . "") ("." . "")) extension)
-                           (concat (propertize icon
-                                               'face `(:height
-                                                       1.1
-                                                       :family
-                                                       ,(all-the-icons-icon-family icon)))
-                                   " "))))))))
+          (with-eval-after-load 'all-the-icons
+            (when doom-treemacs-use-generic-icons
+              (let ((all-the-icons-default-adjust 0)
+                    (tab-width 1))
+                (setq treemacs-icon-open-png
+                      (concat
+                       (all-the-icons-octicon "chevron-down" :height 0.8 :v-adjust 0.1)
+                       "\t"
+                       (all-the-icons-octicon "file-directory" :v-adjust 0)
+                       "\t")
+                      treemacs-icon-closed-png
+                      (concat
+                       (all-the-icons-octicon "chevron-right" :height 0.8 :v-adjust 0.1 :face 'font-lock-doc-face)
+                       "\t"
+                       (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'font-lock-doc-face)
+                       "\t"))
+
+                ;; File type icons
+                (setq treemacs-icons-hash (make-hash-table :size 200 :test #'equal)
+                      treemacs-icon-fallback (concat
+                                              "\t\t"
+                                              (all-the-icons-faicon "file-o" :face 'all-the-icons-dsilver :height 0.8 :v-adjust 0.0)
+                                              "\t")
+                      treemacs-icon-text treemacs-icon-fallback)
+
+                (dolist (item all-the-icons-icon-alist)
+                  (let* ((extension (car item))
+                         (func (cadr item))
+                         (args (append (list (caddr item)) '(:v-adjust -0.05) (cdddr item)))
+                         (icon (apply func args))
+                         (key (s-replace-all '(("^" . "") ("\\" . "") ("$" . "") ("." . "")) extension))
+                         (value (concat "\t\t" icon "\t")))
+                    (unless (ht-get treemacs-icons-hash (s-replace-regexp "\\?" "" key))
+                      (ht-set! treemacs-icons-hash (s-replace-regexp "\\?" "" key) value))
+                    (unless (ht-get treemacs-icons-hash (s-replace-regexp ".\\?" "" key))
+                      (ht-set! treemacs-icons-hash (s-replace-regexp ".\\?" "" key) value)))))))))
 
       ;; Make certain buffers grossly incandescent
       (use-package solaire-mode
@@ -134,38 +169,37 @@
         (advice-add #'persp-load-state-from-file
                     :after #'solaire-mode-restore-persp-mode-buffers)))
   (progn
-    (ignore-errors
-      (centaur-load-theme centaur-theme))))
-
-;; Mode-line
-(use-package doom-modeline
-  :hook (after-init . doom-modeline-mode)
-  :init
-  (setq doom-modeline-major-mode-color-icon t)
-  (setq doom-modeline-github t))
-
-(defun mode-line-height ()
-  "Get current height of mode-line."
-  (- (elt (window-pixel-edges) 3)
-     (elt (window-inside-pixel-edges) 3)))
-
-(use-package hide-mode-line
-  :hook (((completion-list-mode
-           completion-in-region-mode
-           neotree-mode
-           treemacs-mode)
-          . hide-mode-line-mode)))
+    (ignore-errors (centaur-load-theme centaur-theme))))
 
 ;; Icons
 ;; NOTE: Must run `M-x all-the-icons-install-fonts' manually on Windows
 (use-package all-the-icons
   :if (display-graphic-p)
-  :init
-  (unless (or sys/win32p (member "all-the-icons" (font-family-list)))
-    (all-the-icons-install-fonts t))
+  :init (unless (or sys/win32p (member "all-the-icons" (font-family-list)))
+          (all-the-icons-install-fonts t))
   :config
   (add-to-list 'all-the-icons-icon-alist
-               '("\\.ipynb" all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
+               '("\\.xpm$" all-the-icons-octicon "file-media" :v-adjust 0.0 :face all-the-icons-dgreen))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.lua$" all-the-icons-fileicon "lua" :face all-the-icons-dblue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(lua-mode all-the-icons-fileicon "lua" :face all-the-icons-dblue))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.go$" all-the-icons-fileicon "go" :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(go-mode all-the-icons-fileicon "go" :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(help-mode all-the-icons-faicon "info-circle" :height 1.1 :v-adjust -0.1 :face all-the-icons-purple))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(Info-mode all-the-icons-faicon "info-circle" :height 1.1 :v-adjust -0.1))
+  (add-to-list 'all-the-icons-icon-alist
+               '("NEWS$" all-the-icons-faicon "newspaper-o" :height 0.9 :v-adjust -0.2))
+  (add-to-list 'all-the-icons-icon-alist
+               '("Cask\\'" all-the-icons-fileicon "elisp" :height 1.0 :v-adjust -0.2 :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(cask-mode all-the-icons-fileicon "elisp" :height 1.0 :v-adjust -0.2 :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-icon-alist
+               '(".*\\.ipynb\\'" all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(ein:notebooklist-mode all-the-icons-faicon "book" :face all-the-icons-orange))
   (add-to-list 'all-the-icons-mode-icon-alist
@@ -173,14 +207,14 @@
   (add-to-list 'all-the-icons-mode-icon-alist
                '(ein:notebook-multilang-mode all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
   (add-to-list 'all-the-icons-icon-alist
-               '("\\.epub$" all-the-icons-faicon "book" :face all-the-icons-green))
+               '("\\.epub\\'" all-the-icons-faicon "book" :height 1.0 :v-adjust -0.1 :face all-the-icons-green))
   (add-to-list 'all-the-icons-mode-icon-alist
-               '(nov-mode all-the-icons-faicon "book" :face all-the-icons-green))
+               '(nov-mode all-the-icons-faicon "book" :height 1.0 :v-adjust -0.1 :face all-the-icons-green))
   (add-to-list 'all-the-icons-mode-icon-alist
-               '(gfm-mode  all-the-icons-octicon "markdown" :face all-the-icons-lblue)))
+               '(gfm-mode all-the-icons-octicon "markdown" :face all-the-icons-blue)))
 
 ;; Line and Column
-(setq-default fill-column 80)
+(setq-default fill-column 100)
 (setq column-number-mode t)
 (setq line-number-mode t)
 
@@ -211,8 +245,9 @@
 
 ;; Mouse & Smooth Scroll
 ;; Scroll one line at a time (less "jumpy" than defaults)
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))
-(setq mouse-wheel-progressive-speed nil)
+(when (display-graphic-p)
+  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))
+        mouse-wheel-progressive-speed nil))
 (setq scroll-step 1
       scroll-margin 0
       scroll-conservatively 100000)
@@ -222,27 +257,34 @@
   :ensure nil
   :unless (display-graphic-p)
   :hook (after-init . display-time-mode)
-  :init
-  (setq display-time-24hr-format t)
-  (setq display-time-day-and-date t))
+  :init (setq display-time-24hr-format t
+              display-time-day-and-date t))
 
 ;; Suppress GUI features
-(setq use-file-dialog nil)
-(setq use-dialog-box nil)
-(setq inhibit-startup-screen t)
-(setq inhibit-startup-echo-area-message t)
+(setq use-file-dialog nil
+      use-dialog-box nil
+      inhibit-startup-screen t
+      inhibit-startup-echo-area-message t)
+
+;; Display dividers between windows
+(setq window-divider-default-places t
+      window-divider-default-bottom-width 1
+      window-divider-default-right-width 1)
+(add-hook 'window-setup-hook #'window-divider-mode)
 
 ;; Misc
 (fset 'yes-or-no-p 'y-or-n-p)
 (setq visible-bell t)
-(size-indication-mode 1)
+(add-hook 'window-setup-hook #'size-indication-mode)
 ;; (blink-cursor-mode -1)
 (setq track-eol t)                      ; Keep cursor at end of lines. Require line-move-visual is nil.
 (setq line-move-visual nil)
 (setq inhibit-compacting-font-caches t) ; Don’t compact font caches during GC.
 
-;; Don't open a file in a new frame
-(when (boundp 'ns-pop-up-frames)
+(when sys/macp
+  ;; Render thinner fonts
+  (setq ns-use-thin-smoothing t)
+  ;; Don't open a file in a new frame
   (setq ns-pop-up-frames nil))
 
 ;; Don't use GTK+ tooltip
@@ -251,7 +293,7 @@
 
 ;; Fullscreen
 ;; WORKAROUND: To address blank screen issue with child-frame in fullscreen
-(when sys/mac-x-p
+(when (and sys/mac-x-p emacs/>=26p)
   (setq ns-use-native-fullscreen nil))
 (bind-keys ("C-<f11>" . toggle-frame-fullscreen)
            ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS

@@ -1,9 +1,9 @@
-;; init-dap.el --- Initialize dap configurations.	-*- lexical-binding: t -*-
+;; init-elixir.el --- Initialize elixir configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2019 N.Ahmet BASTUG
 
-;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; URL: https://github.com/seagle0128/.emacs.d
+;; Author: N.Ahmet BASTUG <bastugn@itu.edu.tr>
+;; URL: https://github.com/kosantosbik/.emacs.d
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -25,24 +25,29 @@
 
 ;;; Commentary:
 ;;
-;; Debug Adapter Protocol configurations.
+;; Elixir configurations.
 ;;
 
 ;;; Code:
 
-(use-package dap-mode
-  :diminish
-  :hook ((after-init . dap-mode)
-         (dap-mode . dap-ui-mode)
+(use-package elixir-mode
+  :config
+  (use-package alchemist
+    :hook ((elixir-mode . alchemist-mode)
+           (elixir-mode . alchemist-phoenix-mode))
+    :config
+    (add-hook 'elixir-mode-hook 'alchemist-mode)
+    (add-hook 'elixir-mode-hook 'alchemist-phoenix-mode))
 
-         (python-mode . (lambda () (require 'dap-python)))
-         (go-mode . (lambda () (require 'dap-go)))
-         (java-mode . (lambda () (require 'dap-java)))
-         (rust-mode . (lambda () (require 'dap-rust)))
-         ((c-mode c++-mode objc-mode swift) . (lambda () (require 'dap-lldb)))
-         (php-mode . (lambda () (require 'dap-php)))))
+  (use-package flycheck-mix
+    :after flycheck
+    :init (flycheck-mix-setup))
 
-(provide 'init-dap)
+  (use-package flycheck-credo
+    :after flycheck
+    :init (flycheck-credo-setup)))
+
+(provide 'init-elixir)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-dap.el ends here
+;;; init-elixir.el ends here
