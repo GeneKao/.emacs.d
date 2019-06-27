@@ -254,6 +254,7 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
       [EXTRA]
 \\linespread{1.1}
 \\hypersetup{pdfborder=0 0 0}"
+               ("\\chapter{%s}" . "\\chapter*{%s}")
                ("\\section{%s}" . "\\section*{%s}")
                ("\\subsection{%s}" . "\\subsection*{%s}")
                ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
