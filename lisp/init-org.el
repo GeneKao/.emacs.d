@@ -194,7 +194,7 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
     ("a" (hot-expand "<a"))
     ("L" (hot-expand "<L"))
     ("i" (hot-expand "<i"))
-    ("e" (hot-expand "<s" "emacs-lisp")
+    ("e" (hot-expand "<s" "emacs-lisp"))
     ("y" (hot-expand "<s" "python :results output"))
     ("Y" (hot-expand "<s" "ipython :session :exports both :results raw drawer\n$0"))
     ("g" (hot-expand "<s" "go :imports '\(\"fmt\"\)"))
@@ -307,8 +307,7 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
 "
                                   ("\\chapter{%s}" . "\\chapter*{%s}")
                                   ("\\section{%s}" . "\\section*{%s}")
-                                  ("\\subsection{%s}" . "\\subsection*{%s}")
-                                  ))
+                                  ("\\subsection{%s}" . "\\subsection*{%s}")))
 
 
 
