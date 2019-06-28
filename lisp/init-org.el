@@ -194,7 +194,7 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
     ("a" (hot-expand "<a"))
     ("L" (hot-expand "<L"))
     ("i" (hot-expand "<i"))
-    ("e" (hot-expand "<s" "emacs-lisp"))
+    ("e" (hot-expand "<s" "emacs-lisp")
     ("y" (hot-expand "<s" "python :results output"))
     ("Y" (hot-expand "<s" "ipython :session :exports both :results raw drawer\n$0"))
     ("g" (hot-expand "<s" "go :imports '\(\"fmt\"\)"))
@@ -258,12 +258,9 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
                ("\\section{%s}" . "\\section*{%s}")
                ("\\subsection{%s}" . "\\subsection*{%s}")
                ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-               ("\\paragraph{%s}" . "\\paragraph*{%s}")))
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
 
-
-
-(unless (boundp 'org-latex-classes)
-  (setq org-latex-classes nil))
 
 (add-to-list 'org-latex-classes
              '("article"
@@ -299,19 +296,19 @@ _h_tml    _S_HELL     _p_erl          _A_SCII:
                ("\\paragraph{%s}" . "\\paragraph*{%s}")))
 
 
-;; (add-to-list 'org-latex-classes '("ebook"
-;;                                   "\\documentclass[11pt, oneside]{memoir}
-;; \\setstocksize{9in}{6in}
-;; \\settrimmedsize{\\stockheight}{\\stockwidth}{*}
-;; \\setlrmarginsandblock{2cm}{2cm}{*} % Left and right margin
-;; \\setulmarginsandblock{2cm}{2cm}{*} % Upper and lower margin
-;; \\checkandfixthelayout
-;; % Much more laTeX code omitted
-;; "
-;;                                   ("\\chapter{%s}" . "\\chapter*{%s}")
-;;                                   ("\\section{%s}" . "\\section*{%s}")
-;;                                   ("\\subsection{%s}" . "\\subsection*{%s}")
-;;                                   ))
+(add-to-list 'org-latex-classes '("ebook"
+                                  "\\documentclass[11pt, oneside]{memoir}
+\\setstocksize{9in}{6in}
+\\settrimmedsize{\\stockheight}{\\stockwidth}{*}
+\\setlrmarginsandblock{2cm}{2cm}{*} % Left and right margin
+\\setulmarginsandblock{2cm}{2cm}{*} % Upper and lower margin
+\\checkandfixthelayout
+% Much more laTeX code omitted
+"
+                                  ("\\chapter{%s}" . "\\chapter*{%s}")
+                                  ("\\section{%s}" . "\\section*{%s}")
+                                  ("\\subsection{%s}" . "\\subsection*{%s}")
+                                  ))
 
 
 
