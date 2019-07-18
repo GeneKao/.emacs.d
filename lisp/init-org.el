@@ -114,8 +114,8 @@
     :if (executable-find "jupyter")     ; DO NOT remove
     :init (cl-pushnew '(ipython . t) load-language-list))
 
-  (org-babel-do-load-languages 'org-babel-load-languages
-                               load-language-list)
+  ;; (org-babel-do-load-languages 'org-babel-load-languages
+  ;;                              load-language-list)
 
   ;; Rich text clipboard
   (use-package org-rich-yank
