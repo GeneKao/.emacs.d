@@ -61,43 +61,43 @@
 
     :hook (python-mode . yapf-mode))
 
-  (unless centaur-lsp
-    ;; Anaconda mode
-    (use-package anaconda-mode
-      :defines anaconda-mode-localhost-address
-      :diminish anaconda-mode
-      :hook ((python-mode . anaconda-mode)
-             (python-mode . anaconda-eldoc-mode))
-      :config
-      ;; WORKAROUND: https://github.com/proofit404/anaconda-mode#faq
-      (when sys/macp
-        (setq anaconda-mode-localhost-address "localhost"))
-      (use-package company-anaconda
-        :after company
-        :defines company-backends
+  ;; (unless centaur-lsp
+  ;;   ;; Anaconda mode
+  ;;   (use-package anaconda-mode
+  ;;     :defines anaconda-mode-localhost-address
+  ;;     :diminish anaconda-mode
+  ;;     :hook ((python-mode . anaconda-mode)
+  ;;            (python-mode . anaconda-eldoc-mode))
+  ;;     :config
+  ;;     ;; WORKAROUND: https://github.com/proofit404/anaconda-mode#faq
+  ;;     (when sys/macp
+  ;;       (setq anaconda-mode-localhost-address "localhost"))
+  ;;     (use-package company-anaconda
+  ;;       :after company
+  ;;       :defines company-backends
 
-        :init (cl-pushnew 'company-anaconda company-backends)))))
-
-
-;; Add conda environment
-(use-package pyvenv
-  :init
-  (setenv "WORKON_HOME" "~/anaconda3/envs")
-  (pyvenv-mode 1))
-
-;; (require 'conda)
-;; ;; if you want interactive shell support, include:
-;; (conda-env-initialize-interactive-shells)
-;; ;; if you want eshell support, include:
-;; (conda-env-initialize-eshell)
-;; ;; if you want auto-activation (see below for details), include:
-;; (conda-env-autoactivate-mode t)
-
-;; (custom-set-variables
-;;  '(conda-anaconda-home "~/anaconda3"))
+  ;;       :init (cl-pushnew 'company-anaconda company-backends)))))
 
 
-(provide 'init-python)
+  ;; Add conda environment
+  (use-package pyvenv
+    :init
+    (setenv "WORKON_HOME" "~/anaconda3/envs")
+    (pyvenv-mode 1)))
+
+    ;; (require 'conda)
+    ;; ;; if you want interactive shell support, include:
+    ;; (conda-env-initialize-interactive-shells)
+    ;; ;; if you want eshell support, include:
+    ;; (conda-env-initialize-eshell)
+    ;; ;; if you want auto-activation (see below for details), include:
+    ;; (conda-env-autoactivate-mode t)
+
+    ;; (custom-set-variables
+    ;;  '(conda-anaconda-home "~/anaconda3"))
+
+
+    (provide 'init-python)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; init-python.el ends here
