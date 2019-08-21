@@ -45,8 +45,6 @@
 (setq delete-by-moving-to-trash t)         ; Deleting files go to OS's trash folder
 (setq make-backup-files nil)               ; Forbide to make backup files
 (setq auto-save-default nil)               ; Disable auto save
-(setq set-mark-command-repeat-pop t)       ; Repeating C-SPC after popping mark pops it again
-;; (setq-default kill-whole-line t)           ; Kill line including '\n'
 
 (setq-default major-mode 'text-mode)
 
@@ -67,7 +65,30 @@
 ;; Rectangle
 (use-package rect
   :ensure nil
-  :bind (("<C-return>" . rectangle-mark-mode)))
+  :bind (("<C-return>" . rect-hydra/body))
+  :pretty-hydra
+  ((:title (pretty-hydra-title "Rectangle" 'material "border_all" :height 1.1 :v-adjust -0.225)
+    :color amaranth :body-pre (rectangle-mark-mode) :post (deactivate-mark) :quit-key "q")
+   ("Move"
+    (("h" backward-char "←")
+     ("j" next-line "↓")
+     ("k" previous-line "↑")
+     ("l" forward-char "→"))
+    "Action"
+    (("w" copy-rectangle-as-kill "copy") ; C-x r M-w
+     ("y" yank-rectangle "yank")         ; C-x r y
+     ("t" string-rectangle "string")     ; C-x r t
+     ("d" kill-rectangle "kill")         ; C-x r d
+     ("c" clear-rectangle "clear")       ; C-x r c
+     ("o" open-rectangle "open"))        ; C-x r o
+    "Misc"
+    (("N" rectangle-number-lines "number lines")        ; C-x r N
+     ("e" rectangle-exchange-point-and-mark "exchange") ; C-x C-x
+     ("u" undo "undo")
+     ("r" (if (region-active-p)
+              (deactivate-mark)
+            (rectangle-mark-mode 1))
+      "reset")))))
 
 ;; Automatically reload files was modified by external program
 (use-package autorevert
@@ -102,7 +123,10 @@
          ("M-g w" . avy-goto-word-1)
          ("M-g e" . avy-goto-word-0))
   :hook (after-init . avy-setup-default)
-  :config (setq avy-background t))
+  :config (setq avy-all-windows nil
+                avy-all-windows-alt t
+                avy-background t
+                avy-style 'pre))
 
 ;; Kill text between the point and the character CHAR
 (use-package avy-zap
@@ -121,10 +145,11 @@
   (with-eval-after-load 'org
     (bind-key "M-o" #'ace-link-org org-mode-map))
   (with-eval-after-load 'gnus
-    (bind-keys :map gnus-summary-mode-map
-               ("M-o" . ace-link-gnus)
-               :map gnus-article-mode-map
-               ("M-o" . ace-link-gnus)))
+    (bind-keys
+     :map gnus-summary-mode-map
+     ("M-o" . ace-link-gnus)
+     :map gnus-article-mode-map
+     ("M-o" . ace-link-gnus)))
   (with-eval-after-load 'ert
     (bind-key "o" #'ace-link-help ert-results-mode-map)))
 
@@ -249,18 +274,15 @@
                             (dolist (key '("C-;" "C-," "C-."))
                               (unbind-key key flyspell-mode-map)))))
   :init
-  (setq flyspell-issue-message-flag nil)
-  (setq ispell-program-name "aspell")
-  (setq ispell-extra-args '("--sug-mode=ultra" "--lang=en_US" "--run-together")))
+  (setq flyspell-issue-message-flag nil
+        ispell-program-name "aspell"
+        ispell-extra-args '("--sug-mode=ultra" "--lang=en_US" "--run-together")))
 
 ;; Hungry deletion
 (use-package hungry-delete
   :diminish
   :hook (after-init . global-hungry-delete-mode)
   :config (setq-default hungry-delete-chars-to-skip " \t\f\v"))
-
-;; Make bindings that stick around
-(use-package hydra)
 
 ;; Framework for mode-specific buffer indexes
 (use-package imenu
@@ -284,6 +306,8 @@
          ([M-kp-2] . pager-row-down)))
 
 ;; Treat undo history as a tree
+;; FIXME:  keep the diff window
+(make-variable-buffer-local 'undo-tree-visualizer-diff)
 (use-package undo-tree
   :diminish
   :hook (after-init . global-undo-tree-mode)
@@ -292,14 +316,15 @@
               undo-tree-enable-undo-in-region nil
               undo-tree-auto-save-history nil
               undo-tree-history-directory-alist
-              `(("." . ,(locate-user-emacs-file "undo-tree-hist/"))))
-  :config
-  ;; FIXME:  keep the diff window
-  (make-variable-buffer-local 'undo-tree-visualizer-diff))
+              `(("." . ,(locate-user-emacs-file "undo-tree-hist/")))))
 
 ;; Goto last change
 (use-package goto-chg
   :bind ("C-," . goto-last-change))
+
+;; Preview when `goto-line`
+(use-package goto-line-preview
+  :bind ([remap goto-line] . goto-line-preview))
 
 ;; Handling capitalized subwords in a nomenclature
 (use-package subword
@@ -313,40 +338,35 @@
   :ensure nil
   :diminish hs-minor-mode
   :bind (:map hs-minor-mode-map
-              ("C-`" . hs-toggle-hiding)))
+         ("C-`" . hs-toggle-hiding)))
 
 ;; Flexible text folding
 (use-package origami
+  :pretty-hydra
+  ((:title (pretty-hydra-title "Origami" 'octicon "fold")
+    :color blue :quit-key "q")
+   ("Node"
+    ((":" origami-recursively-toggle-node "toggle recursively")
+     ("a" origami-toggle-all-nodes "toggle all")
+     ("t" origami-toggle-node "toggle current")
+     ("o" origami-show-only-node "only show current"))
+    "Actions"
+    (("u" origami-undo "undo")
+     ("d" origami-redo "redo")
+     ("r" origami-reset "reset"))))
+  :bind (:map origami-mode-map
+         ("C-`" . origami-hydra/body))
   :hook (prog-mode . origami-mode)
   :init (setq origami-show-fold-header t)
-  :bind (:map origami-mode-map
-              ("C-`" . hydra-origami/body))
   :config
   (face-spec-reset-face 'origami-fold-header-face)
 
+  ;; Support LSP
   (when centaur-lsp
-    ;; Support LSP
     (use-package lsp-origami
       :hook (origami-mode . (lambda ()
                               (if (bound-and-true-p lsp-mode)
-                                  (lsp-origami-mode))))))
-
-  (defhydra hydra-origami (:color blue :hint none)
-    "
-^Node^                     ^Other^
-^^─────────────────────────^^────────────
-_:_: toggle recursively    _u_: undo
-_a_: toggle all            _r_: redo
-_t_: toggle current        _R_: reset
-_o_: only show current
-"
-    (":" origami-recursively-toggle-node)
-    ("a" origami-toggle-all-nodes)
-    ("t" origami-toggle-node)
-    ("o" origami-show-only-node)
-    ("u" origami-undo)
-    ("r" origami-redo)
-    ("R" origami-reset)))
+                                  (lsp-origami-mode)))))))
 
 ;; Open files as another user
 (unless sys/win32p

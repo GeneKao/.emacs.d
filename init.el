@@ -1,11 +1,28 @@
-;;; init.el --- Centaur Emacs configurations.	-*- lexical-binding: t no-byte-compile: t; -*-
+;;; init.el --- A Fancy and Fast Emacs Configuration.	-*- lexical-binding: t no-byte-compile: t; -*-
 
 ;; Copyright (C) 2006-2019 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 5.4.0
+;; Version: 5.6.0
 ;; Keywords: .emacs.d centaur
+
+;;
+;;                          `..`
+;;                        ````+ `.`
+;;                    /o:``   :+ ``
+;;                .+//dho......y/..`
+;;                `sdddddhysso+h` ``
+;;                  /ddd+`..` +. .`
+;;                 -hos+    `.:```
+;;               `./dddyo+//osso/:`
+;;             `/o++dddddddddddddod-
+;;            `// -y+:sdddddsddsy.dy
+;;                /o   `..```h+`y+/h+`
+;;                .s       `++``o:  ``
+;;                        `:- `:-
+;;
+;;   CENTAUR EMACS - Enjoy Programming & Writing
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -27,8 +44,9 @@
 
 ;;; Commentary:
 ;;
-;; Centaur Emacs configurations.
+;; Centaur Emacs - A Fancy and Fast Emacs Configuration.
 ;;
+
 
 ;;; Code:
 
@@ -36,32 +54,42 @@
   (error "This requires Emacs 25.1 and above!"))
 
 ;; Speed up startup
+(defvar centuar-gc-cons-threshold (if (display-graphic-p) 8000000 800000)
+  "The default value to use for `gc-cons-threshold'. If you experience freezing,
+decrease this. If you experience stuttering, increase this.")
+
+(defvar centaur-gc-cons-upper-limit (if (display-graphic-p) 400000000 100000000)
+  "The temporary value for `gc-cons-threshold' to defer it.")
+
+(defvar centaur-gc-timer (run-with-idle-timer 10 t #'garbage-collect)
+  "Run garbarge collection when idle 10s.")
+
 (defvar default-file-name-handler-alist file-name-handler-alist)
+
 (setq file-name-handler-alist nil)
-(setq gc-cons-threshold 40000000)
+(setq gc-cons-threshold centaur-gc-cons-upper-limit)
 (add-hook 'emacs-startup-hook
           (lambda ()
             "Restore defalut values after startup."
             (setq file-name-handler-alist default-file-name-handler-alist)
-            (setq gc-cons-threshold 800000)
+            (setq gc-cons-threshold centuar-gc-cons-threshold)
 
             ;; GC automatically while unfocusing the frame
             ;; `focus-out-hook' is obsolete since 27.1
             (if (boundp 'after-focus-change-function)
                 (add-function :after after-focus-change-function
-                              (lambda ()
-                                (unless (frame-focus-state)
-                                  (garbage-collect))))
+                  (lambda ()
+                    (unless (frame-focus-state)
+                      (garbage-collect))))
               (add-hook 'focus-out-hook 'garbage-collect))
 
             ;; Avoid GCs while using `ivy'/`counsel'/`swiper' and `helm', etc.
             ;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
             (defun my-minibuffer-setup-hook ()
-              (setq gc-cons-threshold 40000000))
+              (setq gc-cons-threshold centaur-gc-cons-upper-limit))
 
             (defun my-minibuffer-exit-hook ()
-              (garbage-collect)
-              (setq gc-cons-threshold 800000))
+              (setq gc-cons-threshold centuar-gc-cons-threshold))
 
             (add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
             (add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)))
@@ -99,8 +127,9 @@
 (require 'init-package)
 
 ;; Preferences
-(require 'init-basic)
+(require 'init-base)
 (require 'init-funcs)
+(require 'init-hydra)
 
 (require 'init-ui)
 (require 'init-edit)
@@ -134,14 +163,16 @@
 (require 'init-projectile)
 (require 'init-lsp)
 
-(require 'init-emacs-lisp)
+(require 'init-prog)
+(require 'init-elisp)
 (require 'init-c)
 (require 'init-go)
+(require 'init-rust)
 (require 'init-python)
 (require 'init-ruby)
+(require 'init-dart)
 (require 'init-elixir)
 (require 'init-web)
-(require 'init-prog)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; init.el ends here
