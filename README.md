@@ -28,7 +28,7 @@ latest stable release - currently **26.2**.
   - Python/Ruby/Perl/PHP/Shell/Powershell/Bat
   - Javascript/Typescript/JSON/YAML
   - HTML/CSS/XML
-  - Golang/Swift/Rust/Dart/Elirix
+  - Golang/Swift/Rust/Dart/Elixir
   - ...
 - Auto completion.
 - Fly syntax check.
@@ -161,6 +161,15 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
     `all-the-icons` only support GUI. If you don't like color icons,
     `(setq all-the-icons-color-icons nil)` to disable. Please refer to
     [all-the-icons.el](https://github.com/domtronn/all-the-icons.el) for details.
+
+1. The packages cannot be installed, what should I do?
+
+   Generally it's due to connection issue. Please refer to
+   [#98](https://github.com/seagle0128/.emacs.d/issues/98).
+   - `M-x package-refresh-contents` and try again.
+   - `(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")`.
+   - Use other mirror of elpa.
+   - Change another network to retry.
 
 1. How to search Chinese via pinyin?
 

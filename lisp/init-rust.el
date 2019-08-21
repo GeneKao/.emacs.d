@@ -1,4 +1,4 @@
-;;; early-init.el --- Early initialization. -*- lexical-binding: t -*-
+;; init-rust.el --- Initialize Rust configurations.	-*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Vincent Zhang
 
@@ -25,25 +25,26 @@
 
 ;;; Commentary:
 ;;
-;; Emacs HEAD (27+) introduces early-init.el, which is run before init.el,
-;; before package and UI initialization happens.
+;; Rust configurations.
 ;;
 
 ;;; Code:
 
-;; Defer garbage collection further back in the startup process
-(setq gc-cons-threshold (if (display-graphic-p) 400000000 100000000))
+;; Rust
+(use-package rust-mode
+  :init (setq rust-format-on-save t)
+  :config
+  (use-package cargo
+    :diminish cargo-minor-mode
+    :hook (rust-mode . cargo-minor-mode)
+    :config
+    ;; To render buttons correctly, keep it at the last
+    (setq compilation-filter-hook
+          (append compilation-filter-hook '(cargo-process--add-errno-buttons)))))
 
-;; Package initialize occurs automatically, before `user-init-file' is
-;; loaded, but after `early-init-file'. We handle package
-;; initialization, so we must prevent Emacs from doing it early!
-(setq package-enable-at-startup nil)
+(use-package rust-playground)
 
-;; Faster to disable these here (before they've been initialized)
-(unless (and (display-graphic-p) (eq system-type 'darwin))
-  (push '(menu-bar-lines . 0) default-frame-alist))
-(push '(tool-bar-lines . 0) default-frame-alist)
-(push '(vertical-scroll-bars) default-frame-alist)
+(provide 'init-rust)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; early-init.el ends here
+;;; init-rust.el ends here

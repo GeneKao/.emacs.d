@@ -72,15 +72,20 @@
   (when emacs/>=26p
     (use-package company-box
       :diminish
-      :functions (my-company-box--make-line my-company-box-icons--elisp)
+      :functions (my-company-box--make-line
+                  my-company-box-icons--elisp)
+      :commands (company-box--get-color
+                 company-box--resolve-colors
+                 company-box--add-icon
+                 company-box--apply-color
+                 company-box--make-line
+                 company-box-icons--elisp)
       :hook (company-mode . company-box-mode)
+      :init (setq company-box-backends-colors nil
+                  company-box-show-single-candidate t
+                  company-box-max-candidates 50
+                  company-box-doc-delay 0.5)
       :config
-      (setq company-box-backends-colors nil
-            company-box-show-single-candidate t
-            company-box-max-candidates 50
-            company-box-doc-delay 0.5
-            company-box-icons-alist 'company-box-icons-all-the-icons)
-
       ;; Support `company-common'
       (defun my-company-box--make-line (candidate)
         (-let* (((candidate annotation len-c len-a backend) candidate)
@@ -120,17 +125,19 @@
                   (t . nil)))))
       (advice-add #'company-box-icons--elisp :override #'my-company-box-icons--elisp)
 
-      (with-eval-after-load 'all-the-icons
+      (when (and (display-graphic-p)
+                 (require 'all-the-icons nil t))
         (declare-function all-the-icons-faicon 'all-the-icons)
         (declare-function all-the-icons-material 'all-the-icons)
+        (declare-function all-the-icons-octicon 'all-the-icons)
         (setq company-box-icons-all-the-icons
               `((Unknown . ,(all-the-icons-material "find_in_page" :height 0.9 :v-adjust -0.2))
                 (Text . ,(all-the-icons-faicon "text-width" :height 0.85 :v-adjust -0.05))
                 (Method . ,(all-the-icons-faicon "cube" :height 0.85 :v-adjust -0.05 :face 'all-the-icons-purple))
                 (Function . ,(all-the-icons-faicon "cube" :height 0.85 :v-adjust -0.05 :face 'all-the-icons-purple))
                 (Constructor . ,(all-the-icons-faicon "cube" :height 0.85 :v-adjust -0.05 :face 'all-the-icons-purple))
-                (Field . ,(all-the-icons-faicon "tag" :height 0.85 :v-adjust -0.05 :face 'all-the-icons-lblue))
-                (Variable . ,(all-the-icons-faicon "tag" :height 0.85 :v-adjust -0.05 :face 'all-the-icons-lblue))
+                (Field . ,(all-the-icons-octicon "tag" :height 0.85 :v-adjust 0 :face 'all-the-icons-lblue))
+                (Variable . ,(all-the-icons-octicon "tag" :height 0.85 :v-adjust 0 :face 'all-the-icons-lblue))
                 (Class . ,(all-the-icons-material "settings_input_component" :height 0.9 :v-adjust -0.2 :face 'all-the-icons-orange))
                 (Interface . ,(all-the-icons-material "share" :height 0.9 :v-adjust -0.2 :face 'all-the-icons-lblue))
                 (Module . ,(all-the-icons-material "view_module" :height 0.9 :v-adjust -0.2 :face 'all-the-icons-lblue))
@@ -150,14 +157,15 @@
                 (Event . ,(all-the-icons-faicon "bolt" :height 0.85 :v-adjust -0.05 :face 'all-the-icons-orange))
                 (Operator . ,(all-the-icons-material "control_point" :height 0.9 :v-adjust -0.2))
                 (TypeParameter . ,(all-the-icons-faicon "arrows" :height 0.85 :v-adjust -0.05))
-                (Template . ,(all-the-icons-material "format_align_center" :height 0.9 :v-adjust -0.2)))))))
+                (Template . ,(all-the-icons-material "format_align_center" :height 0.9 :v-adjust -0.2)))
+              company-box-icons-alist 'company-box-icons-all-the-icons))))
 
   ;; Popup documentation for completion candidates
   (when (and (not emacs/>=26p) (display-graphic-p))
     (use-package company-quickhelp
       :defines company-quickhelp-delay
       :bind (:map company-active-map
-                  ([remap company-show-doc-buffer] . company-quickhelp-manual-begin))
+             ([remap company-show-doc-buffer] . company-quickhelp-manual-begin))
       :hook (global-company-mode . company-quickhelp-mode)
       :init (setq company-quickhelp-delay 0.5))))
 

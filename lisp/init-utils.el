@@ -42,7 +42,11 @@
 
 ;; Youdao Dictionary
 (use-package youdao-dictionary
-  :functions (posframe-show posframe-hide)
+  :functions (posframe-show
+              posframe-hide)
+  :commands (youdao-dictionary-mode
+             youdao-dictionary--region-or-word
+             youdao-dictionary--format-result)
   :bind (("C-c y" . my-youdao-search-at-point)
          ("C-c Y" . youdao-dictionary-search-at-point))
   :config
@@ -87,8 +91,8 @@
 ;; Writable `grep' buffer
 (use-package wgrep
   :init
-  (setq wgrep-auto-save-buffer t)
-  (setq wgrep-change-readonly-file t))
+  (setq wgrep-auto-save-buffer t
+        wgrep-change-readonly-file t))
 
 ;; `find-dired' alternative using `fd'
 (when (executable-find "fd")
@@ -100,8 +104,8 @@
     :defines projectile-command-map
     :hook (after-init . rg-enable-default-bindings)
     :config
-    (setq rg-group-result t)
-    (setq rg-show-columns t)
+    (setq rg-group-result t
+          rg-show-columns t)
 
     (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
 
@@ -110,18 +114,18 @@
       (bind-key "s R" #'rg-project projectile-command-map))
 
     (with-eval-after-load 'counsel
-      (bind-keys :map rg-global-map
-                 ("c r" . counsel-rg)
-                 ("c s" . counsel-ag)
-                 ("c p" . counsel-pt)
-                 ("c f" . counsel-fzf)))))
+      (bind-keys
+       :map rg-global-map
+       ("c r" . counsel-rg)
+       ("c s" . counsel-ag)
+       ("c p" . counsel-pt)
+       ("c f" . counsel-fzf)))))
 
 ;; Docker
 (use-package docker
   :bind ("C-c d" . docker)
-  :init
-  (setq docker-image-run-arguments '("-i" "-t" "--rm"))
-  (setq docker-container-shell-file-name "/bin/bash"))
+  :init (setq docker-image-run-arguments '("-i" "-t" "--rm")
+              docker-container-shell-file-name "/bin/bash"))
 
 ;; Tramp
 (use-package docker-tramp)
@@ -133,16 +137,24 @@
 
 ;; A Simmple and cool pomodoro timer
 (use-package pomidor
-  :bind ("<f12>" . pomidor)
-  :init (setq alert-default-style (if sys/macp 'osx-notifier 'libnotify))
-  :config
+  :bind ("s-<f12>" . pomidor)
+  :init
+  (setq alert-default-style 'mode-line)
   (when sys/macp
     (setq pomidor-play-sound-file
           (lambda (file)
-            (start-process "my-pomidor-play-sound"
+            (start-process "pomidor-play-sound"
                            nil
                            "afplay"
-                           file)))))
+                           file))))
+  :config
+  (setq alert-severity-colors
+        `((urgent   . ,(face-foreground 'error))
+          (high     . ,(face-foreground 'all-the-icons-orange))
+          (moderate . ,(face-foreground 'warning))
+          (normal   . ,(face-foreground 'success))
+          (low      . ,(face-foreground 'all-the-icons-blue))
+          (trivial  . ,(face-foreground 'all-the-icons-purple)))))
 
 ;; Persistent the scratch buffer
 (use-package persistent-scratch
@@ -159,20 +171,36 @@
         (save-buffer))))
   :hook (after-init . persistent-scratch-setup-default)
   :bind (:map lisp-interaction-mode-map
-              ("C-x C-s" . my-save-buffer)))
+         ("C-x C-s" . my-save-buffer)))
 
 ;; PDF reader
 (when (display-graphic-p)
-  (use-package pdf-tools
+  (use-package pdf-view
+    :ensure pdf-tools
     :diminish (pdf-view-midnight-minor-mode pdf-view-printer-minor-mode)
     :defines pdf-annot-activate-created-annotations
+    :functions my-pdf-view-set-midnight-colors
+    :commands pdf-view-midnight-minor-mode
     :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
     :magic ("%PDF" . pdf-view-mode)
+    :hook (after-load-theme . my-pdf-view-set-dark-theme)
     :bind (:map pdf-view-mode-map
-                ("C-s" . isearch-forward))
+           ("C-s" . isearch-forward))
     :init
-    (setq pdf-view-midnight-colors '("#ededed" . "#21242b")
-          pdf-annot-activate-created-annotations t)
+    (setq pdf-annot-activate-created-annotations t)
+
+    (defun my-pdf-view-set-midnight-colors ()
+      "Set pdf-view midnight colors."
+      (setq pdf-view-midnight-colors
+            `(,(face-foreground 'default) . ,(face-background 'default))))
+
+    (defun my-pdf-view-set-dark-theme ()
+      "Set pdf-view midnight theme as color theme."
+      (my-pdf-view-set-midnight-colors)
+      (dolist (buf (buffer-list))
+        (with-current-buffer buf
+          (when (eq major-mode 'pdf-view-mode)
+            (pdf-view-midnight-minor-mode (if pdf-view-midnight-minor-mode 1 -1))))))
     :config
     ;; WORKAROUND: Fix compilation errors on macOS.
     ;; @see https://github.com/politza/pdf-tools/issues/480
@@ -180,6 +208,36 @@
       (setenv "PKG_CONFIG_PATH"
               "/usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig"))
     (pdf-tools-install t nil t t)
+
+    (my-pdf-view-set-midnight-colors)
+
+    ;; FIXME: Support retina
+    ;; @see https://emacs-china.org/t/pdf-tools-mac-retina-display/10243/
+    ;; and https://github.com/politza/pdf-tools/pull/501/
+    (setq pdf-view-use-scaling t
+          pdf-view-use-imagemagick nil)
+    (with-no-warnings
+      (defun pdf-view-use-scaling-p ()
+        "Return t if scaling should be used."
+        (and (or (and (eq system-type 'darwin) (string-equal emacs-version "27.0.50"))
+                 (memq (pdf-view-image-type)
+                       '(imagemagick image-io)))
+             pdf-view-use-scaling))
+      (defun pdf-view-create-page (page &optional window)
+        "Create an image of PAGE for display on WINDOW."
+        (let* ((size (pdf-view-desired-image-size page window))
+               (width (if (not (pdf-view-use-scaling-p))
+                          (car size)
+                        (* 2 (car size))))
+               (data (pdf-cache-renderpage
+                      page width width))
+               (hotspots (pdf-view-apply-hotspot-functions
+                          window page size)))
+          (pdf-view-create-image data
+            :width width
+            :scale (if (pdf-view-use-scaling-p) 0.5 1)
+            :map hotspots
+            :pointer 'arrow))))
 
     ;; Recover last viewed position
     (when emacs/>=26p
@@ -204,6 +262,32 @@
   :bind ("<f7>" . olivetti-mode)
   :init (setq olivetti-body-width 0.618))
 
+;; Music player
+(use-package bongo
+  :functions (bongo-add-dired-files
+              dired-get-filename
+              dired-marker-regexp
+              dired-move-to-filename)
+  :commands (bongo-buffer
+             bongo-library-buffer-p
+             bongo-library-buffer)
+  :bind ("C-<f9>" . bongo)
+  :init
+  (with-eval-after-load 'dired
+    (defun bongo-add-dired-files ()
+      "Add marked files to Bongo library"
+      (interactive)
+      (bongo-buffer)
+      (let (file (files nil))
+        (dired-map-over-marks
+         (setq file (dired-get-filename)
+               files (append files (list file)))
+         nil t)
+        (with-bongo-library-buffer
+          (mapc 'bongo-insert-file files)))
+      (bongo-switch-buffers))
+    (bind-key "b" #'bongo-add-dired-files dired-mode-map)))
+
 ;; Misc
 (use-package copyit)                    ; copy path, url, etc.
 (use-package daemons)                   ; system services/daemons
@@ -214,7 +298,7 @@
 (use-package list-environment)
 (use-package memory-usage)
 (use-package tldr)
-(use-package ztree)                     ; text mode directory tree. Similar with beyond compare
+(use-package ztree)                     ; text mode directory tree
 
 (provide 'init-utils)
 

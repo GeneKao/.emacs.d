@@ -53,11 +53,6 @@
 
 ;; Quickly switch windows
 (use-package ace-window
-  :functions (hydra-frame-window/body my-aw-window<)
-  :bind ([remap other-window] . ace-window)
-  :custom-face
-  (aw-leading-char-face ((t (:inherit font-lock-keyword-face :bold t :height 3.0))))
-  (aw-mode-line-face ((t (:inherit mode-line-emphasis :bold t))))
   :preface
   (defun toggle-window-split ()
     (interactive)
@@ -83,41 +78,43 @@
             (set-window-buffer (next-window) next-win-buffer)
             (select-window first-win)
             (if this-win-2nd (other-window 1))))))
+  :pretty-hydra
+  ((:title (pretty-hydra-title "Window Management" 'faicon "windows")
+    :foreign-keys warn :quit-key "q")
+   ("Actions"
+    (("TAB" other-window "switch")
+     ("x" ace-delete-window "delete")
+     ("m" ace-delete-other-windows "maximize")
+     ("s" ace-swap-window "swap")
+     ("a" ace-select-window "select")
+     ("f" toggle-frame-fullscreen "fullscreen"))
+    "Resize"
+    (("h" shrink-window-horizontally "←")
+     ("j" enlarge-window "↓")
+     ("k" shrink-window "↑")
+     ("l" enlarge-window-horizontally "→")
+     ("n" balance-windows "balance"))
+    "Split"
+    (("b" split-window-right "horizontally")
+     ("B" split-window-horizontally-instead "horizontally instead")
+     ("v" split-window-below "vertically")
+     ("V" split-window-vertically-instead "vertically instead")
+     ("t" toggle-window-split "toggle"))
+    "Zoom"
+    (("+" text-scale-increase "in")
+     ("=" text-scale-increase "in")
+     ("-" text-scale-decrease "out")
+     ("0" (text-scale-increase 0) "reset"))
+    "Appearance"
+    (("F" set-frame-font "font")
+     ("T" centaur-load-theme "theme"))))
+  :custom-face
+  (aw-leading-char-face ((t (:inherit font-lock-keyword-face :bold t :height 3.0))))
+  (aw-mode-line-face ((t (:inherit mode-line-emphasis :bold t))))
+  :bind (([remap other-window] . ace-window)
+         ("C-c w" . ace-window-hydra/body))
   :hook (emacs-startup . ace-window-display-mode)
-  :config
-  ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-
-  ;; https://github.com/abo-abo/ace-window/wiki/Hydra
-  ;; `hydra-frame-window' is designed from `ace-window' and
-  ;; matches `aw-dispatch-alist' with a few extra
-  (defhydra hydra-frame-window (:color red :hint none)
-    "
-^Frame^                 ^Window^      ^Window Size^^^^     ^Text Zoom^
-^^──────────────────────^^────────────^^──────────^^^^─────^^───────────────         (__)
-_0_: delete             _t_oggle        ^ ^ _k_ ^ ^            _+_                   (oo)
-_1_: delete others      _s_wap          _h_ ^+^ _l_            _=_             /------\\/
-_2_: new                _d_elete        ^ ^ _j_ ^ ^            _-_            / |    ||
-_F_ullscreen            _o_ther         _b_alance^^^^          ^ ^         *  /\\-----/\\  ~~  C-c w/C-x o w
-"
-    ("0" delete-frame :exit t)
-    ("1" delete-other-frames :exit t)
-    ("2" make-frame  :exit t)
-    ("b" balance-windows)
-    ("s" ace-swap-window)
-    ("F" toggle-frame-fullscreen)
-    ("t" toggle-window-split)
-    ("d" ace-delete-window :exit t)
-    ("o" ace-window :exit t)
-    ("-" text-scale-decrease)
-    ("=" (text-scale-increase 0))
-    ("+" text-scale-increase)
-    ("h" shrink-window-horizontally)
-    ("k" shrink-window)
-    ("j" enlarge-window)
-    ("l" enlarge-window-horizontally)
-    ("q" nil "quit"))
-  (add-to-list 'aw-dispatch-alist '(?w hydra-frame-window/body) t)
-  (bind-key "C-c w" #'hydra-frame-window/body))
+  :config (add-to-list 'aw-dispatch-alist '(?w ace-window-hydra/body) t))
 
 ;; Enforce rules for popups
 (defvar shackle--popup-window-list nil) ; all popup windows
@@ -184,7 +181,8 @@ _F_ullscreen            _o_ther         _b_alance^^^^          ^ ^         *  /\
         shackle-default-rule nil
         shackle-rules
         '(("*Help*" :select t :size 0.3 :align 'below :autoclose t)
-          ("*compilation*" :size 0.3 :align 'below :autoclose t)
+          ("*Apropos*" :select t :size 0.3 :align 'below :autoclose t)
+          ("*compilation*" :select t :size 0.3 :align 'below :autoclose t)
           ("*Completions*" :size 0.3 :align 'below :autoclose t)
           ("*Pp Eval Output*" :size 15 :align 'below :autoclose t)
           ("*ert*" :align 'below :autoclose t)
@@ -206,6 +204,8 @@ _F_ullscreen            _o_ther         _b_alance^^^^          ^ ^         *  /\
           ("*lsp session*" :size 0.4 :align 'below :autoclose t)
           (" *Org todo*" :select t :size 4 :align 'below :autoclose t)
           ("*Org Dashboard*" :select t :size 0.4 :align 'below :autoclose t)
+          ("^\\*macro expansion\\**" :regexp t :size 0.4 :align 'below)
+          (" *Install vterm" :size 0.3 :align 'below)
 
           (ag-mode :select t :align 'below)
           (grep-mode :select t :align 'below)
@@ -217,8 +217,9 @@ _F_ullscreen            _o_ther         _b_alance^^^^          ^ ^         *  /\
 
           (Buffer-menu-mode :select t :size 20 :align 'below :autoclose t)
           (comint-mode :align 'below)
-          (helpful-mode :select t :size 0.4 :align 'below :autoclose t)
+          (helpful-mode :select t :size 0.3 :align 'below :autoclose t)
           (process-menu-mode :select t :size 0.3 :align 'below :autoclose t)
+          (cargo-process-mode :select t :size 0.3 :align 'below :autoclose t)
           (list-environment-mode :select t :size 0.3 :align 'below :autoclose t)
           (profiler-report-mode :select t :size 0.5 :align 'below)
           (tabulated-list-mode :align 'below))))

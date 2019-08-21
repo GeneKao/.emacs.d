@@ -43,78 +43,97 @@
    ;; https://github.com/emacs-lsp/lsp-mode#supported-languages
    (use-package lsp-mode
      :diminish lsp-mode
-     :hook (prog-mode . lsp)
+     :hook (prog-mode . lsp-deferred)
      :bind (:map lsp-mode-map
-                 ("C-c C-d" . lsp-describe-thing-at-point))
-     :init
-     (setq lsp-auto-guess-root t)       ; Detect project root
-     (setq lsp-prefer-flymake nil)      ; Use lsp-ui and flycheck
-     (setq flymake-fringe-indicator-position 'right-fringe)
+            ("C-c C-d" . lsp-describe-thing-at-point))
+     :init (setq lsp-auto-guess-root t       ; Detect project root
+                 lsp-prefer-flymake nil      ; Use lsp-ui and flycheck
+                 flymake-fringe-indicator-position 'right-fringe)
      :config
      ;; Configure LSP clients
      (use-package lsp-clients
        :ensure nil
-       :init
-       (setq lsp-clients-python-library-directories '("/usr/local/" "/usr/"))))
+       :init (setq lsp-clients-python-library-directories '("/usr/local/" "/usr/"))))
 
    (use-package lsp-ui
-     :custom-face
-     (lsp-ui-doc-background ((t (:background nil))))
+     :functions my-lsp-ui-imenu-hide-mode-line
+     :commands lsp-ui-doc-hide
+     :custom-face (lsp-ui-doc-background ((t (:background ,(face-background 'tooltip)))))
      :bind (:map lsp-ui-mode-map
-                 ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-                 ([remap xref-find-references] . lsp-ui-peek-find-references)
-                 ("C-c u" . lsp-ui-imenu))
+            ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+            ([remap xref-find-references] . lsp-ui-peek-find-references)
+            ("C-c u" . lsp-ui-imenu))
      :init (setq lsp-ui-doc-enable t
                  lsp-ui-doc-use-webkit nil
+                 lsp-ui-doc-delay 1.0
                  lsp-ui-doc-include-signature t
-                 lsp-ui-doc-position 'top
+                 lsp-ui-doc-position 'at-point
                  lsp-ui-doc-border (face-foreground 'default)
 
                  lsp-ui-sideline-enable nil
                  lsp-ui-sideline-ignore-duplicate t)
      :config
+     (add-to-list 'lsp-ui-doc-frame-parameters '(right-fringe . 8))
+
+     ;; `C-g'to close doc
+     (advice-add #'keyboard-quit :before #'lsp-ui-doc-hide)
+
+     ;; Reset `lsp-ui-doc-background' after loading theme
+     (add-hook 'after-load-theme-hook
+               (lambda ()
+                 (setq lsp-ui-doc-border (face-foreground 'default))
+                 (set-face-background 'lsp-ui-doc-background
+                                      (face-background 'tooltip))))
+
      ;; WORKAROUND Hide mode-line of the lsp-ui-imenu buffer
-     ;; https://github.com/emacs-lsp/lsp-ui/issues/243
-     (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
-       (setq mode-line-format nil)))
+     ;; @see https://github.com/emacs-lsp/lsp-ui/issues/243
+     (defun my-lsp-ui-imenu-hide-mode-line ()
+       "Hide the mode-line in lsp-ui-imenu."
+       (setq mode-line-format nil))
+     (advice-add #'lsp-ui-imenu :after #'my-lsp-ui-imenu-hide-mode-line))
 
    (use-package company-lsp
      :init (setq company-lsp-cache-candidates 'auto))
 
    ;; Debug
    (use-package dap-mode
-     :after lsp-mode
      :diminish
+     :functions dap-hydra/nil
+     :bind (:map lsp-mode-map
+            ("<f5>" . dap-debug)
+            ("M-<f5>" . dap-hydra))
      :hook ((after-init . dap-mode)
             (dap-mode . dap-ui-mode)
+            (dap-session-created . (lambda (&_rest) (dap-hydra)))
+            (dap-terminated . (lambda (&_rest) (dap-hydra/nil)))
 
             (python-mode . (lambda () (require 'dap-python)))
+            (ruby-mode . (lambda () (require 'dap-ruby)))
             (go-mode . (lambda () (require 'dap-go)))
             (java-mode . (lambda () (require 'dap-java)))
             ((c-mode c++-mode objc-mode swift) . (lambda () (require 'dap-lldb)))
-            (php-mode . (lambda () (require 'dap-php)))))
+            (php-mode . (lambda () (require 'dap-php)))
+            (elixir-mode . (lambda () (require 'dap-elixir)))
+            ((js-mode js2-mode) . (lambda () (require 'dap-chrome)))))
 
    ;; `lsp-mode' and `treemacs' integration.
    (when emacs/>=25.2p
      (use-package lsp-treemacs
        :bind (:map lsp-mode-map
-                   ("M-9" . lsp-treemacs-errors-list))))
+              ("M-9" . lsp-treemacs-errors-list))))
 
    ;; Microsoft python-language-server support
    (use-package lsp-python-ms
      :hook (python-mode . (lambda ()
-                            (when (or (executable-find "Microsoft.Python.LanguageServer")
-                                      (executable-find "Microsoft.Python.LanguageServer.LanguageServer")
-                                      (executable-find "Microsoft.Python.LanguageServer.exe"))
-                              (require 'lsp-python-ms)
-                              (lsp)))))
+                            (require 'lsp-python-ms)
+                            (lsp-deferred))))
 
    ;; C/C++/Objective-C support
    (use-package ccls
      :defines projectile-project-root-files-top-down-recurring
      :hook ((c-mode c++-mode objc-mode cuda-mode) . (lambda ()
                                                       (require 'ccls)
-                                                      (lsp)))
+                                                      (lsp-deferred)))
      :config
      (with-eval-after-load 'projectile
        (setq projectile-project-root-files-top-down-recurring
@@ -126,7 +145,7 @@
    (use-package lsp-java
      :hook (java-mode . (lambda ()
                           (require 'lsp-java)
-                          (lsp))))))
+                          (lsp-deferred))))))
 
 (when centaur-lsp
   ;; Enable LSP in org babel
@@ -148,7 +167,7 @@
                 (and (fboundp 'lsp)
                      ;; `lsp-auto-guess-root' MUST be non-nil.
                      (setq lsp-buffer-uri (lsp--path-to-uri filename))
-                     (lsp))))))
+                     (lsp-deferred))))))
          (put ',intern-pre 'function-documentation
               (format "Enable `%s' in the buffer of org source block (%s)."
                       centaur-lsp (upcase ,lang)))

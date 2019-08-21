@@ -36,36 +36,8 @@
 (use-package markdown-mode
   :defines flycheck-markdown-markdownlint-cli-config
   :preface
-  ;; Install: pip install grip
-  (defun markdown-preview-grip ()
-    "Render and preview with `grip'."
-    (interactive)
-    (let ((program "grip")
-          (port "6419")
-          (buffer "*gfm-to-html*"))
-
-      ;; If process exists, kill it.
-      (markdown-preview-kill-grip buffer)
-
-      ;; Start a new `grip' process.
-      (start-process program buffer program (buffer-file-name) port)
-      (sleep-for 1) ; wait for process start
-      (browse-url (format "http://localhost:%s/%s.%s"
-                          port
-                          (file-name-base)
-                          (file-name-extension
-                           (buffer-file-name))))))
-
-  (defun markdown-preview-kill-grip (&optional buffer)
-    "Kill `grip' process."
-    (interactive)
-    (let ((process (get-buffer-process (or buffer "*gfm-to-html*"))))
-      (when process
-        (kill-process process)
-        (message "Process %s killed" process))))
-
-  ;; Install: npm i -g markdownlint-cli
-  (defun set-flycheck-markdownlint ()
+  ;; Lint: npm i -g markdownlint-cli
+  (defun flycheck-enable-markdownlint ()
     "Set the `mardkownlint' config file for the current buffer."
     (let* ((md-lint ".markdownlint.json")
            (md-file buffer-file-name)
@@ -73,23 +45,23 @@
                              (locate-dominating-file md-file md-lint))))
       (setq-local flycheck-markdown-markdownlint-cli-config
                   (concat md-lint-dir md-lint))))
-  :bind (:map markdown-mode-command-map
-              ("g" .  markdown-preview-grip)
-              ("k" .  markdown-preview-kill-grip))
   :hook ((markdown-mode . flyspell-mode)
          (markdown-mode . auto-fill-mode)
-         (markdown-mode . set-flycheck-markdownlint))
+         (markdown-mode . flycheck-enable-markdownlint))
   :mode (("README\\.md\\'" . gfm-mode))
-  :config
-  (when sys/macp
-    (let ((typora "/Applications/Typora.app/Contents/MacOS/Typora"))
-      (if (file-exists-p typora)
-          (setq markdown-open-command typora))))
+  :init
+  (setq markdown-enable-wiki-links t
+        markdown-italic-underscore t
+        markdown-asymmetric-header t
+        markdown-make-gfm-checkboxes-buttons t
+        markdown-gfm-uppercase-checkbox t
+        markdown-fontify-code-blocks-natively t
+        markdown-enable-math t
 
-  (setq markdown-content-type "application/xhtml+xml")
-  (setq markdown-css-paths '("https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css"
-                             "http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css"))
-  (setq markdown-xhtml-header-content "
+        markdown-content-type "application/xhtml+xml"
+        markdown-css-paths '("https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css"
+                             "http://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css")
+        markdown-xhtml-header-content "
 <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
 <style>
 body {
@@ -111,6 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 ")
+  :config
+  ;; Preview via `grip'
+  ;; Install: pip install grip
+  (use-package grip-mode
+    :bind (:map markdown-mode-command-map
+           ("g" . grip-mode)))
 
   ;; Table of contents
   (use-package markdown-toc))

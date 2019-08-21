@@ -35,8 +35,15 @@
 
 (use-package counsel
   :diminish ivy-mode counsel-mode
-  :defines (projectile-completion-system magit-completing-read-function recentf-list)
+  :defines (projectile-completion-system
+            magit-completing-read-function)
+  :functions (my-ivy-fly-time-travel
+              my-swiper-toggle-counsel-rg
+              my-swiper-toggle-rg-dwim)
+  :commands (ivy--format-function-generic
+             ivy--add-face)
   :bind (("C-s" . swiper-isearch)
+         ("C-r" . swiper-isearch-backward)
          ("s-f" . swiper)
          ("C-S-s" . swiper-all)
 
@@ -84,11 +91,6 @@
          ("C-c c w" . counsel-colors-web)
          ("C-c c z" . counsel-fzf)
 
-         ;; Find counsel commands quickly
-         ("<f6>" . (lambda ()
-                     (interactive)
-                     (counsel-M-x "^counsel-")))
-
          :map ivy-minibuffer-map
          ("C-w" . ivy-yank-word)
 
@@ -113,64 +115,64 @@
         ivy-on-del-error-function nil
         ivy-initial-inputs-alist nil)
 
+  (defun my-ivy-format-function-arrow (cands)
+    "Transform CANDS into a string for minibuffer."
+    (ivy--format-function-generic
+     (lambda (str)
+       (concat (if (display-graphic-p)
+                   (all-the-icons-octicon "chevron-right" :height 0.8 :v-adjust -0.05)
+                 ">")
+               (propertize " " 'display `(space :align-to 2))
+               (ivy--add-face str 'ivy-current-match)))
+     (lambda (str)
+       (concat (propertize " " 'display `(space :align-to 2)) str))
+     cands
+     "\n"))
+  (setq ivy-format-functions-alist '((t . my-ivy-format-function-arrow)))
+
   (setq swiper-action-recenter t)
 
   (setq counsel-find-file-at-point t
         counsel-yank-pop-separator "\n────────\n")
+
+  ;; Use faster search tool: ripgrep (rg)
+  (when (executable-find "rg")
+    (setq counsel-grep-base-command "rg -S --no-heading --line-number --color never '%s' %s"))
   :config
   (add-to-list 'ivy-format-functions-alist '(counsel-describe-face . counsel--faces-format-function))
 
-  ;; Use faster search tools: ripgrep or the silver search
-  (let ((cmd (cond ((executable-find "rg")
-                    "rg -S --no-heading --line-number --color never '%s' %s")
-                   ((executable-find "ag")
-                    "ag -S --noheading --nocolor --nofilename --numbers '%s' %s")
-                   (t counsel-grep-base-command))))
-    (setq counsel-grep-base-command cmd))
-
-  ;; Build abbreviated recent file list.
-  (defun my-counsel-recentf ()
-    "Find a file on `recentf-list'."
-    (interactive)
-    (require 'recentf)
-    (recentf-mode)
-    (ivy-read "Recentf: " (mapcar #'abbreviate-file-name recentf-list)
-              :action (lambda (f)
-                        (with-ivy-window
-                          (find-file f)))
-              :require-match t
-              :caller 'counsel-recentf))
-  (advice-add #'counsel-recentf :override #'my-counsel-recentf)
-
   ;; Pre-fill search keywords
   ;; @see https://www.reddit.com/r/emacs/comments/b7g1px/withemacs_execute_commands_like_marty_mcfly/
-  (defvar my-ivy-fly-commands
-    '(query-replace-regexp
-      flush-lines
-      keep-lines
-      ivy-read
-      swiper
-      swiper-all
-      swiper-isearch
-      counsel-grep-or-swiper
-      counsel-grep
-      counsel-ack
-      counsel-ag
-      counsel-rg
-      counsel-pt))
+  (defvar my-ivy-fly-commands '(query-replace-regexp
+                                flush-lines
+                                keep-lines
+                                ivy-read
+                                swiper
+                                swiper-backward
+                                swiper-all
+                                swiper-isearch
+                                swiper-isearch-backward
+                                counsel-grep-or-swiper
+                                counsel-grep-or-swiper-backward
+                                counsel-grep
+                                counsel-ack
+                                counsel-ag
+                                counsel-rg
+                                counsel-pt))
 
   (defun my-ivy-fly-back-to-present ()
-    (remove-hook 'pre-command-hook 'my-ivy-fly-back-to-present t)
+    ;; (remove-hook 'pre-command-hook 'my-ivy-fly-back-to-present t)
     (cond ((and (memq last-command my-ivy-fly-commands)
                 (equal (this-command-keys-vector) (kbd "M-p")))
            ;; repeat one time to get straight to the first history item
            (setq unread-command-events
                  (append unread-command-events
                          (listify-key-sequence (kbd "M-p")))))
-          ((memq this-command '(self-insert-command
-                                yank
-                                ivy-yank-word
-                                counsel-yank-pop))
+          ((or (memq this-command '(self-insert-command
+                                    yank
+                                    ivy-yank-word
+                                    counsel-yank-pop))
+               (equal (this-command-keys-vector) (kbd "M-n")))
            (delete-region (point)
                           (point-max)))))
 
@@ -185,7 +187,12 @@
                               (buffer-string))))))
         (when future
           (save-excursion
-            (insert (propertize future 'face 'shadow)))
+            (insert (propertize (replace-regexp-in-string
+                                 "\\\\_<" ""
+                                 (replace-regexp-in-string
+                                  "\\\\_>" ""
+                                  future))
+                                'face 'shadow)))
           (add-hook 'pre-command-hook 'my-ivy-fly-back-to-present nil t)))))
 
   (add-hook 'minibuffer-setup-hook #'my-ivy-fly-time-travel)
@@ -227,23 +234,36 @@
   (use-package amx
     :init (setq amx-history-length 20))
 
-  ;; Enhance fuzzy matching
-  (use-package flx
-    :config (setq ivy-re-builders-alist
-                  '((swiper . ivy--regex-plus)
-                    (swiper-all . ivy--regex-plus)
-                    (swiper-isearch . ivy--regex-plus)
-                    (counsel-ag . ivy--regex-plus)
-                    (counsel-rg . ivy--regex-plus)
-                    (counsel-pt . ivy--regex-plus)
-                    (counsel-ack . ivy--regex-plus)
-                    (counsel-grep . ivy--regex-plus)
-                    (t . ivy--regex-fuzzy))))
+  ;; Better sorting and filtering
+  (use-package prescient
+    :commands prescient-persist-mode
+    :init
+    (setq prescient-filter-method '(literal regexp initialism fuzzy))
+    (prescient-persist-mode 1))
+
+  (use-package ivy-prescient
+    :commands ivy-prescient-re-builder
+    :custom-face (ivy-minibuffer-match-face-1 ((t (:inherit font-lock-doc-face :foreground nil))))
+    :preface
+    (defun ivy-prescient-non-fuzzy (str)
+      (let ((prescient-filter-method '(literal regexp)))
+        (ivy-prescient-re-builder str)))
+    :init
+    (setq ivy-prescient-retain-classic-highlighting t
+          ivy-re-builders-alist '((counsel-ag . ivy-prescient-non-fuzzy)
+                                  (counsel-rg . ivy-prescient-non-fuzzy)
+                                  (counsel-pt . ivy-prescient-non-fuzzy)
+                                  (counsel-grep . ivy-prescient-non-fuzzy)
+                                  (swiper . ivy-prescient-non-fuzzy)
+                                  (swiper-isearch . ivy-prescient-non-fuzzy)
+                                  (swiper-all . ivy-prescient-non-fuzzy)
+                                  (t . ivy-prescient-re-builder)))
+    (ivy-prescient-mode 1))
 
   ;; Additional key bindings for Ivy
   (use-package ivy-hydra
     :bind (:map ivy-minibuffer-map
-                ("M-o" . ivy-dispatching-done-hydra)))
+           ("M-o" . ivy-dispatching-done-hydra)))
 
   ;; Ivy integration for Projectile
   (use-package counsel-projectile
@@ -268,69 +288,61 @@
   (use-package flyspell-correct-ivy
     :after flyspell
     :bind (:map flyspell-mode-map
-                ([remap flyspell-correct-word-before-point] . flyspell-correct-previous-word-generic)))
+           ([remap flyspell-correct-word-before-point] . flyspell-correct-previous-word-generic)))
 
   ;; Quick launch apps
   (cond
    (sys/linux-x-p
-    (bind-key "C-<f6>" #'counsel-linux-app counsel-mode-map))
+    (bind-key "s-<f6>" #'counsel-linux-app counsel-mode-map))
    (sys/macp
     (use-package counsel-osx-app
       :bind (:map counsel-mode-map
-                  ("C-<f6>" . counsel-osx-app)))))
+             ("s-<f6>" . counsel-osx-app)))))
 
   ;; Display world clock using Ivy
   (use-package counsel-world-clock
     :bind (:map counsel-mode-map
-                ("C-c c k" . counsel-world-clock)))
+           ("C-c c k" . counsel-world-clock)))
 
   ;; Tramp ivy interface
   (use-package counsel-tramp
     :bind (:map counsel-mode-map
-                ("C-c c v" . counsel-tramp)))
+           ("C-c c v" . counsel-tramp)))
 
   ;; Support pinyin in Ivy
   ;; Input prefix ':' to match pinyin
   ;; Refer to  https://github.com/abo-abo/swiper/issues/919 and
   ;; https://github.com/pengpengxp/swiper/wiki/ivy-support-chinese-pinyin
   (use-package pinyinlib
-    :functions ivy--regex-plus ivy--regex-ignore-order
+    :functions (ivy--regex-plus ivy-prescient-non-fuzzy)
     :commands pinyinlib-build-regexp-string
     :preface
     (defun ivy--regex-pinyin (str)
       "The regex builder wrapper to support pinyin."
       (or (pinyin-to-utf8 str)
-          (ivy--regex-plus str)
-          (ivy--regex-ignore-order str)))
+          (ivy-prescient-non-fuzzy str)
+          (ivy--regex-plus str)))
     (defun my-pinyinlib-build-regexp-string (str)
       "Build a pinyin regexp sequence from STR."
-      (cond ((equal str ".*")
-             ".*")
-            (t
-             (pinyinlib-build-regexp-string str t))))
+      (cond ((equal str ".*") ".*")
+            (t (pinyinlib-build-regexp-string str t))))
     (defun my-pinyin-regexp-helper (str)
       "Construct pinyin regexp for STR."
-      (cond ((equal str " ")
-             ".*")
-            ((equal str "")
-             nil)
-            (t
-             str)))
+      (cond ((equal str " ") ".*")
+            ((equal str "") nil)
+            (t str)))
     (defun pinyin-to-utf8 (str)
-      (cond ((equal 0 (length str))
-             nil)
+      (cond ((equal 0 (length str)) nil)
             ((equal (substring str 0 1) "!")
              (mapconcat 'my-pinyinlib-build-regexp-string
                         (remove nil (mapcar 'my-pinyin-regexp-helper
                                             (split-string
                                              (replace-regexp-in-string "!" "" str ) "")))
                         ""))
-            (t
-             nil)))
+            (t nil)))
     :init
-    (push '(swiper . ivy--regex-pinyin) ivy-re-builders-alist)
-    (push '(swiper-all . ivy--regex-pinyin) ivy-re-builders-alist)
-    (push '(swiper-isearch . ivy--regex-pinyin) ivy-re-builders-alist)))
+    (dolist (fn '(swiper swiper-isearch swiper-all counsel-ag counsel-rg counsel-pt counsel-grep))
+      (setf (alist-get fn ivy-re-builders-alist) #'ivy--regex-pinyin))))
 
 ;; More friendly display transformer for Ivy
 (use-package ivy-rich
@@ -340,10 +352,15 @@
   :functions (all-the-icons-icon-for-file
               all-the-icons-icon-for-mode
               all-the-icons-icon-family
-              all-the-icons-match-to-alist
               all-the-icons-faicon
               all-the-icons-octicon
-              all-the-icons-dir-is-submodule)
+              all-the-icons-material
+              all-the-icons-match-to-alist
+              all-the-icons-auto-mode-match?
+              all-the-icons-dir-is-submodule
+              my-ivy-rich-bookmark-type)
+  :commands (ivy-rich-bookmark-filename
+             ivy-rich-bookmark-type)
   :preface
   (defun ivy-rich-bookmark-name (candidate)
     (car (assoc candidate bookmark-alist)))
@@ -389,6 +406,11 @@
             (all-the-icons-faicon "file-o" :face 'all-the-icons-dsilver :height 0.8 :v-adjust 0.0)
           icon))))
 
+  (defun ivy-rich-dir-icon (_candidate)
+    "Display directory icons in `ivy-rich'."
+    (when (display-graphic-p)
+      (all-the-icons-octicon "file-directory" :height 1.0 :v-adjust 0.01)))
+
   (defun ivy-rich-function-icon (_candidate)
     "Display function icons in `ivy-rich'."
     (when (display-graphic-p)
@@ -397,7 +419,7 @@
   (defun ivy-rich-variable-icon (_candidate)
     "Display variable icons in `ivy-rich'."
     (when (display-graphic-p)
-      (all-the-icons-faicon "tag" :height 0.9 :v-adjust -0.05 :face 'all-the-icons-lblue)))
+      (all-the-icons-octicon "tag" :height 0.9 :v-adjust 0 :face 'all-the-icons-lblue)))
 
   (defun ivy-rich-symbol-icon (_candidate)
     "Display symbol icons in `ivy-rich'."
@@ -425,7 +447,7 @@
       (all-the-icons-faicon "archive" :height 0.9 :v-adjust 0.0 :face 'all-the-icons-silver)))
 
   (when (display-graphic-p)
-    (defun ivy-rich-bookmark-type-plus (candidate)
+    (defun my-ivy-rich-bookmark-type (candidate)
       (let ((filename (file-local-name (ivy-rich-bookmark-filename candidate))))
         (cond ((null filename)
                (all-the-icons-material "block" :v-adjust -0.2 :face 'warning))  ; fixed #38
@@ -436,7 +458,7 @@
               ((file-directory-p filename)
                (all-the-icons-octicon "file-directory" :height 0.9 :v-adjust -0.05))
               (t (all-the-icons-icon-for-file (file-name-nondirectory filename) :height 0.9 :v-adjust -0.05)))))
-    (advice-add #'ivy-rich-bookmark-type :override #'ivy-rich-bookmark-type-plus))
+    (advice-add #'ivy-rich-bookmark-type :override #'my-ivy-rich-bookmark-type))
   :hook ((ivy-mode . ivy-rich-mode)
          (ivy-rich-mode . (lambda ()
                             (setq ivy-virtual-abbreviate
@@ -520,14 +542,12 @@
           (:columns
            ((ivy-rich-function-icon)
             (counsel-describe-function-transformer (:width 50))
-            (ivy-rich-counsel-function-docstring (:face font-lock-doc-face)))
-           :delimiter "\t")
+            (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
           counsel-describe-variable
           (:columns
            ((ivy-rich-variable-icon)
             (counsel-describe-variable-transformer (:width 50))
-            (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face)))
-           :delimiter "\t")
+            (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
           counsel-apropos
           (:columns
            ((ivy-rich-symbol-icon)
@@ -617,7 +637,7 @@
            :delimiter "\t")
           counsel-projectile-find-dir
           (:columns
-           ((ivy-rich-file-icon)
+           ((ivy-rich-dir-icon)
             (counsel-projectile-find-dir-transformer))
            :delimiter "\t")
           treemacs-projectile
