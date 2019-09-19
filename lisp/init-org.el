@@ -105,7 +105,7 @@
                               ;; @see https://github.com/seagle0128/.emacs.d/issues/88
                               (make-variable-buffer-local 'show-paren-mode)
                               (setq show-paren-mode nil))))
-  :init (setq org-agenda-files '("~/org")
+  :init (setq org-agenda-files '("~/Documents/phd-orgmode/")
               org-todo-keywords '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")
                                   (sequence "⚑(T)" "🏴(I)" "❓(H)" "|" "✔(D)" "✘(C)"))
               org-todo-keyword-faces '(("HANGUP" . warning)
@@ -166,6 +166,9 @@
 
   ;; (org-babel-do-load-languages 'org-babel-load-languages
   ;;                              load-language-list)
+  '(org-babel-load-languages
+    (quote
+     ((emacs-lisp . t))))
 
   ;; Rich text clipboard
   (use-package org-rich-yank
