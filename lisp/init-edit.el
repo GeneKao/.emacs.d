@@ -33,10 +33,6 @@
 (eval-when-compile
   (require 'init-custom))
 
-;; Explicitly set the prefered coding systems to avoid annoying prompt
-;; from emacs (especially on Microsoft Windows)
-(prefer-coding-system 'utf-8)
-
 ;; Miscs
 ;; (setq initial-scratch-message nil)
 (setq uniquify-buffer-name-style 'post-forward-angle-brackets) ; Show path if names are same
@@ -169,7 +165,7 @@
                             (aggressive-indent-mode -1)))))
   :config
   ;; Disable in some modes
-  (dolist (mode '(asm-mode web-mode html-mode css-mode robot-mode go-mode))
+  (dolist (mode '(asm-mode web-mode html-mode css-mode go-mode prolog-inferior-mode))
     (push mode aggressive-indent-excluded-modes))
 
   ;; Disable in some commands
@@ -310,13 +306,16 @@
 (make-variable-buffer-local 'undo-tree-visualizer-diff)
 (use-package undo-tree
   :diminish
+  :defines recentf-exclude
   :hook (after-init . global-undo-tree-mode)
   :init (setq undo-tree-visualizer-timestamps t
               undo-tree-visualizer-diff t
               undo-tree-enable-undo-in-region nil
               undo-tree-auto-save-history nil
               undo-tree-history-directory-alist
-              `(("." . ,(locate-user-emacs-file "undo-tree-hist/")))))
+              `(("." . ,(locate-user-emacs-file "undo-tree-hist/"))))
+  :config (dolist (dir undo-tree-history-directory-alist)
+            (push (expand-file-name (cdr dir)) recentf-exclude)))
 
 ;; Goto last change
 (use-package goto-chg

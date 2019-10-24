@@ -33,40 +33,77 @@
 (eval-when-compile
   (require 'init-const))
 
-;; Visualize TAB, (HARD) SPACE, NEWLINE
-(setq-default show-trailing-whitespace nil)
-(dolist (hook '(prog-mode-hook outline-mode-hook conf-mode-hook))
-  (add-hook hook (lambda ()
-                   (setq show-trailing-whitespace t)
-                   (add-hook 'before-save-hook #'delete-trailing-whitespace nil t))))
-
 ;; Highlight the current line
 (use-package hl-line
   :ensure nil
+  :custom-face (hl-line ((t (:extend t)))) ; FIXME: compatible with 27
   :hook (after-init . global-hl-line-mode))
 
 ;; Highlight matching parens
 (use-package paren
   :ensure nil
   :hook (after-init . show-paren-mode)
-  :config (setq show-paren-when-point-inside-paren t
-                show-paren-when-point-in-periphery t))
+  :init (setq show-paren-when-point-inside-paren t
+              show-paren-when-point-in-periphery t)
+  :config
+  (with-no-warnings
+    (defun display-line-overlay (pos str &optional face)
+      "Display line at POS as STR with FACE.
+
+FACE defaults to inheriting from default and highlight."
+      (let ((ol (save-excursion
+                  (goto-char pos)
+                  (make-overlay (line-beginning-position)
+                                (line-end-position)))))
+        (overlay-put ol 'display str)
+        (overlay-put ol 'face
+                     (or face '(:inherit highlight)))
+        ol))
+
+    (defvar-local show-paren--off-screen-overlay nil)
+    (defun show-paren-off-screen (&rest _args)
+      "Display matching line for off-screen paren."
+      (when (overlayp show-paren--off-screen-overlay)
+        (delete-overlay show-paren--off-screen-overlay))
+      ;; check if it's appropriate to show match info,
+      (when (and (overlay-buffer show-paren--overlay)
+                 (not (or cursor-in-echo-area
+                          executing-kbd-macro
+                          noninteractive
+                          (minibufferp)
+                          this-command))
+                 (and (not (bobp))
+                      (memq (char-syntax (char-before)) '(?\) ?\$)))
+                 (= 1 (logand 1 (- (point)
+                                   (save-excursion
+                                     (forward-char -1)
+                                     (skip-syntax-backward "/\\")
+                                     (point))))))
+        ;; rebind `minibuffer-message' called by
+        ;; `blink-matching-open' to handle the overlay display
+        (cl-letf (((symbol-function #'minibuffer-message)
+                   (lambda (msg &rest args)
+                     (let ((msg (apply #'format-message msg args)))
+                       (setq show-paren--off-screen-overlay
+                             (display-line-overlay
+                              (window-start) msg ))))))
+          (blink-matching-open))))
+    (advice-add #'show-paren-function :after #'show-paren-off-screen)))
 
 ;; Highlight symbols
 (use-package symbol-overlay
   :diminish
-  :functions (turn-off-symbol-overlay
-              turn-on-symbol-overlay)
+  :functions (turn-off-symbol-overlay turn-on-symbol-overlay)
   :custom-face
-  (symbol-overlay-default-face ((t (:inherit 'region))))
-  (symbol-overlay-face-1 ((t (:inherit 'highlight))))
-  (symbol-overlay-face-2 ((t (:inherit 'font-lock-builtin-face :inverse-video t))))
-  (symbol-overlay-face-3 ((t (:inherit 'warning :inverse-video t))))
-  (symbol-overlay-face-4 ((t (:inherit 'font-lock-constant-face :inverse-video t))))
-  (symbol-overlay-face-5 ((t (:inherit 'error :inverse-video t))))
-  (symbol-overlay-face-6 ((t (:inherit 'dired-mark :inverse-video t :bold nil))))
-  (symbol-overlay-face-7 ((t (:inherit 'success :inverse-video t))))
-  (symbol-overlay-face-8 ((t (:inherit 'dired-symlink :inverse-video t :bold nil))))
+  (symbol-overlay-default-face ((t (:inherit (region bold)))))
+  (symbol-overlay-face-1 ((t (:inherit (highlight bold)))))
+  (symbol-overlay-face-2 ((t (:inherit (font-lock-builtin-face bold) :inverse-video t))))
+  (symbol-overlay-face-3 ((t (:inherit (warning bold) :inverse-video t))))
+  (symbol-overlay-face-4 ((t (:inherit (font-lock-constant-face bold) :inverse-video t))))
+  (symbol-overlay-face-5 ((t (:inherit (error bold) :inverse-video t))))
+  (symbol-overlay-face-6 ((t (:inherit (dired-mark bold) :inverse-video t))))
+  (symbol-overlay-face-7 ((t (:inherit (success bold) :inverse-video t))))
+  (symbol-overlay-face-8 ((t (:inherit (dired-symlink bold) :inverse-video t))))
   :bind (("M-i" . symbol-overlay-put)
          ("M-n" . symbol-overlay-jump-next)
          ("M-p" . symbol-overlay-jump-prev)
@@ -74,9 +111,9 @@
          ("M-P" . symbol-overlay-switch-backward)
          ("M-C" . symbol-overlay-remove-all)
          ([M-f3] . symbol-overlay-remove-all))
-  :hook ((after-change-major-mode . symbol-overlay-mode)
-         ((iedit-mode treemacs-mode) . (lambda () (symbol-overlay-mode -1)))
-         (iedit-mode-end . symbol-overlay-mode))
+  :hook ((prog-mode . symbol-overlay-mode)
+         (iedit-mode . turn-off-symbol-overlay)
+         (iedit-mode-end . turn-on-symbol-overlay))
   :init (setq symbol-overlay-idle-time 0.1)
   :config
   ;; Disable symbol highlighting while selecting
@@ -89,12 +126,14 @@
   (defun turn-on-symbol-overlay (&rest _)
     "Turn on symbol highlighting."
     (interactive)
-    (symbol-overlay-mode 1))
+    (when (derived-mode-p 'prog-mode)
+      (symbol-overlay-mode 1)))
   (advice-add #'deactivate-mark :after #'turn-on-symbol-overlay))
 
 ;; Highlight indentions
 (when (display-graphic-p)
   (use-package highlight-indent-guides
+    :disabled
     :diminish
     :functions (ivy-cleanup-string
                 my-ivy-cleanup-indentation)
@@ -237,7 +276,7 @@
   :preface
   (defun my-pulse-momentary-line (&rest _)
     "Pulse the current line."
-    (pulse-momentary-highlight-one-line (point) 'next-error))
+    (pulse-momentary-highlight-one-line (point) 'region))
 
   (defun my-pulse-momentary (&rest _)
     "Pulse the current line."
@@ -261,7 +300,8 @@
            next-error) . my-recenter-and-pulse-line))
   :init
   (dolist (cmd '(recenter-top-bottom
-                 other-window ace-window windmove-do-window-select
+                 other-window windmove-do-window-select
+                 ace-window aw--select-window
                  pager-page-down pager-page-up
                  symbol-overlay-basic-jump))
     (advice-add cmd :after #'my-pulse-momentary-line))

@@ -76,7 +76,7 @@
             (archives
              (error "Unknown archives: `%s'" archives)))))
 
-  (message "Set package archives to `%s'." archives))
+  (message "Set package archives to `%s'" archives))
 
 (set-package-archives centaur-package-archives)
 
@@ -121,11 +121,9 @@
 ;; A modern Packages Menu
 (use-package paradox
   :init
-  (setq paradox-execute-asynchronously t)
-  (setq paradox-github-token t)
-  (setq paradox-display-star-count nil)
-
-  (defalias 'upgrade-packages #'paradox-upgrade-packages)
+  (setq paradox-execute-asynchronously t
+        paradox-github-token t
+        paradox-display-star-count nil)
 
   ;; Replace default `list-packages'
   (defun my-paradox-enable (&rest _)
@@ -141,6 +139,13 @@
                   (with-current-buffer buf
                     (page-break-lines-mode 1))))
               t)))
+
+;; Auto update packages
+(use-package auto-package-update
+  :init
+  (setq auto-package-update-delete-old-versions t
+        auto-package-update-hide-results t)
+  (defalias 'upgrade-packages #'auto-package-update-now))
 
 (provide 'init-package)
 

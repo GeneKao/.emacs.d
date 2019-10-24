@@ -27,75 +27,95 @@
 ;;
 ;; Golang configurations.
 ;;
-;; Go packages:
-;; go get -u github.com/mdempsky/gocode
-;; go get -u github.com/rogpeppe/godef
-;; go get -u golang.org/x/tools/cmd/gopls
-;; go get -u golang.org/x/tools/cmd/goimports
-;; go get -u golang.org/x/tools/cmd/gorename
-;; go get -u golang.org/x/tools/cmd/gotype
-;; go get -u golang.org/x/tools/cmd/godoc
-;; go get -u github.com/go-delve/delve/cmd/dlv
-;; go get -u github.com/josharian/impl
-;; go get -u github.com/cweill/gotests/...
-;; go get -u github.com/fatih/gomodifytags
-;; go get -u github.com/davidrjenni/reftools/cmd/fillstruct
-;; go get -u github.com/uudashr/gopkgs/cmd/gopkgs
-;; go get -u onnef.co/go/tools/...
-;;
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-custom))
-
 ;; Golang
 (use-package go-mode
+  :functions (go-packages-gopkgs go-update-tools)
   :bind (:map go-mode-map
          ([remap xref-find-definitions] . godef-jump)
          ("C-c R" . go-remove-unused-imports)
          ("<f1>" . godoc-at-point))
   :config
+  ;; Env vars
+  (with-eval-after-load 'exec-path-from-shell
+    (exec-path-from-shell-copy-envs '("GOPATH" "GO111MODULE" "GOPROXY")))
+
   ;; Format with `goimports' if possible, otherwise using `gofmt'
   (when (executable-find "goimports")
     (setq gofmt-command "goimports"))
   (add-hook 'before-save-hook #'gofmt-before-save)
 
+  ;; Install or update tools
+  (defvar go--tools '("golang.org/x/tools/cmd/goimports"
+                      "golang.org/x/tools/cmd/gorename"
+
+                      ;; "github.com/rogpeppe/godef"
+                      "github.com/go-delve/delve/cmd/dlv"
+                      "github.com/josharian/impl"
+                      "github.com/cweill/gotests/..."
+                      "github.com/fatih/gomodifytags"
+                      "github.com/davidrjenni/reftools/cmd/fillstruct"
+                      "github.com/golangci/golangci-lint/cmd/golangci-lint")
+    "All necessary go tools.")
+
+  ;; Do not use the -u flag for gopls, as it will update the dependencies to incompatible versions
+  ;; https://github.com/golang/tools/blob/master/gopls/doc/user.md#installation
+  (defvar go--tools-no-update '("golang.org/x/tools/gopls@latest")
+    "All necessary go tools without update the dependencies.")
+
+  (defun go-update-tools ()
+    "Install or update go tools."
+    (interactive)
+    (unless (executable-find "go")
+      (user-error "Unable to find `go' in `exec-path'!"))
+
+    (message "Installing go tools...")
+    (let ((proc-name "go-tools")
+          (proc-buffer "*Go Tools*"))
+      (dolist (pkg go--tools-no-update)
+        (set-process-sentinel
+         (start-process proc-name proc-buffer "go" "get" "-v" pkg)
+         (lambda (proc _)
+           (let ((status (process-exit-status proc)))
+             (if (= 0 status)
+                 (message "Installed %s" pkg)
+               (message "Failed to install %s: %d" pkg status))))))
+
+      (dolist (pkg go--tools)
+        (set-process-sentinel
+         (start-process proc-name proc-buffer "go" "get" "-u" "-v" pkg)
+         (lambda (proc _)
+           (let ((status (process-exit-status proc)))
+             (if (= 0 status)
+                 (message "Installed %s" pkg)
+               (message "Failed to install %s: %d" pkg status))))))))
+
+  ;; Try to install go tools if `gopls' is not found
+  (unless (executable-find "gopls")
+    (go-update-tools))
+
+  ;; Misc
   (use-package go-dlv)
   (use-package go-fill-struct)
+  (use-package go-impl)
   (use-package go-rename)
-  (use-package golint)
-  (use-package govet)
 
-  (use-package go-impl
-    :functions (go-packages-gopkgs go-root-and-paths go-packages-fd)
-    :config
-    ;; `go-packages-native', remiplement it.
-    (cond
-     ((executable-find "gopkgs")
-      (defun go-packages-gopkgs()
-        "Return a list of all Go packages, using `gopkgs'."
-        (sort (process-lines "gopkgs") #'string<))
-      (setq go-packages-function #'go-packages-gopkgs))
-     ((executable-find "fd")
-      (defun go-packages-fd ()
-        "Return a list of all installed Go packages, using `fd'."
-        (sort
-         (delete-dups
-          (cl-mapcan
-           '(lambda (topdir)
-              (let ((pkgdir (concat topdir "/pkg/")))
-                (--> (shell-command-to-string (concat "fd -e a . " pkgdir))
-                     (split-string it "\n")
-                     (-map (lambda (str)
-	                         (--> (string-remove-prefix pkgdir str)
-		                          (string-trim-left it ".*?/")
-		                          (string-remove-suffix ".a" it)
-		                          )
-	                         ) it))))
-           (go-root-and-paths)))
-         #'string<))
-      (setq go-packages-function #'go-packages-fd))))
+  ;; Install: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+  (use-package flycheck-golangci-lint
+    :if (executable-find "golangci-lint")
+    :after flycheck
+    :defines flycheck-disabled-checkers
+    :hook (go-mode . (lambda ()
+                       "Enable golangci-lint."
+                       (setq flycheck-disabled-checkers '(go-gofmt
+                                                          go-golint
+                                                          go-vet
+                                                          go-build
+                                                          go-test
+                                                          go-errcheck))
+                       (flycheck-golangci-lint-setup))))
 
   (use-package go-tag
     :bind (:map go-mode-map
@@ -116,8 +136,7 @@
 
 ;; Local Golang playground for short snippets
 (use-package go-playground
-  :diminish
-  :commands go-playground-mode)
+  :diminish)
 
 (provide 'init-go)
 

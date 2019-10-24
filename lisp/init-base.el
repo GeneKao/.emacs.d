@@ -67,12 +67,34 @@
                ([(super w)] . delete-frame)
                ([(super z)] . undo)))))
 
+;; Encoding
+;; UTF-8 as the default coding system
+(when (fboundp 'set-charset-priority)
+  (set-charset-priority 'unicode))
+
+;; Explicitly set the prefered coding systems to avoid annoying prompt
+;; from emacs (especially on Microsoft Windows)
+(prefer-coding-system 'utf-8)
+
+(set-language-environment 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-clipboard-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-buffer-file-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-selection-coding-system 'utf-8)
+(modify-coding-system-alist 'process "*" 'utf-8)
+(set-file-name-coding-system 'utf-8)
+
+(setq locale-coding-system 'utf-8
+      default-process-coding-system '(utf-8 . utf-8))
+
 ;; Environment
 (when (or sys/mac-x-p sys/linux-x-p)
   (use-package exec-path-from-shell
     :init
     (setq exec-path-from-shell-check-startup-files nil
-          exec-path-from-shell-variables '("PATH" "MANPATH" "PYTHONPATH" "GOPATH")
+          exec-path-from-shell-variables '("PATH" "MANPATH")
           exec-path-from-shell-arguments '("-l"))
     (exec-path-from-shell-initialize)))
 
@@ -90,18 +112,12 @@
   :ensure nil
   :hook (after-init . recentf-mode)
   :init (setq recentf-max-saved-items 200
-              recentf-exclude '((expand-file-name package-user-dir)
-                                ".cache"
-                                ".cask"
-                                ".elfeed"
-                                "bookmarks"
-                                "cache"
-                                "ido.*"
-                                "persp-confs"
-                                "recentf"
-                                "undo-tree-hist"
-                                "url"
-                                "COMMIT_EDITMSG\\'")))
+              recentf-exclude
+              '("\\.?cache" ".cask" "url" "COMMIT_EDITMSG\\'" "bookmarks"
+                "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$" "^/tmp/" "^/ssh:"
+                "\\.?ido\\.last$" "\\.revive$" "/TAGS$" "^/var/folders/.+$"
+                (lambda (file) (file-in-directory-p file package-user-dir))))
+  :config (push (expand-file-name recentf-save-file) recentf-exclude))
 
 (use-package savehist
   :ensure nil
@@ -124,13 +140,22 @@
 
 (use-package simple
   :ensure nil
-  :hook (window-setup . size-indication-mode)
-  :init (setq column-number-mode t
-              line-number-mode t
-              ;; kill-whole-line t               ; Kill line including '\n'
-              line-move-visual nil
-              track-eol t                     ; Keep cursor at end of lines. Require line-move-visual is nil.
-              set-mark-command-repeat-pop t)) ; Repeating C-SPC after popping mark pops it again
+  :hook ((window-setup . size-indication-mode)
+         ((prog-mode markdown-mode conf-mode) . enable-trailing-whitespace))
+  :init
+  (setq column-number-mode t
+        line-number-mode t
+        ;; kill-whole-line t               ; Kill line including '\n'
+        line-move-visual nil
+        track-eol t                     ; Keep cursor at end of lines. Require line-move-visual is nil.
+        set-mark-command-repeat-pop t)  ; Repeating C-SPC after popping mark pops it again
+
+  ;; Visualize TAB, (HARD) SPACE, NEWLINE
+  (setq-default show-trailing-whitespace nil) ; Don't show trailing whitespace by default
+  (defun enable-trailing-whitespace ()
+    "Show trailing spaces and delete on saving."
+    (setq show-trailing-whitespace t)
+    (add-hook 'before-save-hook #'delete-trailing-whitespace nil t)))
 
 ;; Mouse & Smooth Scroll
 ;; Scroll one line at a time (less "jumpy" than defaults)
@@ -142,7 +167,7 @@
       scroll-conservatively 100000)
 
 ;; Misc
-(setq-default fill-column 100)
+(setq-default fill-column 80)
 (fset 'yes-or-no-p 'y-or-n-p)
 (setq visible-bell t
       inhibit-compacting-font-caches t) ; Don’t compact font caches during GC.
@@ -150,7 +175,8 @@
 ;; Fullscreen
 ;; WORKAROUND: To address blank screen issue with child-frame in fullscreen
 (when (and sys/mac-x-p emacs/>=26p)
-  (setq ns-use-native-fullscreen nil))
+  (add-hook 'window-setup-hook (lambda ()
+                                 (setq ns-use-native-fullscreen nil))))
 (bind-keys ("C-<f11>" . toggle-frame-fullscreen)
            ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS
            ("S-s-<return>" . toggle-frame-fullscreen)

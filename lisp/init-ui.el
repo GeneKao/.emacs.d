@@ -65,7 +65,6 @@
 (if (centaur-compatible-theme-p centaur-theme)
     (progn
       (use-package doom-themes
-        :defines doom-themes-treemacs-theme
         :hook (after-load-theme . (lambda ()
                                     (set-face-foreground
                                      'mode-line
@@ -81,17 +80,61 @@
 
         ;; Enable flashing mode-line on errors
         (doom-themes-visual-bell-config)
+        ;; WORKAROUND: use legacy codes
         (set-face-attribute 'doom-visual-bell nil
+                            :inherit 'mode-line
                             :background (face-foreground 'error)
-                            :foreground (face-background 'default)
                             :inverse-video nil)
+        (defvar doom-themes--bell-p nil)
+        (defun doom-themes-visual-bell-fn ()
+          "Blink the mode-line red briefly. Set `ring-bell-function' to this to use it."
+          (unless doom-themes--bell-p
+            (let ((old-remap (copy-alist face-remapping-alist)))
+              (setq doom-themes--bell-p t)
+              (setq face-remapping-alist
+                    (append (delete (assq 'mode-line face-remapping-alist)
+                                    face-remapping-alist)
+                            '((mode-line doom-visual-bell))))
+              (force-mode-line-update)
+              (run-with-timer 0.15 nil
+                              (lambda (remap buf)
+                                (with-current-buffer buf
+                                  (when (assq 'mode-line face-remapping-alist)
+                                    (setq face-remapping-alist remap
+                                          doom-themes--bell-p nil))
+                                  (force-mode-line-update)))
+                              old-remap
+                              (current-buffer)))))
 
         ;; Corrects (and improves) org-mode's native fontification.
-        (setq doom-themes-treemacs-theme "doom-colors")
         (doom-themes-org-config)
 
-        ;; Enable custom treemacs theme (all-the-icons must be installed!)
-        (doom-themes-treemacs-config))
+        ;; Enable customized theme (`all-the-icons' must be installed!)
+        (doom-themes-treemacs-config)
+        (with-no-warnings
+          (setq doom-themes-treemacs-theme "doom-colors")
+          (with-eval-after-load 'treemacs
+            (remove-hook 'treemacs-mode-hook #'doom-themes-hide-modeline)
+            ;; FIXME: Remove if PR #347 is merged into `doom-themes'
+	        (when (require 'all-the-icons nil t)
+              (treemacs-modify-theme "doom-colors"
+                :config
+                (progn
+                  (treemacs-create-icon
+                   :icon (format " %s\t" (all-the-icons-octicon "repo" :height 1.1 :v-adjust -0.1 :face 'font-lock-string-face))
+                   :extensions (root) :fallback "")
+                  (treemacs-create-icon
+                   :icon (format "%s\t%s\t"
+                                 (all-the-icons-octicon "chevron-down" :height 0.75 :v-adjust 0.1 :face 'font-lock-doc-face)
+                                 (all-the-icons-octicon "package" :v-adjust 0 :face 'font-lock-doc-face)) :extensions (tag-open))
+                  (treemacs-create-icon
+                   :icon (format "%s\t%s\t"
+                                 (all-the-icons-octicon "chevron-right" :height 0.75 :v-adjust 0.1 :face 'font-lock-doc-face)
+                                 (all-the-icons-octicon "package" :v-adjust 0 :face 'font-lock-doc-face))
+                   :extensions (tag-closed))
+                  (treemacs-create-icon
+                   :icon (format "%s " (all-the-icons-octicon "tag" :v-adjust 0 :face 'font-lock-doc-face))
+                   :extensions (tag-leaf))))))))
 
       ;; Make certain buffers grossly incandescent
       (use-package solaire-mode
@@ -121,13 +164,16 @@
   (setq doom-modeline-major-mode-color-icon t
         doom-modeline-minor-modes nil
         doom-modeline-mu4e nil)
-  :bind ("C-<f6>" . doom-modeline-hydra/body)
+  :bind (:map doom-modeline-mode-map
+         ("C-<f6>" . doom-modeline-hydra/body))
   :pretty-hydra
   ((:title (pretty-hydra-title "Mode Line" 'fileicon "emacs")
     :color amaranth :quit-key "q")
    ("Icon"
     (("i" (setq doom-modeline-icon (not doom-modeline-icon))
       "display icons" :toggle doom-modeline-icon)
+     ("u" (setq doom-modeline-unicode-fallback (not doom-modeline-unicode-fallback))
+      "unicode fallback" :toggle doom-modeline-unicode-fallback)
      ("m" (setq doom-modeline-major-mode-icon (not doom-modeline-major-mode-icon))
       "major mode" :toggle doom-modeline-major-mode-icon)
      ("c" (setq doom-modeline-major-mode-color-icon (not doom-modeline-major-mode-color-icon))
@@ -191,7 +237,21 @@
       :toggle (eq doom-modeline-buffer-file-name-style 'file-name))
      ("b" (setq doom-modeline-buffer-file-name-style 'buffer-name)
       "buffer name"
-      :toggle (eq doom-modeline-buffer-file-name-style 'buffer-name))))))
+      :toggle (eq doom-modeline-buffer-file-name-style 'buffer-name)))
+    "Misc"
+    (("g" (progn
+            (message "Fetching GitHub notifications...")
+            (run-with-timer 300 nil #'doom-modeline--github-fetch-notifications)
+            (browse-url "https://github.com/notifications"))
+      "github notifications" :color blue)
+     ("e" (if (bound-and-true-p flycheck-mode)
+              (flycheck-list-errors)
+            (flymake-show-diagnostics-buffer))
+      "list errors" :color blue)
+     ("B" (if (bound-and-true-p grip-mode)
+              (grip-browse-preview)
+            (message "Not in preiew"))
+      "browse preivew" :color blue)))))
 
 (use-package hide-mode-line
   :hook (((completion-list-mode completion-in-region-mode) . hide-mode-line-mode)))
@@ -218,6 +278,8 @@
                '(lua-mode all-the-icons-fileicon "lua" :face all-the-icons-dblue))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(help-mode all-the-icons-faicon "info-circle" :height 1.1 :v-adjust -0.1 :face all-the-icons-purple))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(helpful-mode all-the-icons-faicon "info-circle" :height 1.1 :v-adjust -0.1 :face all-the-icons-purple))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(Info-mode all-the-icons-faicon "info-circle" :height 1.1 :v-adjust -0.1))
   (add-to-list 'all-the-icons-icon-alist

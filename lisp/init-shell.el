@@ -98,8 +98,18 @@
   ;; For compilation buffers
   (setq compilation-environment '("TERM=xterm-256color"))
   (defun my-advice-compilation-filter (f proc string)
-    (funcall f proc (xterm-color-filter string)))
-  (advice-add 'compilation-filter :around #'my-advice-compilation-filter))
+    (funcall f proc
+             (if (eq major-mode 'rg-mode) ; compatible with `rg'
+                 string
+               (xterm-color-filter string))))
+  (advice-add 'compilation-filter :around #'my-advice-compilation-filter)
+  (advice-add 'gud-filter :around #'my-advice-compilation-filter)
+
+  ;; For prolog inferior
+  (with-eval-after-load 'prolog
+    (add-hook 'prolog-inferior-mode-hook
+              (lambda ()
+                (add-hook 'comint-preoutput-filter-functions 'xterm-color-filter nil t)))))
 
 ;; Better term
 ;; @see https://github.com/akermu/emacs-libvterm#installation

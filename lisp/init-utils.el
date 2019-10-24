@@ -42,8 +42,6 @@
 
 ;; Youdao Dictionary
 (use-package youdao-dictionary
-  :functions (posframe-show
-              posframe-hide)
   :commands (youdao-dictionary-mode
              youdao-dictionary--region-or-word
              youdao-dictionary--format-result)
@@ -57,32 +55,33 @@
   (setq youdao-dictionary-use-chinese-word-segmentation t)
 
   (with-eval-after-load 'posframe
-    (defun youdao-dictionary-search-at-point-posframe ()
-      "Search word at point and display result with posframe."
-      (interactive)
-      (let ((word (youdao-dictionary--region-or-word)))
-        (if word
-            (progn
-              (with-current-buffer (get-buffer-create youdao-dictionary-buffer-name)
-                (let ((inhibit-read-only t))
-                  (erase-buffer)
-                  (youdao-dictionary-mode)
-                  (insert (youdao-dictionary--format-result word))
-                  (goto-char (point-min))
-                  (set (make-local-variable 'youdao-dictionary-current-buffer-word) word)))
-              (posframe-show youdao-dictionary-buffer-name :position (point))
-              (unwind-protect
-                  (push (read-event) unread-command-events)
-                (posframe-hide youdao-dictionary-buffer-name)))
-          (message "Nothing to look up")))))
+    (with-no-warnings
+      (defun youdao-dictionary-search-at-point-posframe ()
+        "Search word at point and display result with posframe."
+        (interactive)
+        (let ((word (youdao-dictionary--region-or-word)))
+          (if word
+              (progn
+                (with-current-buffer (get-buffer-create youdao-dictionary-buffer-name)
+                  (let ((inhibit-read-only t))
+                    (erase-buffer)
+                    (youdao-dictionary-mode)
+                    (insert (youdao-dictionary--format-result word))
+                    (goto-char (point-min))
+                    (set (make-local-variable 'youdao-dictionary-current-buffer-word) word)))
+                (posframe-show youdao-dictionary-buffer-name :position (point))
+                (unwind-protect
+                    (push (read-event) unread-command-events)
+                  (posframe-hide youdao-dictionary-buffer-name)))
+            (message "Nothing to look up")))))
 
-  (defun my-youdao-search-at-point ()
-    (interactive)
-    (if (display-graphic-p)
-        (if (fboundp 'youdao-dictionary-search-at-point-posframe)
-            (youdao-dictionary-search-at-point-posframe)
-          (youdao-dictionary-search-at-point-tooltip))
-      (youdao-dictionary-search-at-point))))
+    (defun my-youdao-search-at-point ()
+      (interactive)
+      (if (display-graphic-p)
+          (if (fboundp 'youdao-dictionary-search-at-point-posframe)
+              (youdao-dictionary-search-at-point-posframe)
+            (youdao-dictionary-search-at-point-tooltip))
+        (youdao-dictionary-search-at-point)))))
 
 ;;
 ;; Search tools
@@ -94,32 +93,30 @@
   (setq wgrep-auto-save-buffer t
         wgrep-change-readonly-file t))
 
-;; `find-dired' alternative using `fd'
-(when (executable-find "fd")
-  (use-package fd-dired))
+;; Fast search tool: `ripgrep'
+(use-package rg
+  :defines projectile-command-map
+  :hook (after-init . rg-enable-default-bindings)
+  :bind (:map rg-global-map
+         ("c" . rg-dwim-current-dir)
+         ("f" . rg-dwim-current-file)
+         ("m" . rg-menu)
+         :map rg-mode-map
+         ("m" . rg-menu))
+  :init (setq rg-group-result t
+              rg-show-columns t)
+  :config
+  (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
 
-;; `ripgrep'
-(when (executable-find "rg")
-  (use-package rg
-    :defines projectile-command-map
-    :hook (after-init . rg-enable-default-bindings)
-    :config
-    (setq rg-group-result t
-          rg-show-columns t)
+  (with-eval-after-load 'projectile
+    (defalias 'projectile-ripgrep 'rg-project)
+    (bind-key "s R" #'rg-project projectile-command-map))
 
-    (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases)
-
-    (with-eval-after-load 'projectile
-      (defalias 'projectile-ripgrep 'rg-project)
-      (bind-key "s R" #'rg-project projectile-command-map))
-
-    (with-eval-after-load 'counsel
-      (bind-keys
-       :map rg-global-map
-       ("c r" . counsel-rg)
-       ("c s" . counsel-ag)
-       ("c p" . counsel-pt)
-       ("c f" . counsel-fzf)))))
+  (with-eval-after-load 'counsel
+    (bind-keys
+     :map rg-global-map
+     ("R" . counsel-rg)
+     ("F" . counsel-fzf))))
 
 ;; Docker
 (use-package docker
@@ -127,34 +124,31 @@
   :init (setq docker-image-run-arguments '("-i" "-t" "--rm")
               docker-container-shell-file-name "/bin/bash"))
 
-;; Tramp
+;; Docker tramp
 (use-package docker-tramp)
-
-;; Discover key bindings and their meaning for the current Emacs major mode
-(use-package discover-my-major
-  :bind (("C-h M-m" . discover-my-major)
-         ("C-h M-M" . discover-my-mode)))
 
 ;; A Simmple and cool pomodoro timer
 (use-package pomidor
   :bind ("s-<f12>" . pomidor)
   :init
   (setq alert-default-style 'mode-line)
+
+  (with-eval-after-load 'all-the-icons
+    (setq alert-severity-colors
+          `((urgent   . ,(face-foreground 'error))
+            (high     . ,(face-foreground 'all-the-icons-orange))
+            (moderate . ,(face-foreground 'warning))
+            (normal   . ,(face-foreground 'success))
+            (low      . ,(face-foreground 'all-the-icons-blue))
+            (trivial  . ,(face-foreground 'all-the-icons-purple)))))
+
   (when sys/macp
     (setq pomidor-play-sound-file
           (lambda (file)
             (start-process "pomidor-play-sound"
                            nil
                            "afplay"
-                           file))))
-  :config
-  (setq alert-severity-colors
-        `((urgent   . ,(face-foreground 'error))
-          (high     . ,(face-foreground 'all-the-icons-orange))
-          (moderate . ,(face-foreground 'warning))
-          (normal   . ,(face-foreground 'success))
-          (low      . ,(face-foreground 'all-the-icons-blue))
-          (trivial  . ,(face-foreground 'all-the-icons-purple)))))
+                           file)))))
 
 ;; Persistent the scratch buffer
 (use-package persistent-scratch
@@ -183,12 +177,18 @@
     :commands pdf-view-midnight-minor-mode
     :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
     :magic ("%PDF" . pdf-view-mode)
-    :hook (after-load-theme . my-pdf-view-set-dark-theme)
     :bind (:map pdf-view-mode-map
            ("C-s" . isearch-forward))
-    :init
-    (setq pdf-annot-activate-created-annotations t)
+    :init (setq pdf-annot-activate-created-annotations t)
+    :config
+    ;; WORKAROUND: Fix compilation errors on macOS.
+    ;; @see https://github.com/politza/pdf-tools/issues/480
+    (when sys/macp
+      (setenv "PKG_CONFIG_PATH"
+              "/usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig"))
+    (pdf-tools-install t nil t t)
 
+    ;; Set dark theme
     (defun my-pdf-view-set-midnight-colors ()
       "Set pdf-view midnight colors."
       (setq pdf-view-midnight-colors
@@ -201,15 +201,9 @@
         (with-current-buffer buf
           (when (eq major-mode 'pdf-view-mode)
             (pdf-view-midnight-minor-mode (if pdf-view-midnight-minor-mode 1 -1))))))
-    :config
-    ;; WORKAROUND: Fix compilation errors on macOS.
-    ;; @see https://github.com/politza/pdf-tools/issues/480
-    (when sys/macp
-      (setenv "PKG_CONFIG_PATH"
-              "/usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig"))
-    (pdf-tools-install t nil t t)
 
     (my-pdf-view-set-midnight-colors)
+    (add-hook 'after-load-theme-hook #'my-pdf-view-set-dark-theme)
 
     ;; FIXME: Support retina
     ;; @see https://emacs-china.org/t/pdf-tools-mac-retina-display/10243/
@@ -294,7 +288,6 @@
 (use-package diffview)                  ; side-by-side diff view
 (use-package esup)                      ; Emacs startup profiler
 (use-package focus)                     ; Focus on the current region
-(use-package htmlize)                   ; covert to html
 (use-package list-environment)
 (use-package memory-usage)
 (use-package tldr)
