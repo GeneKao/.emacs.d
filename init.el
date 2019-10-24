@@ -4,7 +4,7 @@
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 5.6.0
+;; Version: 5.7.0
 ;; Keywords: .emacs.d centaur
 
 ;;
@@ -149,8 +149,8 @@ decrease this. If you experience stuttering, increase this.")
 
 (require 'init-markdown)
 (require 'init-org)
-(require 'init-elfeed)
 
+(require 'init-elfeed)
 (require 'init-utils)
 
 
