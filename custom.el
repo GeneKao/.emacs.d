@@ -11,10 +11,9 @@
 (setq centaur-package-archives 'emacs-china)      ; Package repo: melpa, emacs-china or tuna
 (setq centaur-theme 'dark)                         ; Color theme: default, doom, classic, dark, light or daylight
 (setq centaur-lsp 'eglot)                         ; Set LSP client: lsp-mode, eglot or nil
-;; (setq centuar-company-enable-yas t)            ; Enable/disable yasnippet for company: t or nil
-;; (setq centaur-emoji-enabled t)                 ; Enable/disable emoji: t or nil
+(setq centaur-emoji-enabled t)                 ; Enable/disable emoji: t or nil
 ;; (setq centaur-benchmark-enabled t)             ; Enable/disable initialization benchmark: t or nil
-;; (setq centaur-lsp nil)                         ; Set LSP client: lsp-mode, eglot or nil
+
 
 ;; For Emacs devel
 ;; e.g. 24.5, 25.3 or 26.1 are releses, while 26.0.90 is a devel release.
