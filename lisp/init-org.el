@@ -103,22 +103,27 @@ prepended to the element after the #+HEADER: tag."
                     (self-insert-command 1)))))
   :hook ((org-mode . (lambda ()
                        "Beautify org symbols."
-                       ;; (push '("[ ]" . ?☐) prettify-symbols-alist)
-                       ;; (push '("[X]" . ?☑) prettify-symbols-alist)
-                       ;; (push '("[-]" . ?⛞) prettify-symbols-alist)
-                       ;; (push '("#+TITLE" . ?🕮) prettify-symbols-alist)
-                       ;; (push '("#+DATE" . ?📆) prettify-symbols-alist)
-                       ;; (push '("#+AUTHOR" . ?👤) prettify-symbols-alist)
-                       ;; (push '("#+EMAIL" . ?🖂) prettify-symbols-alist)
-                       ;; (push '("#+OPTIONS" . ?⚙) prettify-symbols-alist)
-                       ;; (push '("#+TAGS" . ?🏷) prettify-symbols-alist)
-                       ;; (push '("#+DESCRIPTION" . ?🗎) prettify-symbols-alist)
+                       (push '("[ ]" . ?☐) prettify-symbols-alist)
+                       (push '("[X]" . ?☑) prettify-symbols-alist)
+                       ;; (push '("[-]" . ?⛝) prettify-symbols-alist)
+
+                       ;; (push '("#+ARCHIVE:" . ?📦) prettify-symbols-alist)
+                       ;; (push '("#+AUTHOR:" . ?👤) prettify-symbols-alist)
+                       ;; (push '("#+CREATOR:" . ?💁) prettify-symbols-alist)
+                       ;; (push '("#+DATE:" . ?📆) prettify-symbols-alist)
+                       ;; (push '("#+DESCRIPTION:" . ?🗎) prettify-symbols-alist)
+                       ;; (push '("#+EMAIL:" . ?🖂) prettify-symbols-alist)
+                       ;; (push '("#+OPTIONS:" . ?⚙) prettify-symbols-alist)
+                       ;; (push '("#+TAGS:" . ?🏷) prettify-symbols-alist)
+                       ;; (push '("#+TITLE:" . ?🕮) prettify-symbols-alist)
+
                        ;; (push '("#+BEGIN_SRC" . ?✎) prettify-symbols-alist)
                        ;; (push '("#+END_SRC" . ?□) prettify-symbols-alist)
                        ;; (push '("#+BEGIN_QUOTE" . ?») prettify-symbols-alist)
                        ;; (push '("#+END_QUOTE" . ?«) prettify-symbols-alist)
                        ;; (push '("#+HEADERS" . ?☰) prettify-symbols-alist)
                        ;; (push '("#+RESULTS:" . ?💻) prettify-symbols-alist)
+
                        (prettify-symbols-mode 1)))
          (org-indent-mode . (lambda()
                               (diminish 'org-indent-mode)
@@ -126,12 +131,10 @@ prepended to the element after the #+HEADER: tag."
                               ;; @see https://github.com/seagle0128/.emacs.d/issues/88
                               (make-variable-buffer-local 'show-paren-mode)
                               (setq show-paren-mode nil))))
-
   :init (setq org-agenda-files '("~/org")
               org-todo-keywords
               '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")
                 (sequence "⚑(T)" "🏴(I)" "❓(H)" "|" "✔(D)" "✘(C)"))
-
               org-todo-keyword-faces '(("HANGUP" . warning)
                                        ("❓" . warning))
               org-priority-faces '((?A . error)
@@ -199,11 +202,8 @@ prepended to the element after the #+HEADER: tag."
     :if (executable-find "jupyter")     ; DO NOT remove
     :init (cl-pushnew '(ipython . t) load-language-list))
 
-  ;; (org-babel-do-load-languages 'org-babel-load-languages
-  ;;                              load-language-list)
-  '(org-babel-load-languages
-    (quote
-     ((emacs-lisp . t))))
+  (org-babel-do-load-languages 'org-babel-load-languages
+                               load-language-list)
 
   ;; Rich text clipboard
   (use-package org-rich-yank
@@ -250,135 +250,6 @@ prepended to the element after the #+HEADER: tag."
     (org-pomodoro-mode-line-break ((t (:inherit success))))
     :bind (:map org-agenda-mode-map
            ("P" . org-pomodoro))))
-
-(setq org-latex-pdf-process
-      '("latexmk -pdflatex='pdflatex -interaction nonstopmode' -pdf -bibtex -f %f"))
-
-
-
-(unless (boundp 'org-latex-classes)
-  (setq org-latex-classes nil))
-
-(add-to-list 'org-latex-classes
-             '("ethz"
-               "\\documentclass[a4paper,11pt,titlepage]{memoir}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{fixltx2e}
-\\usepackage{graphicx}
-\\usepackage{longtable}
-\\usepackage{float}
-\\usepackage{wrapfig}
-\\usepackage{rotating}
-\\usepackage[normalem]{ulem}
-\\usepackage{amsmath}
-\\usepackage{textcomp}
-\\usepackage{marvosym}
-\\usepackage{wasysym}
-\\usepackage{amssymb}
-\\usepackage{hyperref}
-\\usepackage{mathpazo}
-\\usepackage{color}
-\\usepackage{enumerate}
-\\definecolor{bg}{rgb}{0.95,0.95,0.95}
-\\tolerance=1000
-      [NO-DEFAULT-PACKAGES]
-      [PACKAGES]
-      [EXTRA]
-\\linespread{1.1}
-\\hypersetup{pdfborder=0 0 0}"
-               ("\\chapter{%s}" . "\\chapter*{%s}")
-               ("\\section{%s}" . "\\section*{%s}")
-               ("\\subsection{%s}" . "\\subsection*{%s}")
-               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-               ("\\paragraph{%s}" . "\\paragraph*{%s}")
-               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-
-(add-to-list 'org-latex-classes
-             '("ethz1page"
-               "\\documentclass[a4paper,11pt,titlepage,oneside]{memoir}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{fixltx2e}
-\\usepackage{graphicx}
-\\usepackage{longtable}
-\\usepackage{float}
-\\usepackage{wrapfig}
-\\usepackage{rotating}
-\\usepackage[normalem]{ulem}
-\\usepackage{amsmath}
-\\usepackage{textcomp}
-\\usepackage{marvosym}
-\\usepackage{wasysym}
-\\usepackage{amssymb}
-\\usepackage{hyperref}
-\\usepackage{mathpazo}
-\\usepackage{color}
-\\usepackage{enumerate}
-\\definecolor{bg}{rgb}{0.95,0.95,0.95}
-\\tolerance=1000
-      [NO-DEFAULT-PACKAGES]
-      [PACKAGES]
-      [EXTRA]
-\\linespread{1.1}
-\\hypersetup{pdfborder=0 0 0}"
-               ("\\chapter{%s}" . "\\chapter*{%s}")
-               ("\\section{%s}" . "\\section*{%s}")
-               ("\\subsection{%s}" . "\\subsection*{%s}")
-               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-               ("\\paragraph{%s}" . "\\paragraph*{%s}")
-               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-
-
-
-(add-to-list 'org-latex-classes
-             '("article"
-               "\\documentclass[11pt,a4paper]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{fixltx2e}
-\\usepackage{graphicx}
-\\usepackage{longtable}
-\\usepackage{float}
-\\usepackage{wrapfig}
-\\usepackage{rotating}
-\\usepackage[normalem]{ulem}
-\\usepackage{amsmath}
-\\usepackage{textcomp}
-\\usepackage{marvosym}
-\\usepackage{wasysym}
-\\usepackage{amssymb}
-\\usepackage{hyperref}
-\\usepackage{mathpazo}
-\\usepackage{color}
-\\usepackage{enumerate}
-\\definecolor{bg}{rgb}{0.95,0.95,0.95}
-\\tolerance=1000
-      [NO-DEFAULT-PACKAGES]
-      [PACKAGES]
-      [EXTRA]
-\\linespread{1.1}
-\\hypersetup{pdfborder=0 0 0}"
-               ("\\section{%s}" . "\\section*{%s}")
-               ("\\subsection{%s}" . "\\subsection*{%s}")
-               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-               ("\\paragraph{%s}" . "\\paragraph*{%s}")))
-
-
-(add-to-list 'org-latex-classes '("ebook"
-                                  "\\documentclass[11pt, oneside]{memoir}
-\\setstocksize{9in}{6in}
-\\settrimmedsize{\\stockheight}{\\stockwidth}{*}
-\\setlrmarginsandblock{2cm}{2cm}{*} % Left and right margin
-\\setulmarginsandblock{2cm}{2cm}{*} % Upper and lower margin
-\\checkandfixthelayout
-% Much more laTeX code omitted
-"
-                                  ("\\chapter{%s}" . "\\chapter*{%s}")
-                                  ("\\section{%s}" . "\\section*{%s}")
-                                  ("\\subsection{%s}" . "\\subsection*{%s}")))
-
-
 
 (provide 'init-org)
 

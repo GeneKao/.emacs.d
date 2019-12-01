@@ -106,6 +106,8 @@
        :toggle (eq (centuar-current-theme) (centaur--standardize-theme 'default)))
       ("t c" (centaur-load-theme 'classic) "classic"
        :toggle (eq (centuar-current-theme) (centaur--standardize-theme 'classic)))
+      ("t r" (centaur-load-theme 'colorful) "colorful"
+       :toggle (eq (centuar-current-theme) (centaur--standardize-theme 'colorfult)))
       ("t k" (centaur-load-theme 'dark) "dark"
        :toggle (eq (centuar-current-theme) (centaur--standardize-theme 'dark)))
       ("t l" (centaur-load-theme 'light) "light"
@@ -114,9 +116,13 @@
        :toggle (eq (centuar-current-theme) (centaur--standardize-theme 'day)))
       ("t n" (centaur-load-theme 'night) "night"
        :toggle (eq (centuar-current-theme) (centaur--standardize-theme 'night)))
-      ("t o" (let ((ivy-initial-inputs-alist '((counsel-load-theme . "doom-"))))
-               (ignore ivy-initial-inputs-alist)
-               (counsel-load-theme))
+      ("t o" (ivy-read "Load custom theme: "
+                       (mapcar 'symbol-name
+                               (custom-available-themes))
+                       :predicate (lambda (candidate)
+                                    (string-prefix-p "doom-" candidate))
+                       :action #'counsel-load-theme-action
+                       :caller 'counsel-load-theme)
        "others"))
      "Package Archive"
      (("p m" (progn (setq centaur-package-archives 'melpa)

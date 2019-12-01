@@ -53,7 +53,14 @@
      ;; Configure LSP clients
      (use-package lsp-clients
        :ensure nil
-       :init (setq lsp-clients-python-library-directories '("/usr/local/" "/usr/"))))
+       :hook (go-mode . (lambda ()
+                          "Format and add/delete imports."
+                          (add-hook 'before-save-hook #'lsp-format-buffer t t)
+                          (add-hook 'before-save-hook #'lsp-organize-imports t t)))
+       :init
+       (setq lsp-clients-python-library-directories '("/usr/local/" "/usr/"))
+       (unless (executable-find "rls")
+         (setq lsp-rust-rls-server-command '("rustup" "run" "stable" "rls")))))
 
    (use-package lsp-ui
      :functions my-lsp-ui-imenu-hide-mode-line
@@ -73,7 +80,7 @@
         ("d f" (setq lsp-ui-doc-alignment 'frame) "align frame" :toggle (eq lsp-ui-doc-alignment 'frame))
         ("d w" (setq lsp-ui-doc-alignment 'window) "align window" :toggle (eq lsp-ui-doc-alignment 'window)))
        "Sideline"
-       (("s e" lsp-ui-sideline-enable "enbale" :toggle t)
+       (("s e" lsp-ui-sideline-enable "enable" :toggle t)
         ("s h" lsp-ui-sideline-show-hover "hover" :toggle t)
         ("s d" lsp-ui-sideline-show-diagnostics "diagnostics" :toggle t)
         ("s s" lsp-ui-sideline-show-symbol "symbol" :toggle t)
@@ -143,7 +150,9 @@
    ;; `lsp-mode' and `treemacs' integration.
    (when emacs/>=25.2p
      (use-package lsp-treemacs
-       :bind (("C-<f8>" . lsp-treemacs-errors-list)
+       :after lsp-mode
+       :bind (:map lsp-mode-map
+              ("C-<f8>" . lsp-treemacs-errors-list)
               ("M-<f8>" . lsp-treemacs-symbols)
               ("s-<f8>" . lsp-treemacs-java-deps-list))
        :config
@@ -159,7 +168,10 @@
              :config
              (progn
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-octicon "tag" :height 0.9 :v-adjust -0.05 :face 'all-the-icons-lblue))
+                :icon (format " %s\t" (all-the-icons-octicon "repo" :height 1.1 :v-adjust -0.1 :face 'all-the-icons-blue))
+                :extensions (root))
+               (treemacs-create-icon
+                :icon (format "%s\t" (all-the-icons-octicon "tag" :height 0.9 :v-adjust 0 :face 'all-the-icons-lblue))
                 :extensions (boolean-data))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-material "settings_input_component" :face 'all-the-icons-orange))
@@ -183,7 +195,7 @@
                 :icon (format "%s\t" (all-the-icons-faicon "bolt" :face 'all-the-icons-orange))
                 :extensions (event))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-octicon "tag" :height 0.9 :v-adjust -0.05 :face 'all-the-icons-lblue))
+                :icon (format "%s\t" (all-the-icons-octicon "tag" :height 0.9 :v-adjust 0 :face 'all-the-icons-lblue))
                 :extensions (field))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-faicon "search"))
@@ -195,7 +207,7 @@
                 :icon (format "%s\t" (all-the-icons-material "share" :face 'all-the-icons-lblue))
                 :extensions (interface))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-octicon "tag" :height 1.0 :v-adjust -0.05 :face 'all-the-icons-blue))
+                :icon (format "%s\t" (all-the-icons-octicon "tag" :height 1.0 :v-adjust 0 :face 'all-the-icons-blue))
                 :extensions (localvariable))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-faicon "cube" :face 'all-the-icons-purple))
@@ -237,13 +249,13 @@
                 :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-blue))
                 :extensions (default-folder-opened))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'all-the-icons-blue))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'all-the-icons-blue))
                 :extensions (default-folder))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-green))
                 :extensions (default-root-folder-opened))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'all-the-icons-green))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'all-the-icons-green))
                 :extensions (default-root-folder))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-octicon "file-binary" :v-adjust 0 :face 'font-lock-doc-face))
@@ -255,31 +267,31 @@
                 :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'font-lock-doc-face))
                 :extensions (folder-open))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'font-lock-doc-face))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'font-lock-doc-face))
                 :extensions (folder))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-orange))
                 :extensions (folder-type-component-opened))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'all-the-icons-orange))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'all-the-icons-orange))
                 :extensions (folder-type-component))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-lgreen))
+                :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-green))
                 :extensions (folder-type-library-opened))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'all-the-icons-lgreen))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'all-the-icons-green))
                 :extensions (folder-type-library))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-pink))
                 :extensions (folder-type-maven-opened))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'all-the-icons-pink))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'all-the-icons-pink))
                 :extensions (folder-type-maven))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'font-lock-doc-face))
+                :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'font-lock-type-face))
                 :extensions (folder-type-package-opened))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'font-lock-doc-face))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'font-lock-type-face))
                 :extensions (folder-type-package))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-faicon "plus" :face 'font-lock-doc-face))
@@ -306,10 +318,10 @@
                 :icon (format "%s\t" (all-the-icons-faicon "book" :v-adjust 0 :face 'all-the-icons-green))
                 :extensions (library))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'font-lock-doc-face))
+                :icon (format "%s\t" (all-the-icons-faicon "folder-open" :face 'all-the-icons-lblue))
                 :extensions (packagefolder-open))
                (treemacs-create-icon
-                :icon (format "%s\t" (all-the-icons-faicon "folder" :face 'font-lock-doc-face))
+                :icon (format "%s\t" (all-the-icons-octicon "file-directory" :v-adjust 0 :face 'all-the-icons-lblue))
                 :extensions (packagefolder))
                (treemacs-create-icon
                 :icon (format "%s\t" (all-the-icons-octicon "package" :v-adjust 0 :face 'font-lock-doc-face))
@@ -348,7 +360,7 @@
 (when centaur-lsp
   ;; Enable LSP in org babel
   ;; https://github.com/emacs-lsp/lsp-mode/issues/377
-  (cl-defmacro lsp-org-babel-enbale (lang)
+  (cl-defmacro lsp-org-babel-enable (lang)
     "Support LANG in org source code block."
     (cl-check-type lang stringp)
     (let* ((edit-pre (intern (format "org-babel-edit-prep:%s" lang)))
@@ -383,7 +395,7 @@
     '("go" "python" "ipython" "ruby" "js" "css" "sass" "C" "rust" "java"))
   (add-to-list 'org-babel-lang-list (if emacs/>=26p "shell" "sh"))
   (dolist (lang org-babel-lang-list)
-    (eval `(lsp-org-babel-enbale ,lang))))
+    (eval `(lsp-org-babel-enable ,lang))))
 
 (provide 'init-lsp)
 

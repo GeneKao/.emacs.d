@@ -109,6 +109,14 @@ Same as `replace-string C-q C-m RET RET'."
         (error "Unable to find \"%s\"" custom-example)))
     (find-file custom-file)))
 
+(defun centaur-read-mode ()
+  "Read articles with better views."
+  (when (fboundp 'olivetti-mode)
+    (olivetti-mode t))
+  (text-scale-set +2))
+
+
+
 ;; Update
 (defun update-config ()
   "Update Centaur Emacs configurations to the latest version."
@@ -119,7 +127,7 @@ Same as `replace-string C-q C-m RET RET'."
           (message "Updating configurations...")
           (cd dir)
           (shell-command "git pull")
-          (message "Updated configurations"))
+          (message "Updating configurations...done"))
       (message "\"%s\" doesn't exist." dir))))
 (defalias 'centaur-update-config 'update-config)
 
@@ -142,10 +150,10 @@ If SYNC is non-nil, the updating process is synchronous."
             (buffer-string)))
        (lambda (result)
          (message "%s" result)
-         (message "Updated packages")))
+         (message "Updating packages...done")))
     (progn
       (upgrade-packages)
-      (message "Updated packages"))))
+      (message "Updating packages...done"))))
 (defalias 'centaur-update-packages 'update-packages)
 
 (defun update-config-and-packages(&optional sync)
@@ -153,7 +161,7 @@ If SYNC is non-nil, the updating process is synchronous."
 
 If SYNC is non-nil, the updating process is synchronous."
   (interactive)
-  (message "Updating Centaur Emacs...")
+  (message "This will update Centaur Emacs to the latest")
   (if (and (not sync)
            (require 'async nil t))
       (async-start
@@ -192,7 +200,7 @@ If SYNC is non-nil, the updating process is synchronous."
           (message "Updating dotfiles...")
           (cd dir)
           (shell-command "git pull")
-          (message "Update finished."))
+          (message "Updating dotfiles...done"))
       (message "\"%s\" doesn't exist." dir))))
 (defalias 'centaur-update-dotfiles 'update-dotfiles)
 
@@ -205,7 +213,7 @@ If SYNC is non-nil, the updating process is synchronous."
           (message "Updating org files...")
           (cd dir)
           (shell-command "git pull")
-          (message "Update finished."))
+          (message "Updating org files...done"))
       (message "\"%s\" doesn't exist." dir))))
 (defalias 'centaur-update-org 'update-org)
 
@@ -258,9 +266,10 @@ If SYNC is non-nil, the updating process is synchronous."
   (pcase theme
     ('default 'doom-one)
     ('classic 'doom-molokai)
-    ('dark 'doom-snazzy)
+    ('colorful 'doom-snazzy)
+    ('dark 'doom-palenight)
     ('light 'doom-one-light)
-    ('day 'doom-solarized-light)
+    ('day 'doom-opera-light)
     ('night 'doom-city-lights)
     (_ (or theme 'doom-one))))
 

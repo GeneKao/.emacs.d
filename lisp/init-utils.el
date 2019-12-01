@@ -47,13 +47,9 @@
              youdao-dictionary--format-result)
   :bind (("C-c y" . my-youdao-search-at-point)
          ("C-c Y" . youdao-dictionary-search-at-point))
+  :init (setq url-automatic-caching t
+              youdao-dictionary-use-chinese-word-segmentation t) ; 中文分词
   :config
-  ;; Cache documents
-  (setq url-automatic-caching t)
-
-  ;; Enable Chinese word segmentation support (支持中文分词)
-  (setq youdao-dictionary-use-chinese-word-segmentation t)
-
   (with-eval-after-load 'posframe
     (with-no-warnings
       (defun youdao-dictionary-search-at-point-posframe ()
@@ -135,10 +131,10 @@
 
   (with-eval-after-load 'all-the-icons
     (setq alert-severity-colors
-          `((urgent   . ,(face-foreground 'error))
+          `((urgent   . ,(face-foreground 'all-the-icons-red))
             (high     . ,(face-foreground 'all-the-icons-orange))
-            (moderate . ,(face-foreground 'warning))
-            (normal   . ,(face-foreground 'success))
+            (moderate . ,(face-foreground 'all-the-icons-yellow))
+            (normal   . ,(face-foreground 'all-the-icons-green))
             (low      . ,(face-foreground 'all-the-icons-blue))
             (trivial  . ,(face-foreground 'all-the-icons-purple)))))
 
@@ -173,7 +169,7 @@
     :ensure pdf-tools
     :diminish (pdf-view-midnight-minor-mode pdf-view-printer-minor-mode)
     :defines pdf-annot-activate-created-annotations
-    :functions my-pdf-view-set-midnight-colors
+    :functions (my-pdf-view-set-midnight-colors my-pdf-view-set-dark-theme)
     :commands pdf-view-midnight-minor-mode
     :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
     :magic ("%PDF" . pdf-view-mode)
@@ -248,12 +244,28 @@
     (visual-line-mode 1)
     (face-remap-add-relative 'variable-pitch :family "Times New Roman" :height 1.5)
     (if (fboundp 'olivetti-mode) (olivetti-mode 1)))
-  :hook (nov-mode . my-nov-setup))
+  :hook (nov-mode . my-nov-setup)
+  :config
+  ;; FIXME: errors while opening `nov' files with Unicode characters
+  ;; @see https://github.com/wasamasa/nov.el/issues/63
+  (with-no-warnings
+    (defun my-nov-content-unique-identifier (content)
+      "Return the the unique identifier for CONTENT."
+      (when-let* ((name (nov-content-unique-identifier-name content))
+                  (selector (format "package>metadata>identifier[id='%s']"
+                                    (regexp-quote name)))
+                  (id (car (esxml-node-children (esxml-query selector content)))))
+        (intern id)))
+    (advice-add #'nov-content-unique-identifier :override #'my-nov-content-unique-identifier)))
 
 ;; Nice writing
 (use-package olivetti
   :diminish
   :bind ("<f7>" . olivetti-mode)
+  :hook (olivetti-mode . (lambda ()
+                           (if olivetti-mode
+                               (text-scale-set +2)
+                             (text-scale-set 0))))
   :init (setq olivetti-body-width 0.618))
 
 ;; Music player
@@ -278,9 +290,62 @@
                files (append files (list file)))
          nil t)
         (with-bongo-library-buffer
-          (mapc 'bongo-insert-file files)))
+         (mapc 'bongo-insert-file files)))
       (bongo-switch-buffers))
     (bind-key "b" #'bongo-add-dired-files dired-mode-map)))
+
+;; IRC
+(use-package erc
+  :ensure nil
+  :defines erc-autojoin-channels-alist
+  :init (setq erc-rename-buffers t
+              erc-interpret-mirc-color t
+              erc-lurker-hide-list '("JOIN" "PART" "QUIT")
+              erc-autojoin-channels-alist '(("freenode.net" "#emacs"))))
+
+;; A stackoverflow and its sisters' sites reader
+(use-package howdoyou
+  :bind (:map howdoyou-mode-map
+         ("q" . kill-buffer-and-window))
+  :hook (howdoyou-mode . read-only-mode))
+
+;; text mode directory tree
+(use-package ztree
+  :custom-face
+  (ztreep-header-face ((t (:inherit diff-header))))
+  (ztreep-arrow-face ((t (:inherit font-lock-comment-face))))
+  (ztreep-leaf-face ((t (:inherit diff-index))))
+  (ztreep-node-face ((t (:inherit font-lock-variable-name-face))))
+  (ztreep-expand-sign-face ((t (:inherit font-lock-function-name-face))))
+  (ztreep-diff-header-face ((t (:inherit (diff-header bold)))))
+  (ztreep-diff-header-small-face ((t (:inherit diff-file-header))))
+  (ztreep-diff-model-normal-face ((t (:inherit font-lock-doc-face))))
+  (ztreep-diff-model-ignored-face ((t (:inherit font-lock-doc-face :strike-through t))))
+  (ztreep-diff-model-diff-face ((t (:inherit diff-removed))))
+  (ztreep-diff-model-add-face ((t (:inherit diff-nonexistent))))
+  :pretty-hydra
+  ((:title (pretty-hydra-title "Ztree" 'octicon "diff" :height 1.2 :v-adjust 0)
+    :color pink :quit-key "q")
+   ("Diff"
+    (("C" ztree-diff-copy "copy" :exit t)
+     ("h" ztree-diff-toggle-show-equal-files "show/hide equals" :exit t)
+     ("H" ztree-diff-toggle-show-filtered-files "show/hide ignores" :exit t)
+     ("D" ztree-diff-delete-file "delete" :exit t)
+     ("v" ztree-diff-view-file "view" :exit t)
+     ("d" ztree-diff-simple-diff-files "simple diff" :exit t)
+     ("r" ztree-diff-partial-rescan "partial rescan" :exit t)
+     ("R" ztree-diff-full-rescan "full rescan" :exit t))
+    "View"
+    (("RET" ztree-perform-action "expand/collapse or view" :exit t)
+     ("SPC" ztree-perform-soft-action "expand/collapse or view in other" :exit t)
+     ("TAB" ztree-jump-side "jump side" :exit t)
+     ("g" ztree-refresh-buffer "refresh" :exit t)
+     ("x" ztree-toggle-expand-subtree "expand/collapse" :exit t)
+     ("<backspace>" ztree-move-up-in-tree "go to parent" :exit t))))
+  :bind (:map ztreediff-mode-map
+         ("C-<f5>" . ztree-hydra/body))
+  :init (setq ztree-draw-unicode-lines t
+              ztree-show-number-of-children t))
 
 ;; Misc
 (use-package copyit)                    ; copy path, url, etc.
@@ -291,7 +356,6 @@
 (use-package list-environment)
 (use-package memory-usage)
 (use-package tldr)
-(use-package ztree)                     ; text mode directory tree
 
 (provide 'init-utils)
 

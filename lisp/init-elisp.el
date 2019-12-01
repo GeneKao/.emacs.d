@@ -57,7 +57,8 @@
 
   ;; Syntax highlighting of known Elisp symbols
   (use-package highlight-defined
-    :hook (emacs-lisp-mode . highlight-defined-mode))
+    :hook (emacs-lisp-mode . highlight-defined-mode)
+    :init (setq highlight-defined-face-use-itself t))
 
   ;; Align indent keywords
   ;; @see https://emacs.stackexchange.com/questions/10230/how-to-indent-keywords-aligned
@@ -208,7 +209,7 @@ Lisp function does not specify a special indentation."
                              (backward-sexp)
                            (scan-error (throw 'break nil)))
                          (let ((bounds (bounds-of-thing-at-point 'sexp)))
-                           (when (< (car bounds) orig-point (cdr bounds))
+                           (when (<= (car bounds) orig-point (cdr bounds))
                              (throw 'break (sexp-at-point)))))))))
           (when (yes-or-no-p (format "Remove %s from %s? " func hook))
             (remove-hook hook func)
@@ -226,7 +227,7 @@ Lisp function does not specify a special indentation."
 ;; Interactive macro expander
 (use-package macrostep
   :custom-face
-  (macrostep-expansion-highlight-face ((t (:background ,(face-background 'tooltip)))))
+  (macrostep-expansion-highlight-face ((t (:background ,(face-background 'tooltip) :extend t))))
   :bind (:map emacs-lisp-mode-map
          ("C-c e" . macrostep-expand)
          :map lisp-interaction-mode-map
@@ -250,6 +251,7 @@ Lisp function does not specify a special indentation."
          ("C-c C-d" . helpful-at-point)
          :map helpful-mode-map
          ("r" . remove-hook-at-point))
+  :hook (helpful-mode . cursor-sensor-mode) ; for remove-advice button
   :init
   (with-eval-after-load 'counsel
     (setq counsel-describe-function-function #'helpful-callable
@@ -269,9 +271,19 @@ Lisp function does not specify a special indentation."
          (helpful-variable (button-get button 'apropos-symbol))))))
 
   ;; Add remove buttons for advices
-  (add-hook 'helpful-mode-hook #'cursor-sensor-mode)
   (define-advice helpful-callable (:after (function) advice-remove-button)
-    (add-button-to-remove-advice (helpful--buffer function t) function)))
+    (add-button-to-remove-advice (helpful--buffer function t) function))
+  :config
+  (with-no-warnings
+    (defun my-helpful--navigate (button)
+      "Navigate to the path this BUTTON represents."
+      (find-file-other-window (substring-no-properties (button-get button 'path)))
+      ;; We use `get-text-property' to work around an Emacs 25 bug:
+      ;; http://git.savannah.gnu.org/cgit/emacs.git/commit/?id=f7c4bad17d83297ee9a1b57552b1944020f23aea
+      (-when-let (pos (get-text-property button 'position
+                                         (marker-buffer button)))
+        (helpful--goto-char-widen pos)))
+    (advice-add #'helpful--navigate :override #'my-helpful--navigate)))
 
 (provide 'init-elisp)
 

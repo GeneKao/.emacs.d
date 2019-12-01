@@ -2,30 +2,38 @@ language: emacs-lisp
 sudo: false
 
 env:
- - EVM_EMACS=emacs-25.3-travis
- - EVM_EMACS=emacs-26.3-travis
- - EVM_EMACS=emacs-git-snapshot-travis
+  - EVM_EMACS=emacs-25.1-travis
+  - EVM_EMACS=emacs-25.2-travis
+  - EVM_EMACS=emacs-25.3-travis
+  - EVM_EMACS=emacs-26.1-travis-linux-xenial
+  - EVM_EMACS=emacs-26.2-travis-linux-xenial
+  - EVM_EMACS=emacs-26.3-travis-linux-xenial
+  - EVM_EMACS=emacs-git-snapshot-travis-linux-xenial
 
 matrix:
   fast_finish: true
   allow_failures:
-    env:
-      - EVM_EMACS=emacs-git-snapshot-travis
+    - env: EVM_EMACS=emacs-git-snapshot-travis-linux-xenial
 
-before_script:
+before_install:
+  - |
+    if ! git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(.md)|(.png)|(.pdf)|(.html)|^(LICENSE)|^(docs)'; then
+      echo "Not running CI since only docs were changed."
+      exit
+    fi
+
+install:
   - mv -f ../.emacs.d ~/.emacs.d
   - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
   - evm install $EVM_EMACS --use --skip
-  # - mkdir -p lib && curl https://raw.githubusercontent.com/nschum/elisp-lint/stable/elisp-lint.el > lib/elisp-lint.el
 
-script:
   - echo "Importing new elpa key..."
   - mkdir -p ~/.emacs.d/elpa/gnupg
   - chmod 700 ~/.emacs.d/elpa/gnupg 
   - gpg --keyserver hkp://keys.gnupg.net --homedir ~/.emacs.d/elpa/gnupg --recv-keys 066DAFCB81E42C40
 
+script:
   - echo "Attempting startup..."
-  - ${EMACS:=emacs} --version
   - ${EMACS:=emacs} -nw --batch --eval
     '(let ((debug-on-error (>=  emacs-major-version 26))
            (url-show-status nil)
@@ -39,4 +47,6 @@ script:
     (when (>= emacs-major-version 26)
       (run-hooks (quote after-init-hook))
       (run-hooks (quote emacs-startup-hook))))'
+
+after_success:
   - echo "Startup successful"
