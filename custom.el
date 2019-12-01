@@ -9,7 +9,7 @@
 (setq centaur-mail-address "kao.gene@gmail.com")  ; Email address
 ;; (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
 (setq centaur-package-archives 'emacs-china)      ; Package repo: melpa, emacs-china or tuna
-(setq centaur-theme 'dark)                         ; Color theme: default, doom, classic, dark, light or daylight
+(setq centaur-theme 'light)                         ; Color theme: default, doom, classic, dark, light or daylight
 (setq centaur-lsp 'eglot)                         ; Set LSP client: lsp-mode, eglot or nil
 (setq centaur-emoji-enabled t)                 ; Enable/disable emoji: t or nil
 ;; (setq centaur-benchmark-enabled t)             ; Enable/disable initialization benchmark: t or nil
