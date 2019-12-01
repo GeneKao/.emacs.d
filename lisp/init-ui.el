@@ -65,6 +65,8 @@
 (if (centaur-compatible-theme-p centaur-theme)
     (progn
       (use-package doom-themes
+        :defines doom-themes-treemacs-theme
+        :functions doom-themes-hide-modeline
         :hook (after-load-theme . (lambda ()
                                     (set-face-foreground
                                      'mode-line
@@ -84,7 +86,7 @@
         (set-face-attribute 'doom-visual-bell nil
                             :inherit 'mode-line
                             :background (face-foreground 'error)
-                            :inverse-video nil)
+                            :inverse-video 'unspecified)
         (defvar doom-themes--bell-p nil)
         (defun doom-themes-visual-bell-fn ()
           "Blink the mode-line red briefly. Set `ring-bell-function' to this to use it."
@@ -110,31 +112,10 @@
         (doom-themes-org-config)
 
         ;; Enable customized theme (`all-the-icons' must be installed!)
+        (setq doom-themes-treemacs-theme "doom-colors")
         (doom-themes-treemacs-config)
-        (with-no-warnings
-          (setq doom-themes-treemacs-theme "doom-colors")
-          (with-eval-after-load 'treemacs
-            (remove-hook 'treemacs-mode-hook #'doom-themes-hide-modeline)
-            ;; FIXME: Remove if PR #347 is merged into `doom-themes'
-	        (when (require 'all-the-icons nil t)
-              (treemacs-modify-theme "doom-colors"
-                :config
-                (progn
-                  (treemacs-create-icon
-                   :icon (format " %s\t" (all-the-icons-octicon "repo" :height 1.1 :v-adjust -0.1 :face 'font-lock-string-face))
-                   :extensions (root) :fallback "")
-                  (treemacs-create-icon
-                   :icon (format "%s\t%s\t"
-                                 (all-the-icons-octicon "chevron-down" :height 0.75 :v-adjust 0.1 :face 'font-lock-doc-face)
-                                 (all-the-icons-octicon "package" :v-adjust 0 :face 'font-lock-doc-face)) :extensions (tag-open))
-                  (treemacs-create-icon
-                   :icon (format "%s\t%s\t"
-                                 (all-the-icons-octicon "chevron-right" :height 0.75 :v-adjust 0.1 :face 'font-lock-doc-face)
-                                 (all-the-icons-octicon "package" :v-adjust 0 :face 'font-lock-doc-face))
-                   :extensions (tag-closed))
-                  (treemacs-create-icon
-                   :icon (format "%s " (all-the-icons-octicon "tag" :v-adjust 0 :face 'font-lock-doc-face))
-                   :extensions (tag-leaf))))))))
+        (with-eval-after-load 'treemacs
+          (remove-hook 'treemacs-mode-hook #'doom-themes-hide-modeline)))
 
       ;; Make certain buffers grossly incandescent
       (use-package solaire-mode
@@ -180,10 +161,10 @@
       "colorful major mode" :toggle doom-modeline-major-mode-color-icon)
      ("s" (setq doom-modeline-buffer-state-icon (not doom-modeline-buffer-state-icon))
       "buffer state" :toggle doom-modeline-buffer-state-icon)
-     ("d" (setq doom-modeline-buffer-modification-icon (not doom-modeline-buffer-modification-icon))
+     ("o" (setq doom-modeline-buffer-modification-icon (not doom-modeline-buffer-modification-icon))
       "modification" :toggle doom-modeline-buffer-modification-icon)
-     ("p" (setq doom-modeline-persp-name-icon (not doom-modeline-persp-name-icon))
-      "perspective" :toggle doom-modeline-persp-name-icon))
+     ("v" (setq doom-modeline-modal-icon (not doom-modeline-modal-icon))
+      "modal" :toggle doom-modeline-modal-icon))
     "Segment"
     (("M" (setq doom-modeline-minor-modes (not doom-modeline-minor-modes))
       "minor modes" :toggle doom-modeline-minor-modes)
@@ -263,19 +244,51 @@
   :init (unless (or sys/win32p (member "all-the-icons" (font-family-list)))
           (all-the-icons-install-fonts t))
   :config
+  (with-no-warnings
+    (defun all-the-icons-reset ()
+      "Reset (unmemoize/memoize) the icons."
+      (interactive)
+      (dolist (f '(all-the-icons-icon-for-file
+                   all-the-icons-icon-for-mode
+                   all-the-icons-icon-for-url
+                   all-the-icons-icon-family-for-file
+                   all-the-icons-icon-family-for-mode
+                   all-the-icons-icon-family))
+        (ignore-errors
+          (memoize-restore f)
+          (memoize f)))
+      (message "Reset all-the-icons")))
+
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(elfeed-search-mode all-the-icons-faicon "rss-square" :v-adjust -0.1 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(elfeed-show-mode all-the-icons-octicon "rss" :height 1.1 :v-adjust 0.0 :face all-the-icons-lorange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(newsticker-mode all-the-icons-faicon "rss-square" :v-adjust -0.1 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(newsticker-treeview-mode all-the-icons-faicon "rss-square" :v-adjust -0.1 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(newsticker-treeview-list-mode all-the-icons-octicon "rss" :height 1.1 :v-adjust 0.0 :face all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(newsticker-treeview-item-mode all-the-icons-octicon "rss" :height 1.1 :v-adjust 0.0 :face all-the-icons-lorange))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.[bB][iI][nN]$" all-the-icons-octicon "file-binary" :v-adjust 0.0 :face all-the-icons-yellow))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.c?make$" all-the-icons-fileicon "gnu" :face all-the-icons-dorange))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.conf$" all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-yellow))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.toml$" all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-yellow))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(conf-mode all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-yellow))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(conf-space-mode all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-yellow))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(forge-topic-mode all-the-icons-alltheicon "git" :face all-the-icons-blue))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(vterm-mode all-the-icons-octicon "terminal" :v-adjust 0.2))
   (add-to-list 'all-the-icons-icon-alist
                '("\\.xpm$" all-the-icons-octicon "file-media" :v-adjust 0.0 :face all-the-icons-dgreen))
-
-  (add-to-list 'all-the-icons-icon-alist
-               '("\\.toml$" all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-dyellow))
-  (add-to-list 'all-the-icons-mode-icon-alist
-               '(conf-toml-mode all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-dyellow))
-  (add-to-list 'all-the-icons-icon-alist
-               '("\\.lua$" all-the-icons-fileicon "lua" :face all-the-icons-dblue))
-  (add-to-list 'all-the-icons-mode-icon-alist
-               '(lua-mode all-the-icons-fileicon "lua" :face all-the-icons-dblue))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(help-mode all-the-icons-faicon "info-circle" :height 1.1 :v-adjust -0.1 :face all-the-icons-purple))
   (add-to-list 'all-the-icons-mode-icon-alist
@@ -291,11 +304,11 @@
   (add-to-list 'all-the-icons-icon-alist
                '(".*\\.ipynb\\'" all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
   (add-to-list 'all-the-icons-mode-icon-alist
-               '(ein:notebooklist-mode all-the-icons-faicon "book" :face all-the-icons-orange))
+               '(ein:notebooklist-mode all-the-icons-faicon "book" :face all-the-icons-lorange))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(ein:notebook-mode all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
   (add-to-list 'all-the-icons-mode-icon-alist
-               '(ein:notebook-multilang-mode all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-orange))
+               '(ein:notebook-multilang-mode all-the-icons-fileicon "jupyter" :height 1.2 :face all-the-icons-dorange))
   (add-to-list 'all-the-icons-icon-alist
                '("\\.epub\\'" all-the-icons-faicon "book" :height 1.0 :v-adjust -0.1 :face all-the-icons-green))
   (add-to-list 'all-the-icons-mode-icon-alist

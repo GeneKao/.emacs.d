@@ -36,7 +36,7 @@
 ;; Highlight the current line
 (use-package hl-line
   :ensure nil
-  :custom-face (hl-line ((t (:extend t)))) ; FIXME: compatible with 27
+  :custom-face (hl-line ((t (:extend t))))
   :hook (after-init . global-hl-line-mode))
 
 ;; Highlight matching parens
@@ -94,16 +94,7 @@ FACE defaults to inheriting from default and highlight."
 (use-package symbol-overlay
   :diminish
   :functions (turn-off-symbol-overlay turn-on-symbol-overlay)
-  :custom-face
-  (symbol-overlay-default-face ((t (:inherit (region bold)))))
-  (symbol-overlay-face-1 ((t (:inherit (highlight bold)))))
-  (symbol-overlay-face-2 ((t (:inherit (font-lock-builtin-face bold) :inverse-video t))))
-  (symbol-overlay-face-3 ((t (:inherit (warning bold) :inverse-video t))))
-  (symbol-overlay-face-4 ((t (:inherit (font-lock-constant-face bold) :inverse-video t))))
-  (symbol-overlay-face-5 ((t (:inherit (error bold) :inverse-video t))))
-  (symbol-overlay-face-6 ((t (:inherit (dired-mark bold) :inverse-video t))))
-  (symbol-overlay-face-7 ((t (:inherit (success bold) :inverse-video t))))
-  (symbol-overlay-face-8 ((t (:inherit (dired-symlink bold) :inverse-video t))))
+  :custom-face (symbol-overlay-default-face ((t (:inherit (region bold)))))
   :bind (("M-i" . symbol-overlay-put)
          ("M-n" . symbol-overlay-jump-next)
          ("M-p" . symbol-overlay-jump-prev)
@@ -115,6 +106,16 @@ FACE defaults to inheriting from default and highlight."
          (iedit-mode . turn-off-symbol-overlay)
          (iedit-mode-end . turn-on-symbol-overlay))
   :init (setq symbol-overlay-idle-time 0.1)
+  (with-eval-after-load 'all-the-icons
+    (setq symbol-overlay-faces
+          '((:inherit (all-the-icons-blue bold) :inverse-video t)
+            (:inherit (all-the-icons-pink bold) :inverse-video t)
+            (:inherit (all-the-icons-yellow bold) :inverse-video t)
+            (:inherit (all-the-icons-maroon bold) :inverse-video t)
+            (:inherit (all-the-icons-red bold) :inverse-video t)
+            (:inherit (all-the-icons-orange bold) :inverse-video t)
+            (:inherit (all-the-icons-green bold) :inverse-video t)
+            (:inherit (all-the-icons-cyan bold) :inverse-video t))))
   :config
   ;; Disable symbol highlighting while selecting
   (defun turn-off-symbol-overlay (&rest _)
@@ -133,13 +134,12 @@ FACE defaults to inheriting from default and highlight."
 ;; Highlight indentions
 (when (display-graphic-p)
   (use-package highlight-indent-guides
-    :disabled
     :diminish
     :functions (ivy-cleanup-string
                 my-ivy-cleanup-indentation)
     :commands highlight-indent-guides--highlighter-default
     :functions my-indent-guides-for-all-but-first-column
-    :hook (prog-mode . highlight-indent-guides-mode)
+    ;; :hook (prog-mode . highlight-indent-guides-mode)
     :init (setq highlight-indent-guides-method 'character
                 highlight-indent-guides-responsive 'top)
     :config
@@ -188,7 +188,7 @@ FACE defaults to inheriting from default and highlight."
   :commands (rainbow-x-color-luminance rainbow-colorize-match rainbow-turn-off)
   :bind (:map help-mode-map
          ("w" . rainbow-mode))
-  :hook ((css-mode scss-mode less-css-mode) . rainbow-mode)
+  :hook ((html-mode php-mode) . rainbow-mode)
   :config
   ;; HACK: Use overlay instead of text properties to override `hl-line' faces.
   ;; @see https://emacs.stackexchange.com/questions/36420
@@ -303,6 +303,7 @@ FACE defaults to inheriting from default and highlight."
                  other-window windmove-do-window-select
                  ace-window aw--select-window
                  pager-page-down pager-page-up
+                 treemacs-select-window
                  symbol-overlay-basic-jump))
     (advice-add cmd :after #'my-pulse-momentary-line))
   (dolist (cmd '(pop-to-mark-command
