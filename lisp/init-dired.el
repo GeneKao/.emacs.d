@@ -1,6 +1,6 @@
 ;; init-dired.el --- Initialize dired configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,8 +30,8 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const))
+(require 'init-const)
+(require 'init-funcs)
 
 ;; Directory operations
 (use-package dired
@@ -81,31 +81,39 @@
   ;; Shows icons
   (use-package all-the-icons-dired
     :diminish
+    :if (icons-displayable-p)
     :hook (dired-mode . all-the-icons-dired-mode)
     :config
+    ;; FIXME: Refresh after creating or renaming the files/directories.
+    ;; @see https://github.com/jtbm37/all-the-icons-dired/issues/34.
     (with-no-warnings
-      (defun my-all-the-icons-dired--display ()
-        "Display the icons of files without colors in a dired buffer."
-        (when dired-subdir-alist
-          (let ((inhibit-read-only t))
+      (advice-add 'dired-do-create-files :around #'all-the-icons-dired--refresh-advice)
+      (advice-add 'dired-create-directory :around #'all-the-icons-dired--refresh-advice))
+
+    (with-no-warnings
+      (defun my-all-the-icons-dired--refresh ()
+        "Display the icons of files in a dired buffer."
+        (all-the-icons-dired--remove-all-overlays)
+        ;; NOTE: don't display icons it too many items
+        (if (<= (count-lines (point-min) (point-max)) 1000)
             (save-excursion
-              ;; TRICK: Use TAB to align icons
-              (setq-local tab-width 1)
               (goto-char (point-min))
               (while (not (eobp))
                 (when (dired-move-to-filename nil)
-                  (insert " ")
-                  (let ((file (dired-get-filename 'verbatim t)))
-                    (unless (member file '("." ".."))
-                      (let ((filename (dired-get-filename nil t)))
-                        (if (file-directory-p filename)
-                            (insert (all-the-icons-icon-for-dir filename nil ""))
-                          (insert (all-the-icons-icon-for-file file :v-adjust -0.05))))
-                      ;; Align and keep one space for refeshing after some operations
-                      (insert "\t "))))
-                (forward-line 1))))))
-      (advice-add #'all-the-icons-dired--display
-                  :override #'my-all-the-icons-dired--display)))
+                  (let ((file (dired-get-filename 'relative 'noerror)))
+                    (when file
+                      (let ((icon (if (file-directory-p file)
+                                      (all-the-icons-icon-for-dir file
+                                                                  :face 'all-the-icons-dired-dir-face
+                                                                  :height 0.9
+                                                                  :v-adjust all-the-icons-dired-v-adjust)
+                                    (all-the-icons-icon-for-file file :height 0.9 :v-adjust all-the-icons-dired-v-adjust))))
+                        (if (member file '("." ".."))
+                            (all-the-icons-dired--add-overlay (point) "  \t")
+                          (all-the-icons-dired--add-overlay (point) (concat icon "\t")))))))
+                (forward-line 1)))
+          (message "Not display icons because of too many items.")))
+      (advice-add #'all-the-icons-dired--refresh :override #'my-all-the-icons-dired--refresh)))
 
   ;; Extra Dired functionality
   (use-package dired-aux :ensure nil)
@@ -113,11 +121,10 @@
     :ensure nil
     :demand
     :config
-    (let ((cmd (cond
-                (sys/mac-x-p "open")
-                (sys/linux-x-p "xdg-open")
-                (sys/win32p "start")
-                (t ""))))
+    (let ((cmd (cond (sys/mac-x-p "open")
+                     (sys/linux-x-p "xdg-open")
+                     (sys/win32p "start")
+                     (t ""))))
       (setq dired-guess-shell-alist-user
             `(("\\.pdf\\'" ,cmd)
               ("\\.docx\\'" ,cmd)

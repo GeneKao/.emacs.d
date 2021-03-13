@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/seagle0128/.emacs.d.svg?branch=master)](https://travis-ci.org/seagle0128/.emacs.d)
 [![Release Tag](https://img.shields.io/github/tag/seagle0128/.emacs.d.svg?label=release)](https://github.com/seagle0128/.emacs.d/releases/latest)
-[![License](http://img.shields.io/:license-gpl3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
+[![License](http://img.shields.io/:license-gpl3-blue.svg)](LICENSE)
 
 ![Centaur Emacs](logo.png)
 
@@ -20,10 +20,12 @@
         - [Update](#update)
         - [Docker](#docker)
     - [Customization](#customization)
-        - [Customize-group](#customize-group)
+        - [Customize Group](#customize-group)
         - [Manual](#manual)
+    - [Hydra](#hydra)
     - [Screenshots](#screenshots)
     - [FAQ](#faq)
+    - [Donate](#donate)
 
 <!-- markdown-toc end -->
 
@@ -92,14 +94,21 @@ or download the [zip
 package](https://github.com/seagle0128/.emacs.d/archive/master.zip) directly and
 extract to `~/.emacs.d`.
 
-Then start Emacs. Wait for a while to install packages at the first startup. Enjoy! :smile:
+Then start Emacs. Wait for a while to install packages at the first startup.
+Enjoy! :smile:
+
+**NOTE**: Start Emacs with the minimal configuration for fast startup and
+troubleshooting.
+
+``` shell
+emacs -Q --l ~/.emacs.d/init-mini.el
+```
 
 ### Update
 
 ``` emacs-lisp
-# Update Centaur Emacs (then restart), including configurations and packages
+# Update Centaur Emacs, including configurations and packages
 M-x centaur-update
-M-x centaur-update-and-restart
 
 # Update Emacs configurations only
 M-x centaur-update-config
@@ -107,9 +116,8 @@ M-x centaur-update-config
 # Update ~/.dotfiles if it exists
 M-x centaur-update-dotfiles
 
-# Update packages only (then restart)
+# Update packages only
 M-x centaur-update-packages
-M-x centaur-update-packages-and-restart
 
 # Update all including configurations, packages and dotfiles
 M-x centaur-update-all
@@ -131,7 +139,7 @@ docker run -it centaur/emacs bash
 
 ### Manual
 
-Copy `custom-template.el` to `custom.el` and change the configurations, then restart Emacs.
+Add or change the configurations in `custom.el`, then restart Emacs.
 
 For Example:
 
@@ -140,18 +148,48 @@ For Example:
 (setq centaur-full-name "user name")           ; User full name
 (setq centaur-mail-address "user@email.com")   ; Email address
 (setq centaur-proxy "127.0.0.1:1080")          ; Network proxy
+(setq centaur-server nil)                      ; Enable `server-mode' or not: t or nil
+(setq centaur-icon nil)                        ; Display icons or not: t or nil
 (setq centaur-package-archives 'emacs-china)   ; Package repo: melpa, melpa-mirror, emacs-china, netease or tuna
-(setq centaur-theme 'dark)                     ; Color theme: default, classic, colorful, dark, light, day or night
+(setq centaur-theme 'light)                    ; Color theme: auto, random, default, classic, colorful, dark, light, day or night
 (setq centaur-dashboard nil)                   ; Use dashboard at startup or not: t or nil
 (setq centaur-lsp 'eglot)                      ; Set LSP client: lsp-mode, eglot or nil
-(setq centaur-chinese-calendar nil)            ; Use Chinese calendar or not: t or nil
-(setq centaur-benchmark t)                     ; Enable initialization benchmark or not: t or nil
+(setq centaur-lsp-format-on-save-ignore-modes '(c-mode c++-mode)) ; Ignore format on save for some languages
+(setq centaur-chinese-calendar t)              ; Use Chinese calendar or not: t or nil
+(setq centaur-prettify-symbols-alist nil)      ; Alist of symbol prettifications
+(setq centaur-prettify-org-symbols-alist nil)  ; Alist of symbol prettifications for `org-mode'
+(setq centaur-benchmark-init t)                ; Enable initialization benchmark or not: t or nil
 ```
 
 The default package archives is `melpa`. You can change it in `custom.el`, or
-switch manually via `M-x switch-package-archives` anytime.
+set manually via `M-x set-package-archives` anytime.
 
-For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
+For the personal configurations, you could put to `~/.emacs.d/custom-post.org`
+ or`~/.emacs.d/custom-post.el`.
+
+## Hydra
+
+| Name                     | Scope                 | Keybinding        | Description                          |
+|--------------------------|-----------------------|-------------------|--------------------------------------|
+| `toggles-hydra`          | global                | `<f6>`            | Global option toggles                |
+| `window-hydra`           | global                | `C-c w`/`C-x o w` | Window management                    |
+| `doom-modeline-hydra`    | doom-modeline-mode    | `C-<f6>`          | Mode-line options and actions        |
+| `hydra-ivy`              | minibuffer, ivy-mode  | `C-o`             | Additional key bindings for Ivy      |
+| `ivy-hydra-read-action`  | minibuffer, ivy-mode  | `M-o`             | Actions for`ivy-dispatching-done`    |
+| `hydra-dired-qick-sort`  | dired                 | `S`               | Options for `dired-quick-sort`       |
+| `org-hydra`              | org-mode              | `<`               | Org template                         |
+| `dashboard-hydra`        | dashboard-mode        | `h`/`?`           | Actions for the dashboard            |
+| `dumb-jump-hydra`        | global                | `C-M-j`           | Jump to definition                   |
+| `youdao-dictionay-hydra` | youdao-dictionay-mode | `h`/`?`           | Actions for `youdao-dictionary`      |
+| `ztreediff-hydra`        | zreediff-mode         | `C-<f5>`          | Actions for text mode directory tree |
+| `git-messenger-hydra`    | global                | `C-x v p`         | Actions for `git-messenger`          |
+| `smerge-mode-hydra`      | smerge-mode           | `C-c m`           | Actions for `smerge-mode`            |
+| `rect-hydra`             | text-mode, prog-mode  | `C-<return>`      | Actions for Rectangle                |
+| `rect-hydra`             | org-mode              | `S-<return>`      | Actions for Rectangle                |
+| `lsp-ui-hydra`           | lsp-ui-mode           | `M-<f6>`          | Actions for `lsp-ui`                 |
+| `dap-hydra`              | dap-mode              | `M-<f5>`          | Actions for `dap-debug`              |
+| `elfeed-hydra`           | elfeed                | `?`               | Actions for RSS reader `elfeed`      |
+| `xwidget-hydra`          | xwidget-webkit-mode   | `?`               | Actions for embedded webkit browser  |
 
 ## Screenshots
 
@@ -174,16 +212,27 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
 
 1. How to display icons correctly in `Centaur Emacs`?
 
-    `all-the-icons` are necessary. Run `M-x all-the-icons-install-fonts` to
-    install the resource fonts. On Windows, the fonts should be installed manually.
-    `all-the-icons` only support GUI. If you don't like color icons,
-    `(setq all-the-icons-color-icons nil)` to disable. Please refer to
-    [all-the-icons.el](https://github.com/domtronn/all-the-icons.el) for details.
-
-    If some icons are not displayed correctly although `all-the-icons` fonts are
-    installed correctly, please install [symbola](http://users.teilar.gr/~g1951d/).
-    Refer to [#121](https://github.com/seagle0128/.emacs.d/issues/121) for more
+    [all-the-icons](https://github.com/domtronn/all-the-icons.el) are necessary.
+    Run `M-x all-the-icons-install-fonts` to install the resource fonts. On
+    Windows, the fonts should be installed manually. `all-the-icons` only
+    support GUI. If you don't like color icons, `(setq all-the-icons-color-icons
+    nil)` to disable it. Please refer to
+    [all-the-icons.el](https://github.com/domtronn/all-the-icons.el) for
     details.
+
+    If the icons are not displayed correctly although `all-the-icons` fonts are
+    installed correctly, please install the
+    [non-free](http://users.teilar.gr/~g1951d/License.pdf) font
+    [Symbola](https://dn-works.com/wp-content/uploads/2020/UFAS-Fonts/Symbola.zip).
+    This issue usually occurs on Windows. Refer to [#121](https://github.com/seagle0128/.emacs.d/issues/121)
+    for more details.
+
+    If you are using [cnfonts](https://github.com/tumashu/cnfonts), it will
+    conflict with `all-the-icons`. The workaround is
+    [here](https://github.com/seagle0128/doom-modeline/issues/278#issuecomment-569510336).
+
+    For better experience, I don't recommend to use GUI with `emacsclient` in
+    `daemon` mode. See [#154](https://github.com/seagle0128/.emacs.d/issues/154).
 
 1. The packages cannot be installed, what should I do?
 
@@ -191,7 +240,7 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
    [#98](https://github.com/seagle0128/.emacs.d/issues/98).
    - `M-x package-refresh-contents` and try again.
    - `(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")`.
-   - Use other mirror of elpa.
+   - Use other mirror of ELPA.
    - Change another network to retry.
 
 1. How to search Chinese via pinyin?
@@ -229,6 +278,11 @@ For the personal configurations, you could put to `~/.emacs.d/custom-post.el`.
     Please refer to #33. You should instead set environment variables in startup
     files like .profile, .bash_profile or .zshenv, then `Centaur Emacs` is able
     to recognize and import the environment variables.
+
+1. How to use [zoom-window](https://github.com/syohex/emacs-zoom-window) in
+   `Centuar Emacs`?
+
+   See [#169](https://github.com/seagle0128/.emacs.d/issues/169#issuecomment-590035527).
 
 ## Donate
 

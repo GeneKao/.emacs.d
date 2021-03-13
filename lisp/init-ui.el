@@ -1,6 +1,6 @@
 ;; init-ui.el --- Better lookings and appearances.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,13 +30,9 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const)
-  (require 'init-custom))
-
-;; Suppress warnings in hydra
-(declare-function centaur-compatible-theme-p 'init-funcs)
-(declare-function centaur-load-theme 'init-funcs)
+(require 'init-const)
+(require 'init-custom)
+(require 'init-funcs)
 
 ;; Logo
 (setq fancy-splash-image centaur-logo)
@@ -54,97 +50,60 @@
                 (set-frame-parameter nil 'ns-appearance bg)
                 (setcdr (assq 'ns-appearance default-frame-alist) bg)))))
 
+;; Inhibit resizing frame
+(setq frame-inhibit-implied-resize t
+      frame-resize-pixelwise t)
+
 ;; Menu/Tool/Scroll bars
-(unless emacs/>=27p        ; Move to early init-file in 27
-  (unless sys/mac-x-p
-    (push '(menu-bar-lines . 0) default-frame-alist))
+(unless emacs/>=27p
+  (push '(menu-bar-lines . 0) default-frame-alist)
   (push '(tool-bar-lines . 0) default-frame-alist)
   (push '(vertical-scroll-bars) default-frame-alist))
 
 ;; Theme
 (if (centaur-compatible-theme-p centaur-theme)
     (progn
-      (use-package doom-themes
-        :defines doom-themes-treemacs-theme
-        :functions doom-themes-hide-modeline
-        :hook (after-load-theme . (lambda ()
-                                    (set-face-foreground
-                                     'mode-line
-                                     (face-foreground 'default))))
-        :init (centaur-load-theme centaur-theme)
-        :config
-        ;; FIXME: @see https://github.com/hlissner/emacs-doom-themes/issues/317.
-        (set-face-foreground 'mode-line (face-foreground 'default))
-
-        ;; Make swiper match clearer
-	    (with-eval-after-load 'swiper
-	      (set-face-background 'swiper-background-match-face-1 "SlateGray1"))
-
-        ;; Enable flashing mode-line on errors
-        (doom-themes-visual-bell-config)
-        ;; WORKAROUND: use legacy codes
-        (set-face-attribute 'doom-visual-bell nil
-                            :inherit 'mode-line
-                            :background (face-foreground 'error)
-                            :inverse-video 'unspecified)
-        (defvar doom-themes--bell-p nil)
-        (defun doom-themes-visual-bell-fn ()
-          "Blink the mode-line red briefly. Set `ring-bell-function' to this to use it."
-          (unless doom-themes--bell-p
-            (let ((old-remap (copy-alist face-remapping-alist)))
-              (setq doom-themes--bell-p t)
-              (setq face-remapping-alist
-                    (append (delete (assq 'mode-line face-remapping-alist)
-                                    face-remapping-alist)
-                            '((mode-line doom-visual-bell))))
-              (force-mode-line-update)
-              (run-with-timer 0.15 nil
-                              (lambda (remap buf)
-                                (with-current-buffer buf
-                                  (when (assq 'mode-line face-remapping-alist)
-                                    (setq face-remapping-alist remap
-                                          doom-themes--bell-p nil))
-                                  (force-mode-line-update)))
-                              old-remap
-                              (current-buffer)))))
-
-        ;; Corrects (and improves) org-mode's native fontification.
-        (doom-themes-org-config)
-
-        ;; Enable customized theme (`all-the-icons' must be installed!)
-        (setq doom-themes-treemacs-theme "doom-colors")
-        (doom-themes-treemacs-config)
-        (with-eval-after-load 'treemacs
-          (remove-hook 'treemacs-mode-hook #'doom-themes-hide-modeline)))
-
       ;; Make certain buffers grossly incandescent
+      ;; Must before loading the theme
       (use-package solaire-mode
         :functions persp-load-state-from-file
         :hook (((change-major-mode after-revert ediff-prepare-buffer) . turn-on-solaire-mode)
                (minibuffer-setup . solaire-mode-in-minibuffer)
                (after-load-theme . solaire-mode-swap-bg))
-        :config
-        (setq solaire-mode-remap-fringe nil)
+        :init
         (solaire-global-mode 1)
-        (solaire-mode-swap-bg)
         (advice-add #'persp-load-state-from-file
-                    :after #'solaire-mode-restore-persp-mode-buffers)))
+                    :after #'solaire-mode-restore-persp-mode-buffers))
+
+      (use-package doom-themes
+        :custom-face
+        (doom-modeline-buffer-file ((t (:inherit (mode-line bold)))))
+        :custom
+        (doom-themes-treemacs-theme "doom-colors")
+        :init (centaur-load-theme centaur-theme t)
+        :config
+        ;; Enable flashing mode-line on errors
+        (doom-themes-visual-bell-config)
+
+        ;; Enable customized theme
+        (doom-themes-treemacs-config)))
   (progn
-    (warn "The current theme may not be compatible with Centaur!")
-    (centaur-load-theme centaur-theme)))
+    (warn "The current theme may not be compatible!")
+    (centaur-load-theme centaur-theme t)))
 
 ;; Mode-line
 (use-package doom-modeline
+  :custom
+  (doom-modeline-icon centaur-icon)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-unicode-fallback t)
+  (doom-modeline-mu4e nil)
   :hook (after-init . doom-modeline-mode)
   :init
-  ;; prevent flash of unstyled modeline at startup
+  ;; Prevent flash of unstyled modeline at startup
   (unless after-init-time
-    (setq doom-modeline--old-format mode-line-format)
+    (setq doom-modeline--default-format mode-line-format)
     (setq-default mode-line-format nil))
-
-  (setq doom-modeline-major-mode-color-icon t
-        doom-modeline-minor-modes nil
-        doom-modeline-mu4e nil)
   :bind (:map doom-modeline-mode-map
          ("C-<f6>" . doom-modeline-hydra/body))
   :pretty-hydra
@@ -180,16 +139,31 @@
       "perspective" :toggle doom-modeline-persp-name)
      ("G" (setq doom-modeline-github (not doom-modeline-github))
       "github" :toggle doom-modeline-github)
+     ("N" (setq doom-modeline-gnus (not doom-modeline-gnus))
+      "gnus" :toggle doom-modeline-gnus)
      ("U" (setq doom-modeline-mu4e (not doom-modeline-mu4e))
       "mu4e" :toggle doom-modeline-mu4e)
      ("R" (setq doom-modeline-irc (not doom-modeline-irc))
       "irc" :toggle doom-modeline-irc)
-     ("S" (setq doom-modeline-checker-simple-format (not doom-modeline-checker-simple-format))
+     ("F" (setq doom-modeline-irc-buffers (not doom-modeline-irc-buffers))
+      "irc buffers" :toggle doom-modeline-irc-buffers)
+     ("S" (progn
+            (setq doom-modeline-checker-simple-format (not doom-modeline-checker-simple-format))
+            (and (bound-and-true-p flycheck-mode) (flycheck-buffer)))
       "simple checker" :toggle doom-modeline-checker-simple-format)
      ("V" (setq doom-modeline-env-version (not doom-modeline-env-version))
       "version" :toggle doom-modeline-env-version))
     "Style"
-    (("t u" (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
+    (("a" (setq doom-modeline-buffer-file-name-style 'auto)
+      "auto"
+      :toggle (eq doom-modeline-buffer-file-name-style 'auto))
+     ("b" (setq doom-modeline-buffer-file-name-style 'buffer-name)
+      "buffer name"
+      :toggle (eq doom-modeline-buffer-file-name-style 'buffer-name))
+     ("f" (setq doom-modeline-buffer-file-name-style 'file-name)
+      "file name"
+      :toggle (eq doom-modeline-buffer-file-name-style 'file-name))
+     ("t u" (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
       "truncate upto project"
       :toggle (eq doom-modeline-buffer-file-name-style 'truncate-upto-project))
      ("t f" (setq doom-modeline-buffer-file-name-style 'truncate-from-project)
@@ -207,58 +181,110 @@
      ("t a" (setq doom-modeline-buffer-file-name-style 'truncate-all)
       "truncate all"
       :toggle (eq doom-modeline-buffer-file-name-style 'truncate-all))
+     ("t n" (setq doom-modeline-buffer-file-name-style 'truncate-nil)
+      "truncate none"
+      :toggle (eq doom-modeline-buffer-file-name-style 'truncate-nil))
      ("r f" (setq doom-modeline-buffer-file-name-style 'relative-from-project)
       "relative from project"
       :toggle (eq doom-modeline-buffer-file-name-style 'relative-from-project))
      ("r t" (setq doom-modeline-buffer-file-name-style 'relative-to-project)
       "relative to project"
-      :toggle (eq doom-modeline-buffer-file-name-style 'relative-to-project))
-     ("f" (setq doom-modeline-buffer-file-name-style 'file-name)
-      "file name"
-      :toggle (eq doom-modeline-buffer-file-name-style 'file-name))
-     ("b" (setq doom-modeline-buffer-file-name-style 'buffer-name)
-      "buffer name"
-      :toggle (eq doom-modeline-buffer-file-name-style 'buffer-name)))
+      :toggle (eq doom-modeline-buffer-file-name-style 'relative-to-project)))
+    "Project Detection"
+    (("p f" (setq doom-modeline-project-detection 'ffip)
+      "ffip"
+      :toggle (eq doom-modeline-project-detection 'ffip))
+     ("p t" (setq doom-modeline-project-detection 'projectile)
+      "projectile"
+      :toggle (eq doom-modeline-project-detection 'projectile))
+     ("p p" (setq doom-modeline-project-detection 'project)
+      "project"
+      :toggle (eq doom-modeline-project-detection 'project))
+     ("p n" (setq doom-modeline-project-detection nil)
+      "disable"
+      :toggle (eq doom-modeline-project-detection nil)))
     "Misc"
     (("g" (progn
             (message "Fetching GitHub notifications...")
             (run-with-timer 300 nil #'doom-modeline--github-fetch-notifications)
             (browse-url "https://github.com/notifications"))
-      "github notifications" :color blue)
+      "github notifications" :exit t)
      ("e" (if (bound-and-true-p flycheck-mode)
               (flycheck-list-errors)
             (flymake-show-diagnostics-buffer))
-      "list errors" :color blue)
+      "list errors" :exit t)
      ("B" (if (bound-and-true-p grip-mode)
               (grip-browse-preview)
-            (message "Not in preiew"))
-      "browse preivew" :color blue)))))
+            (message "Not in preview"))
+      "browse preview" :exit t)
+     ("z h" (counsel-read-setq-expression 'doom-modeline-height) "set height")
+     ("z w" (counsel-read-setq-expression 'doom-modeline-bar-width) "set bar width")
+     ("z g" (counsel-read-setq-expression 'doom-modeline-github-interval) "set github interval")
+     ("z n" (counsel-read-setq-expression 'doom-modeline-gnus-timer) "set gnus interval")))))
 
 (use-package hide-mode-line
-  :hook (((completion-list-mode completion-in-region-mode) . hide-mode-line-mode)))
+  :hook (((completion-list-mode
+           completion-in-region-mode
+           flycheck-error-list-mode) . hide-mode-line-mode)))
+
+;; A minor-mode menu for mode-line
+(when emacs/>=25.2p
+  (use-package minions
+    :hook (doom-modeline-mode . minions-mode)))
 
 ;; Icons
 ;; NOTE: Must run `M-x all-the-icons-install-fonts', and install fonts manually on Windows
 (use-package all-the-icons
   :if (display-graphic-p)
-  :init (unless (or sys/win32p (member "all-the-icons" (font-family-list)))
+  :init (unless (or sys/win32p (font-installed-p "all-the-icons"))
           (all-the-icons-install-fonts t))
   :config
-  (with-no-warnings
-    (defun all-the-icons-reset ()
-      "Reset (unmemoize/memoize) the icons."
-      (interactive)
+  (declare-function memoize 'memoize)
+  (declare-function memoize-restore 'memoize)
+  (defun all-the-icons-reset ()
+    "Reset (unmemoize/memoize) the icons."
+    (interactive)
+    (ignore-errors
       (dolist (f '(all-the-icons-icon-for-file
                    all-the-icons-icon-for-mode
                    all-the-icons-icon-for-url
                    all-the-icons-icon-family-for-file
                    all-the-icons-icon-family-for-mode
                    all-the-icons-icon-family))
-        (ignore-errors
-          (memoize-restore f)
-          (memoize f)))
-      (message "Reset all-the-icons")))
+        (memoize-restore f)
+        (memoize f)))
+    (message "Reset all-the-icons"))
 
+  (add-to-list 'all-the-icons-icon-alist
+               '("^Rakefile$" all-the-icons-alltheicon "ruby-alt" :face all-the-icons-red))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.go$" all-the-icons-fileicon "go" :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\go.mod$" all-the-icons-fileicon "go" :face all-the-icons-dblue))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\go.sum$" all-the-icons-fileicon "go" :face all-the-icons-dpurple))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(go-mode all-the-icons-fileicon "go" :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(xwidget-webkit-mode all-the-icons-faicon "chrome" :v-adjust -0.1 :face all-the-icons-blue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(bongo-playlist-mode all-the-icons-material "playlist_play" :height 1.2 :v-adjust -0.2 :face 'all-the-icons-green))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(bongo-library-mode all-the-icons-material "library_music" :height 1.1 :v-adjust -0.2 :face 'all-the-icons-dgreen))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(gnus-group-mode all-the-icons-fileicon "gnu" :face 'all-the-icons-silver))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(gnus-summary-mode all-the-icons-octicon "inbox" :height 1.0 :v-adjust 0.0 :face 'all-the-icons-orange))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(gnus-article-mode all-the-icons-octicon "mail" :height 1.1 :v-adjust 0.0 :face 'all-the-icons-lblue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(message-mode all-the-icons-octicon "mail" :height 1.1 :v-adjust 0.0 :face 'all-the-icons-lblue))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(diff-mode all-the-icons-octicon "git-compare" :v-adjust 0.0 :face all-the-icons-lred))
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(flycheck-error-list-mode all-the-icons-octicon "checklist" :height 1.1 :v-adjust 0.0 :face all-the-icons-lred))
+  (add-to-list 'all-the-icons-icon-alist
+               '("\\.rss$" all-the-icons-octicon "rss" :height 1.1 :v-adjust 0.0 :face all-the-icons-lorange))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(elfeed-search-mode all-the-icons-faicon "rss-square" :v-adjust -0.1 :face all-the-icons-orange))
   (add-to-list 'all-the-icons-mode-icon-alist
@@ -285,8 +311,6 @@
                '(conf-space-mode all-the-icons-octicon "settings" :v-adjust 0.0 :face all-the-icons-yellow))
   (add-to-list 'all-the-icons-mode-icon-alist
                '(forge-topic-mode all-the-icons-alltheicon "git" :face all-the-icons-blue))
-  (add-to-list 'all-the-icons-mode-icon-alist
-               '(vterm-mode all-the-icons-octicon "terminal" :v-adjust 0.2))
   (add-to-list 'all-the-icons-icon-alist
                '("\\.xpm$" all-the-icons-octicon "file-media" :v-adjust 0.0 :face all-the-icons-dgreen))
   (add-to-list 'all-the-icons-mode-icon-alist
@@ -316,7 +340,7 @@
   (add-to-list 'all-the-icons-mode-icon-alist
                '(gfm-mode all-the-icons-octicon "markdown" :face all-the-icons-lblue)))
 
-;; Show native line numbers if possible, otherwise use linum
+;; Show native line numbers if possible, otherwise use `linum'
 (if (fboundp 'display-line-numbers-mode)
     (use-package display-line-numbers
       :ensure nil
@@ -346,11 +370,16 @@
       window-divider-default-right-width 1)
 (add-hook 'window-setup-hook #'window-divider-mode)
 
-(when sys/macp
-  ;; Render thinner fonts
-  (setq ns-use-thin-smoothing t)
-  ;; Don't open a file in a new frame
-  (setq ns-pop-up-frames nil))
+;; Use fixed pitch where it's sensible
+(use-package mixed-pitch
+  :diminish)
+
+(with-no-warnings
+  (when sys/macp
+    ;; Render thinner fonts
+    (setq ns-use-thin-smoothing t)
+    ;; Don't open a file in a new frame
+    (setq ns-pop-up-frames nil)))
 
 ;; Don't use GTK+ tooltip
 (when (boundp 'x-gtk-use-system-tooltips)

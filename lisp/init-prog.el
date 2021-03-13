@@ -1,6 +1,6 @@
 ;; init-prog.el --- Initialize programming configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,6 +30,7 @@
 
 ;;; Code:
 
+(require 'init-custom)
 
 ;; Prettify Symbols
 ;; e.g. display “lambda” as “λ”
@@ -37,24 +38,7 @@
   :ensure nil
   :hook (prog-mode . prettify-symbols-mode)
   :init
-  (setq-default prettify-symbols-alist '(("lambda" . ?λ)
-                                         ("<-" . ?←)
-                                         ("->" . ?→)
-                                         ("->>" . ?↠)
-                                         ("=>" . ?⇒)
-                                         ("map" . ?↦)
-                                         ("/=" . ?≠)
-                                         ("!=" . ?≠)
-                                         ("==" . ?≡)
-                                         ("<=" . ?≤)
-                                         (">=" . ?≥)
-                                         ("=<<" . (?= (Br . Bl) ?≪))
-                                         (">>=" . (?≫ (Br . Bl) ?=))
-                                         ("<=<" . ?↢)
-                                         (">=>" . ?↣)
-                                         ("&&" . ?∧)
-                                         ("||" . ?∨)
-                                         ("not" . ?¬)))
+  (setq-default prettify-symbols-alist centaur-prettify-symbols-alist)
   (setq prettify-symbols-unprettify-at-point 'right-edge))
 
 ;; Jump to definition
@@ -84,7 +68,7 @@
         dumb-jump-selector 'ivy))
 
 (use-package editorconfig
-  :diminish editorconfig-mode
+  :diminish
   :hook (after-init . editorconfig-mode))
 
 ;; Run commands quickly
@@ -95,13 +79,20 @@
 (use-package cask-mode)
 (use-package csharp-mode)
 (use-package csv-mode)
-(use-package dockerfile-mode)
+(use-package julia-mode)
 (use-package lua-mode)
+(use-package mermaid-mode)
 (use-package plantuml-mode)
 (use-package powershell)
 (use-package rmsbolt)                   ; A compiler output viewer
+(use-package scala-mode)
 (use-package swift-mode)
 (use-package vimrc-mode)
+
+(use-package protobuf-mode
+  :hook (protobuf-mode . (lambda ()
+                           (setq imenu-generic-expression
+                                 '((nil "^[[:space:]]*\\(message\\|service\\|enum\\)[[:space:]]+\\([[:alnum:]]+\\)" 2))))))
 
 (use-package nxml-mode
   :ensure nil
@@ -114,7 +105,7 @@
 ;; Batch Mode eXtras
 (use-package bmx-mode
   :after company
-  :diminish bmx-mode
+  :diminish
   :hook (after-init . bmx-mode-setup-defaults))
 
 ;; Fish shell

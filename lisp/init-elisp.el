@@ -1,6 +1,6 @@
 ;; init-elisp.el --- Initialize Emacs Lisp configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,9 +30,6 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-custom))
-
 ;; Emacs lisp mode
 (use-package elisp-mode
   :ensure nil
@@ -40,17 +37,18 @@
   :functions (helpful-update
               my-lisp-indent-function
               function-advices
+              end-of-sexp
               add-button-to-remove-advice
               describe-function-1@advice-remove-button
-              end-of-sexp
-              helpful-callable@advice-remove-button)
+              helpful-update@advice-remove-button)
   :bind (:map emacs-lisp-mode-map
          ("C-c C-x" . ielm)
          ("C-c C-c" . eval-defun)
          ("C-c C-b" . eval-buffer))
   :hook (emacs-lisp-mode . (lambda ()
                              "Disable the checkdoc checker."
-                             (setq flycheck-disabled-checkers '(emacs-lisp-checkdoc))))
+                             (setq-local flycheck-disabled-checkers
+                                         '(emacs-lisp-checkdoc))))
   :config
   (when (boundp 'elisp-flymake-byte-compile-load-path)
     (add-to-list 'elisp-flymake-byte-compile-load-path load-path))
@@ -145,12 +143,11 @@ Lisp function does not specify a special indentation."
 
   (defun function-advices (function)
     "Return FUNCTION's advices."
-    (let ((function-def (advice--symbol-function function))
-          (ad-functions '()))
-      (while (advice--p function-def)
-        (setq ad-functions (append `(,(advice--car function-def)) ad-functions))
-        (setq function-def (advice--cdr function-def)))
-      ad-functions))
+    (let ((flist (indirect-function function)) advices)
+      (while (advice--p flist)
+        (setq advices `(,@advices ,(advice--car flist)))
+        (setq flist (advice--cdr flist)))
+      advices))
 
   (defun add-button-to-remove-advice (buffer-name function)
     "Add a button to remove advice."
@@ -158,12 +155,14 @@ Lisp function does not specify a special indentation."
       (with-current-buffer buffer-name
         (save-excursion
           (goto-char (point-min))
-          (let ((ad-index 0)
-                (ad-list (reverse (function-advices function))))
-            (while (re-search-forward "^.+ :[-a-z]+ advice: \\(.+\\)$" nil t)
-              (let* ((name (string-trim (match-string 1) "'" "'"))
-                     (advice (or (intern-soft name) (nth ad-index ad-list))))
-                (when (and advice (functionp advice))
+          (let ((ad-list (reverse (function-advices function))))
+            (while (re-search-forward "^\\(?:This function has \\)?:[-a-z]+ advice: \\(.+\\)\\.?$" nil t)
+              (let* ((name (string-trim (match-string 1) "[‘'`]" "[’']"))
+                     (symbol (intern-soft name))
+                     (advice (or symbol (car ad-list))))
+                (when advice
+                  (when symbol
+                    (cl-assert (eq symbol (car ad-list))))
                   (let ((inhibit-read-only t))
                     (insert "\t")
                     (insert-text-button
@@ -180,7 +179,7 @@ Lisp function does not specify a special indentation."
                               (helpful-update)
                             (revert-buffer nil t))))
                      'follow-link t))))
-              (setq ad-index (1+ ad-index))))))))
+              (setq ad-list (car ad-list))))))))
 
   (define-advice describe-function-1 (:after (function) advice-remove-button)
     (add-button-to-remove-advice "*Help*" function))
@@ -238,9 +237,6 @@ Lisp function does not specify a special indentation."
               (set-face-background 'macrostep-expansion-highlight-face
                                    (face-background 'tooltip)))))
 
-;; Semantic code search for emacs lisp
-(use-package elisp-refs)
-
 ;; A better *Help* buffer
 (use-package helpful
   :defines (counsel-describe-function-function
@@ -271,10 +267,12 @@ Lisp function does not specify a special indentation."
          (helpful-variable (button-get button 'apropos-symbol))))))
 
   ;; Add remove buttons for advices
-  (define-advice helpful-callable (:after (function) advice-remove-button)
-    (add-button-to-remove-advice (helpful--buffer function t) function))
+  (define-advice helpful-update (:after () advice-remove-button)
+    (when helpful--callable-p
+      (add-button-to-remove-advice (helpful--buffer helpful--sym t) helpful--sym)))
   :config
   (with-no-warnings
+    ;; Open the buffer in other window
     (defun my-helpful--navigate (button)
       "Navigate to the path this BUTTON represents."
       (find-file-other-window (substring-no-properties (button-get button 'path)))
@@ -284,6 +282,11 @@ Lisp function does not specify a special indentation."
                                          (marker-buffer button)))
         (helpful--goto-char-widen pos)))
     (advice-add #'helpful--navigate :override #'my-helpful--navigate)))
+
+;; For ERT
+(use-package overseer
+  :diminish
+  :hook (emacs-lisp-mode . overseer-mode))
 
 (provide 'init-elisp)
 

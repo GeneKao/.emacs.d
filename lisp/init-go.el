@@ -1,6 +1,6 @@
 ;; init-go.el --- Initialize Golang configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2018-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -34,7 +34,6 @@
 (use-package go-mode
   :functions (go-packages-gopkgs go-update-tools)
   :bind (:map go-mode-map
-         ([remap xref-find-definitions] . godef-jump)
          ("C-c R" . go-remove-unused-imports)
          ("<f1>" . godoc-at-point))
   :config
@@ -44,15 +43,11 @@
 
   ;; Install or update tools
   (defvar go--tools '("golang.org/x/tools/cmd/goimports"
-                      "golang.org/x/tools/cmd/gorename"
-
-                      ;; "github.com/rogpeppe/godef"
                       "github.com/go-delve/delve/cmd/dlv"
                       "github.com/josharian/impl"
                       "github.com/cweill/gotests/..."
                       "github.com/fatih/gomodifytags"
-                      "github.com/davidrjenni/reftools/cmd/fillstruct"
-                      "github.com/golangci/golangci-lint/cmd/golangci-lint")
+                      "github.com/davidrjenni/reftools/cmd/fillstruct")
     "All necessary go tools.")
 
   ;; Do not use the -u flag for gopls, as it will update the dependencies to incompatible versions
@@ -95,9 +90,8 @@
   (use-package go-dlv)
   (use-package go-fill-struct)
   (use-package go-impl)
-  (use-package go-rename)
 
-  ;; Install: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+  ;; Install: See https://github.com/golangci/golangci-lint#install
   (use-package flycheck-golangci-lint
     :if (executable-find "golangci-lint")
     :after flycheck
@@ -114,20 +108,20 @@
 
   (use-package go-tag
     :bind (:map go-mode-map
-           ("C-c t" . go-tag-add)
-           ("C-c T" . go-tag-remove))
-    :config (setq go-tag-args (list "-transform" "camelcase")))
+           ("C-c t t" . go-tag-add)
+           ("C-c t T" . go-tag-remove))
+    :init (setq go-tag-args (list "-transform" "camelcase")))
 
   (use-package go-gen-test
     :bind (:map go-mode-map
-           ("C-c C-t" . go-gen-test-dwim)))
+           ("C-c t g" . go-gen-test-dwim)))
 
   (use-package gotest
     :bind (:map go-mode-map
-           ("C-c a" . go-test-current-project)
-           ("C-c m" . go-test-current-file)
-           ("C-c ." . go-test-current-test)
-           ("C-c x" . go-run))))
+           ("C-c t a" . go-test-current-project)
+           ("C-c t m" . go-test-current-file)
+           ("C-c t ." . go-test-current-test)
+           ("C-c t x" . go-run))))
 
 ;; Local Golang playground for short snippets
 (use-package go-playground

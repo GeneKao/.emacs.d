@@ -1,6 +1,6 @@
 ;; init-flycheck.el --- Initialize flycheck configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2009-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,20 +30,27 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const))
+(require 'init-const)
+(require 'init-funcs)
 
 (use-package flycheck
-  :diminish flycheck-mode
-  :hook (after-init . global-flycheck-mode)
+  :diminish
+  ;; FIXME: Fix args-out-of-range error
+  ;; @see https://github.com/flycheck/flycheck/issues/1677
+  ;; :hook (after-init . global-flycheck-mode)
+  :hook ((prog-mode markdown-mode) . (lambda ()
+                                       (unless (centaur-timemachine-buffer-p)
+                                         (flycheck-mode 1))))
   :config
-  (setq flycheck-emacs-lisp-load-path 'inherit)
+  (setq flycheck-global-modes
+        '(not text-mode outline-mode fundamental-mode org-mode
+              diff-mode shell-mode eshell-mode term-mode vterm-mode)
+        flycheck-emacs-lisp-load-path 'inherit
+        ;; Only check while saving and opening files
+        flycheck-check-syntax-automatically '(save mode-enabled)
+        flycheck-indication-mode 'right-fringe)
 
-  ;; Only check while saving and opening files
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-
-  ;; Set fringe style
-  (setq flycheck-indication-mode 'right-fringe)
+  ;; Prettify fringe style
   (when (fboundp 'define-fringe-bitmap)
     (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
       [16 48 112 240 112 48 16] nil nil 'center))
@@ -52,9 +59,11 @@
   (if (display-graphic-p)
       (if emacs/>=26p
           (use-package flycheck-posframe
+            :custom-face (flycheck-posframe-border-face ((t (:inherit default))))
             :hook (flycheck-mode . flycheck-posframe-mode)
-            :config (add-to-list 'flycheck-posframe-inhibit-functions
-                                 #'(lambda () (bound-and-true-p company-backend))))
+            :init (setq flycheck-posframe-border-width 1
+                        flycheck-posframe-inhibit-functions
+                        '((lambda (&rest _) (bound-and-true-p company-backend)))))
         (use-package flycheck-pos-tip
           :defines flycheck-pos-tip-timeout
           :hook (global-flycheck-mode . flycheck-pos-tip-mode)

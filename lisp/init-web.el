@@ -1,6 +1,6 @@
 ;; init-web.el --- Initialize web configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2016-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,8 +30,7 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-custom))
+(require 'init-custom)
 
 (use-package css-mode
   :ensure nil
@@ -98,8 +97,8 @@
   (with-eval-after-load 'skewer-html
     (diminish 'skewer-html-mode)))
 
-;; Typescript
-(use-package typescript-mode)
+(use-package typescript-mode
+  :mode ("\\.ts[x]\\'" . typescript-mode))
 
 ;; Run Mocha or Jasmine tests
 (use-package mocha
@@ -120,6 +119,7 @@
 ;; Format HTML, CSS and JavaScript/JSON
 ;; Install: npm -g install prettier
 (use-package prettier-js
+  :diminish
   :hook ((js-mode js2-mode json-mode web-mode css-mode sgml-mode html-mode)
          .
          prettier-js-mode))

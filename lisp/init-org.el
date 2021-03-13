@@ -1,6 +1,6 @@
 ;; init-org.el --- Initialize org configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,8 +30,7 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const))
+(require 'init-const)
 
 (use-package org
   :ensure nil
@@ -103,6 +102,7 @@ prepended to the element after the #+HEADER: tag."
                     (self-insert-command 1)))))
   :hook ((org-mode . (lambda ()
                        "Beautify org symbols."
+
                        (push '("[ ]" . ?☐) prettify-symbols-alist)
                        (push '("[X]" . ?☑) prettify-symbols-alist)
                        ;; (push '("[-]" . ?⛝) prettify-symbols-alist)
@@ -124,6 +124,8 @@ prepended to the element after the #+HEADER: tag."
                        ;; (push '("#+HEADERS" . ?☰) prettify-symbols-alist)
                        ;; (push '("#+RESULTS:" . ?💻) prettify-symbols-alist)
 
+                       ;; (setq prettify-symbols-alist centaur-prettify-org-symbols-alist)
+
                        (prettify-symbols-mode 1)))
          (org-indent-mode . (lambda()
                               (diminish 'org-indent-mode)
@@ -131,6 +133,7 @@ prepended to the element after the #+HEADER: tag."
                               ;; @see https://github.com/seagle0128/.emacs.d/issues/88
                               (make-variable-buffer-local 'show-paren-mode)
                               (setq show-paren-mode nil))))
+
   :init (setq org-agenda-files (directory-files-recursively "~/org/" "\.org$")
               ;; to recursively find all org files and show them in the agenda
               ;; https://stackoverflow.com/questions/11384516/how-to-make-all-org-files-under-a-folder-added-in-agenda-list-automatically/11384907#11384907
@@ -149,11 +152,43 @@ prepended to the element after the #+HEADER: tag."
               org-ellipsis (if (char-displayable-p ?) "  " nil)
               org-pretty-entities nil
               org-hide-emphasis-markers t)
+
   :config
+  ;; To speed up startup, don't put to init section
+  (setq org-agenda-files '("~/org")
+        org-todo-keywords
+        '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")
+          (sequence "⚑(T)" "🏴(I)" "❓(H)" "|" "✔(D)" "✘(C)"))
+        org-todo-keyword-faces '(("HANGUP" . warning)
+                                 ("❓" . warning))
+        org-priority-faces '((?A . error)
+                             (?B . warning)
+                             (?C . success))
+        org-tags-column -80
+        org-log-done 'time
+        org-catch-invisible-edits 'smart
+        org-startup-indented t
+        org-ellipsis (if (char-displayable-p ?) "  " nil)
+        org-pretty-entities nil
+        org-hide-emphasis-markers t)
+
   ;; Add new template
   (add-to-list 'org-structure-template-alist '("n" . "note"))
 
-  ;; Enable markdown backend
+  ;; Use embedded webkit browser if possible
+  (when (featurep 'xwidget-internal)
+    (push '("\\.\\(x?html?\\|pdf\\)\\'"
+            .
+            (lambda (file _link)
+              (xwidget-webkit-browse-url (concat "file://" file))
+              (let ((buf (xwidget-buffer (xwidget-webkit-current-session))))
+                (when (buffer-live-p buf)
+                  (and (eq buf (current-buffer)) (quit-window))
+                  (pop-to-buffer buf)))))
+          org-file-apps))
+
+  ;; Add gfm/md backends
+  (use-package ox-gfm)
   (add-to-list 'org-export-backends 'md)
 
   (with-eval-after-load 'counsel
@@ -171,7 +206,7 @@ prepended to the element after the #+HEADER: tag."
     :init (setq org-fancy-priorities-list
                 (if (char-displayable-p ?⯀)
                     '("⯀" "⯀" "⯀" "⯀")
-                  '("HIGH" "MIDIUM" "LOW" "OPTIONAL"))))
+                  '("HIGH" "MEDIUM" "LOW" "OPTIONAL"))))
 
   ;; Babel
   (setq org-confirm-babel-evaluate nil
@@ -204,6 +239,9 @@ prepended to the element after the #+HEADER: tag."
     :if (executable-find "jupyter")     ; DO NOT remove
     :init (cl-pushnew '(ipython . t) load-language-list))
 
+  (use-package ob-mermaid
+    :init (cl-pushnew '(mermaid . t) load-language-list))
+
   (org-babel-do-load-languages 'org-babel-load-languages
                                load-language-list)
 
@@ -216,9 +254,16 @@ prepended to the element after the #+HEADER: tag."
   (use-package toc-org
     :hook (org-mode . toc-org-mode))
 
+  ;; Export text/html MIME emails
+  (use-package org-mime
+    :bind (:map message-mode-map
+           ("C-c M-o" . org-mime-htmlize)
+           :map org-mode-map
+           ("C-c M-o" . org-mime-org-buffer-htmlize)))
+
   ;; Preview
   (use-package org-preview-html
-    :diminish org-preview-html-mode)
+    :diminish)
 
   ;; Presentation
   (use-package org-tree-slide
@@ -381,6 +426,17 @@ prepended to the element after the #+HEADER: tag."
                                   ("\\subsection{%s}" . "\\subsection*{%s}")))
 
 
+;; org-roam
+(when (and emacs/>=26p (executable-find "cc"))
+  (use-package org-roam
+    :diminish
+    :hook (after-init . org-roam-mode)
+    :bind (:map org-roam-mode-map
+           (("C-c n l" . org-roam)
+            ("C-c n f" . org-roam-find-file)
+            ("C-c n g" . org-roam-graph))
+           :map org-mode-map
+           (("C-c n i" . org-roam-insert)))))
 
 (provide 'init-org)
 

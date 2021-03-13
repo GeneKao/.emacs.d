@@ -1,6 +1,6 @@
 ;; init-treemacs.el --- Initialize treemacs.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2018-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,10 +30,9 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const))
+(require 'init-const)
+(require 'init-custom)
 
-;; Require >=25.2
 (when emacs/>=25.2p
   ;; A tree layout file explorer
   (use-package treemacs
@@ -53,13 +52,14 @@
            ([mouse-1]   . treemacs-single-click-expand-action))
     :config
     (setq treemacs-collapse-dirs           (if treemacs-python-executable 3 0)
-          treemacs-sorting                 'alphabetic-case-insensitive-desc
+          treemacs-sorting                 'alphabetic-asc
           treemacs-follow-after-init       t
           treemacs-is-never-other-window   t
           treemacs-silent-filewatch        t
           treemacs-silent-refresh          t
-          treemacs-width                   30)
-
+          treemacs-width                   30
+          treemacs-no-png-images           (not centaur-icon))
+    :config
     (treemacs-follow-mode t)
     (treemacs-filewatch-mode t)
     (pcase (cons (not (null (executable-find "git")))
@@ -82,7 +82,12 @@
               git-commit-post-finish
               magit-post-stage
               magit-post-unstage)
-             . treemacs-magit--schedule-update))))
+             . treemacs-magit--schedule-update))
+
+    (use-package treemacs-persp
+      :after persp-mode
+      :commands treemacs-set-scope-type
+      :init (treemacs-set-scope-type 'Frames))))
 
 (provide 'init-treemacs)
 

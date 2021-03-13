@@ -1,6 +1,6 @@
 ;; init-yasnippet.el --- Initialize yasnippet configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -32,8 +32,10 @@
 
 (use-package yasnippet
   :diminish yas-minor-mode
-  :hook (after-init . yas-global-mode)
-  :config (use-package yasnippet-snippets))
+  :hook (after-init . yas-global-mode))
+
+(use-package yasnippet-snippets
+  :after yasnippet)
 
 (provide 'init-yasnippet)
 

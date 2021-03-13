@@ -1,4 +1,4 @@
-;; init-rust.el --- Initialize Rust configurations.	-*- lexical-binding: t -*-
+;; init-docker.el --- Initialize docker configurations.	-*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-2020 Vincent Zhang
 
@@ -25,26 +25,22 @@
 
 ;;; Commentary:
 ;;
-;; Rust configurations.
+;; Docker configurations.
 ;;
 
 ;;; Code:
 
-;; Rust
-(use-package rust-mode
-  :init (setq rust-format-on-save t)
-  :config
-  (use-package cargo
-    :diminish cargo-minor-mode
-    :hook (rust-mode . cargo-minor-mode)
-    :config
-    ;; To render buttons correctly, keep it at the last
-    (setq compilation-filter-hook
-          (append compilation-filter-hook '(cargo-process--add-errno-buttons)))))
+;; Docker
+(use-package docker
+  :defines docker-image-run-arguments
+  :bind ("C-c d" . docker)
+  :init (setq docker-image-run-arguments '("-i" "-t" "--rm")
+              docker-container-shell-file-name "/bin/bash"))
 
-(use-package rust-playground)
+(use-package docker-tramp)
+(use-package dockerfile-mode)
 
-(provide 'init-rust)
+(provide 'init-docker)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-rust.el ends here
+;;; init-docker.el ends here
