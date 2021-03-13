@@ -1,10 +1,10 @@
-;;; init-mini.el --- Centaur Emacs minimal configurations.	-*- lexical-binding: t no-byte-compile: t; -*-
+;;; init-mini.el --- Centaur Emacs minimal configurations.	-*- lexical-binding: t no-byte-compile: t -*-
 
-;; Copyright (C) 2018-2019 Vincent Zhang
+;; Copyright (C) 2018-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 1.0.0
+;; Version: 1.1.0
 ;; Keywords: .emacs.d centaur
 
 ;; This file is not part of GNU Emacs.
@@ -27,7 +27,7 @@
 
 ;;; Commentary:
 ;;
-;; Centaur Emacs minimal configurations for debugging purpose.
+;; Minimal configurations for debugging purpose.
 ;;
 
 ;;; Code:
@@ -48,6 +48,7 @@
 
 ;; Miscs
 ;; (setq initial-scratch-message nil)
+(setq inhibit-splash-screen t)
 (setq uniquify-buffer-name-style 'post-forward-angle-brackets) ; Show path if names are same
 (setq adaptive-fill-regexp "[ t]+|[ t]*([0-9]+.|*+)[ t]*")
 (setq adaptive-fill-first-line-regexp "^* *$")
@@ -69,6 +70,8 @@
               indent-tabs-mode nil)
 
 ;; UI
+(load-theme 'wombat t)
+
 (unless (eq window-system 'ns)
   (menu-bar-mode -1))
 (when (fboundp 'tool-bar-mode)
@@ -80,9 +83,9 @@
 
 ;; (global-hl-line-mode 1)
 
-(if (fboundp 'display-line-numbers-mode)
-    (global-display-line-numbers-mode 1)
-  (global-linum-mode 1))
+;; (if (fboundp 'display-line-numbers-mode)
+;;     (global-display-line-numbers-mode 1)
+;;   (global-linum-mode 1))
 
 ;; Basic modes
 (recentf-mode 1)
@@ -99,21 +102,53 @@
 (add-hook 'minibuffer-setup-hook #'subword-mode)
 
 ;; IDO
-(ido-mode 1)
-(ido-everywhere 1)
-(setq ido-use-virtual-buffers t)
-(setq ido-use-filename-at-point 'guess)
-(setq ido-create-new-buffer 'always)
-(setq ido-enable-flex-matching t)
+(if (fboundp 'fido-mode)
+    (progn
+      (fido-mode 1)
 
-(defun ido-recentf-open ()
-  "Use `ido-completing-read' to find a recent file."
-  (interactive)
-  (if (find-file (ido-completing-read "Find recent file: " recentf-list))
-      (message "Opening file...")
-    (message "Aborting")))
+      (defun fido-recentf-open ()
+        "Use `completing-read' to find a recent file."
+        (interactive)
+        (if (find-file (completing-read "Find recent file: " recentf-list))
+            (message "Opening file...")
+          (message "Aborting")))
+      (global-set-key (kbd "C-x C-r") 'fido-recentf-open))
+  (progn
+    (ido-mode 1)
+    (ido-everywhere 1)
 
-(global-set-key (kbd "C-x C-r") 'ido-recentf-open)
+    (setq ido-use-virtual-buffers t)
+    (setq ido-use-filename-at-point 'guess)
+    (setq ido-create-new-buffer 'always)
+    (setq ido-enable-flex-matching t)
+
+    (defun ido-recentf-open ()
+      "Use `ido-completing-read' to find a recent file."
+      (interactive)
+      (if (find-file (ido-completing-read "Find recent file: " recentf-list))
+          (message "Opening file...")
+        (message "Aborting")))
+    (global-set-key (kbd "C-x C-r") 'ido-recentf-open)))
+
+;; Key Modifiers
+(cond
+ ((eq system-type 'windows-nt)
+  ;; make PC keyboard's Win key or other to type Super or Hyper
+  ;; (setq w32-pass-lwindow-to-system nil)
+  (setq w32-lwindow-modifier 'super     ; Left Windows key
+        w32-apps-modifier 'hyper)       ; Menu/App key
+  (w32-register-hot-key [s-t]))
+ ((eq window-system 'mac)
+  ;; Compatible with Emacs Mac port
+  (setq mac-option-modifier 'meta
+        mac-command-modifier 'super)
+  (global-set-key [(super a)] #'mark-whole-buffer)
+  (global-set-key [(super v)] #'yank)
+  (global-set-key [(super c)] #'kill-ring-save)
+  (global-set-key [(super s)] #'save-buffer)
+  (global-set-key [(super l)] #'goto-line)
+  (global-set-key [(super w)] #'delete-frame)
+  (global-set-key [(super z)] #'undo)))
 
 ;; Keybindings
 (global-set-key (kbd "C-.") #'imenu)
@@ -122,7 +157,7 @@
 (defun revert-current-buffer ()
   "Revert the current buffer."
   (interactive)
-  (message "Revert this buffer.")
+  (message "Revert this buffer")
   (text-scale-set 0)
   (widen)
   (revert-buffer t t))

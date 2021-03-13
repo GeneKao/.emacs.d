@@ -1,5 +1,6 @@
 *.bak
 *.data
+*.db
 *.elc
 *.log
 *.sqlite
@@ -39,6 +40,7 @@
 /places
 /projectile-bookmarks.eld
 /projectile.cache
+/projects
 /recentf
 /scratch
 /smex-items
@@ -48,6 +50,7 @@ anaconda-mode/
 auto-save-list/
 cnfonts/
 eclipse.jdt.ls/
+eln-cache/
 elpa-devel/
 elpa/
 emojis/
@@ -58,6 +61,7 @@ ido.*
 image-dired/
 images/
 irony/
+librime/
 magithub/
 mspyls/
 newsticker/
@@ -65,9 +69,11 @@ persistent-scratch/
 persp-confs/
 rcirc-log/
 request/
+rime/
 rust-playground/
 server/
 session*
+snippets/
 thumbs/
 tldr/
 tmp*

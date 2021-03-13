@@ -1,6 +1,6 @@
 ;; init-ruby.el --- Initialize ruby configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2010-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,54 +30,46 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-custom))
-
-(use-package ruby-mode
-  :ensure nil
-  :mode "\\.\\(rb\\|rake\\|\\gemspec\\|ru\\|\\(Rake\\|Gem\\|Guard\\|Cap\\|Vagrant\\)file\\)$"
-  :interpreter "ruby"
-  :config
-  ;; Ruby refactoring helpers
-  (use-package ruby-refactor
-    :diminish ruby-refactor-mode
-    :hook (ruby-mode . ruby-refactor-mode-launch))
-
-  ;; Run a Ruby process in a buffer
-  (use-package inf-ruby
-    :hook ((ruby-mode . inf-ruby-minor-mode)
-           (compilation-filter . inf-ruby-auto-enter)))
-
-  ;; Rails
-  (use-package projectile-rails
-    :diminish projectile-rails-mode
-    :hook (projectile-mode . projectile-rails-global-mode))
-
-  ;; Rubocop
-  ;; Install: gem install rubocop
-  (use-package rubocop
-    :diminish rubocop-mode
-    :hook (ruby-mode . rubocop-mode))
-
-  ;; RSpec
-  (use-package rspec-mode
-    :diminish rspec-mode
-    :commands rspec-install-snippets
-    :hook (dired-mode . rspec-dired-mode)
-    :config (with-eval-after-load 'yasnippet
-              (rspec-install-snippets)))
-
-  ;; Yet Another RI interface for Emacs
-  (use-package yari
-    :bind (:map ruby-mode-map ([f1] . yari)))
-
-  ;; Ruby YARD comments
-  (use-package yard-mode
-    :diminish yard-mode
-    :hook (ruby-mode . yard-mode)))
+;; Integrate rbenv
+(use-package rbenv
+  :hook (after-init . global-rbenv-mode)
+  :init (setq rbenv-show-active-ruby-in-modeline nil
+              rbenv-executable "rbenv"))
 
 ;; YAML mode
 (use-package yaml-mode)
+
+;; Run a Ruby process in a buffer
+(use-package inf-ruby
+  :hook ((ruby-mode . inf-ruby-minor-mode)
+         (compilation-filter . inf-ruby-auto-enter)))
+
+;; Ruby YARD comments
+(use-package yard-mode
+  :diminish
+  :hook (ruby-mode . yard-mode))
+
+;; Ruby refactoring helpers
+(use-package ruby-refactor
+  :diminish
+  :hook (ruby-mode . ruby-refactor-mode-launch))
+
+;; Yet Another RI interface for Emacs
+(use-package yari
+  :bind (:map ruby-mode-map ([f1] . yari)))
+
+;; RSpec
+(use-package rspec-mode
+  :diminish
+  :commands rspec-install-snippets
+  :hook (dired-mode . rspec-dired-mode)
+  :config (with-eval-after-load 'yasnippet
+            (rspec-install-snippets)))
+
+;; Rails
+(use-package projectile-rails
+  :diminish
+  :hook (projectile-mode . projectile-rails-global-mode))
 
 (provide 'init-ruby)
 

@@ -1,6 +1,6 @@
 ;; init-dart.el --- Initialize Dart configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2019-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -33,9 +33,8 @@
 ;; Dart
 (use-package dart-mode
   :defines (projectile-project-root-files-bottom-up)
-  :init (setq dart-format-on-save t)
   :config
-  (with-eval-after-load "projectile"
+  (with-eval-after-load 'projectile
     (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
     (add-to-list 'projectile-project-root-files-bottom-up "BUILD")))
 

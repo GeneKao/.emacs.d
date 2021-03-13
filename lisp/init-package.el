@@ -1,6 +1,6 @@
 ;;; init-package.el --- Initialize package configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,8 +30,44 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-custom))
+(require 'init-const)
+(require 'init-custom)
+(require 'init-funcs)
+
+;; Load `custom-file'
+(when (and (file-exists-p centaur-custom-example-file)
+           (not (file-exists-p custom-file)))
+  ;; At the first startup copy `custom-file' from the example
+  (copy-file centaur-custom-example-file custom-file)
+
+  ;; Select the package archives
+  (if (or (executable-find "curl") (executable-find "wget"))
+      (progn
+        ;; Get and select the fastest package archives automatically
+        (message "Testing connection... Please wait a moment.")
+        (set-package-archives
+         (centaur-test-package-archives 'no-chart)))
+    ;; Select package archives manually
+    ;; Use `ido-completing-read' for better experience since
+    ;; `ivy-mode' is not available at this moment.
+    (set-package-archives
+     (intern
+      (ido-completing-read
+       "Select package archives: "
+       (mapcar #'symbol-name
+               (mapcar #'car centaur-package-archives-alist)))))))
+
+(and (file-readable-p custom-file) (load custom-file))
+
+;; Load custom-post file
+(defun load-custom-post-file ()
+"Load custom-post file."
+(cond ((file-exists-p centaur-custom-post-org-file)
+       (and (fboundp 'org-babel-load-file)
+            (org-babel-load-file centaur-custom-post-org-file)))
+      ((file-exists-p centaur-custom-post-file)
+       (load centaur-custom-post-file))))
+(add-hook 'after-init-hook #'load-custom-post-file)
 
 ;; HACK: DO NOT copy package-selected-packages to init/custom file forcibly.
 ;; https://github.com/jwiegley/use-package/issues/383#issuecomment-247801751
@@ -41,44 +77,8 @@
     (setq package-selected-packages value)))
 (advice-add 'package--save-selected-packages :override #'my-save-selected-packages)
 
-;;
-;; ELPA: refer to https://github.com/melpa/melpa and https://elpa.emacs-china.org/.
-;;
-(defun set-package-archives (archives)
-  "Set specific package ARCHIVES repository."
-  (interactive
-   (list (intern (completing-read "Choose package archives: "
-                                  '(melpa melpa-mirror emacs-china netease tencent tuna)))))
-
-  (setq package-archives
-        (let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                            (not (gnutls-available-p))))
-               (proto (if no-ssl "http" "https")))
-          (pcase archives
-            ('melpa
-             `(,(cons "gnu"   (concat proto "://elpa.gnu.org/packages/"))
-               ,(cons "melpa" (concat proto "://melpa.org/packages/"))))
-            ('melpa-mirror
-             `(,(cons "gnu"   (concat proto "://elpa.gnu.org/packages/"))
-               ,(cons "melpa" (concat proto "://www.mirrorservice.org/sites/melpa.org/packages/"))))
-            ('emacs-china
-             `(,(cons "gnu"   (concat proto "://elpa.emacs-china.org/gnu/"))
-               ,(cons "melpa" (concat proto "://elpa.emacs-china.org/melpa/"))))
-            ('netease
-             `(,(cons "gnu"   (concat proto "://mirrors.163.com/elpa/gnu/"))
-               ,(cons "melpa" (concat proto "://mirrors.163.com/elpa/melpa/"))))
-            ('tencent
-             `(,(cons "gnu"   (concat proto "://mirrors.cloud.tencent.com/elpa//gnu/"))
-               ,(cons "melpa" (concat proto "://mirrors.cloud.tencent.com/elpa/melpa/"))))
-            ('tuna
-             `(,(cons "gnu"   (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/"))
-               ,(cons "melpa" (concat proto "://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/"))))
-            (archives
-             (error "Unknown archives: `%s'" archives)))))
-
-  (message "Set package archives to `%s'" archives))
-
-(set-package-archives centaur-package-archives)
+;; Set ELPA packages
+(set-package-archives centaur-package-archives nil nil t)
 
 ;; Initialize packages
 (unless (bound-and-true-p package--initialized) ; To avoid warnings in 27
@@ -108,7 +108,7 @@
 (use-package gnu-elpa-keyring-update)
 
 ;; Initialization benchmark
-(when centaur-benchmark
+(when centaur-benchmark-init
   (use-package benchmark-init
     :defines swiper-font-lock-exclude
     :commands (benchmark-init/activate)

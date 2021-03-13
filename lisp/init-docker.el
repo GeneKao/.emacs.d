@@ -1,9 +1,9 @@
-;; init-elixir.el --- Initialize elixir configurations.	-*- lexical-binding: t -*-
+;; init-docker.el --- Initialize docker configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019-2020 N.Ahmet BASTUG
+;; Copyright (C) 2019-2020 Vincent Zhang
 
-;; Author: N.Ahmet BASTUG <bastugn@itu.edu.tr>
-;; URL: https://github.com/kosantosbik/.emacs.d
+;; Author: Vincent Zhang <seagle0128@gmail.com>
+;; URL: https://github.com/seagle0128/.emacs.d
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -25,22 +25,22 @@
 
 ;;; Commentary:
 ;;
-;; Elixir configurations.
+;; Docker configurations.
 ;;
 
 ;;; Code:
 
-(use-package elixir-mode
-  :config
-  (use-package alchemist
-    :hook ((elixir-mode . alchemist-mode)
-           (elixir-mode . alchemist-phoenix-mode)))
+;; Docker
+(use-package docker
+  :defines docker-image-run-arguments
+  :bind ("C-c d" . docker)
+  :init (setq docker-image-run-arguments '("-i" "-t" "--rm")
+              docker-container-shell-file-name "/bin/bash"))
 
-  (use-package flycheck-credo
-    :after flycheck
-    :init (flycheck-credo-setup)))
+(use-package docker-tramp)
+(use-package dockerfile-mode)
 
-(provide 'init-elixir)
+(provide 'init-docker)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-elixir.el ends here
+;;; init-docker.el ends here

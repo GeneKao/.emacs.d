@@ -1,6 +1,6 @@
-;; init-base.el --- Better default configurations.	-*- lexical-binding: t -*-
+;; init-basic.el --- Better default configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,20 +30,13 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const)
-  (require 'init-custom))
-
-;; Compatibility
-(unless (fboundp 'caadr)
-  (defun caadr (x)
-    "Return the `car' of the `car' of the `cdr' of X."
-    (declare (compiler-macro internal--compiler-macro-cXXr))
-    (car (car (cdr x)))))
+(require 'init-const)
+(require 'init-custom)
+(require 'init-funcs)
 
 ;; Personal information
-(setq user-full-name centaur-full-name)
-(setq user-mail-address centaur-mail-address)
+(setq user-full-name centaur-full-name
+      user-mail-address centaur-mail-address)
 
 ;; Key Modifiers
 (with-no-warnings
@@ -54,7 +47,7 @@
     (setq w32-lwindow-modifier 'super     ; Left Windows key
           w32-apps-modifier 'hyper)       ; Menu/App key
     (w32-register-hot-key [s-t]))
-   ((and sys/macp (eq window-system 'mac))
+   (sys/mac-port-p
     ;; Compatible with Emacs Mac port
     (setq mac-option-modifier 'meta
           mac-command-modifier 'super)
@@ -75,6 +68,7 @@
 ;; Explicitly set the prefered coding systems to avoid annoying prompt
 ;; from emacs (especially on Microsoft Windows)
 (prefer-coding-system 'utf-8)
+(setq locale-coding-system 'utf-8)
 
 (set-language-environment 'utf-8)
 (set-default-coding-systems 'utf-8)
@@ -86,21 +80,17 @@
 (set-selection-coding-system 'utf-8)
 (modify-coding-system-alist 'process "*" 'utf-8)
 
-(setq locale-coding-system 'utf-8
-      default-process-coding-system '(utf-8 . utf-8))
-
 ;; Environment
 (when (or sys/mac-x-p sys/linux-x-p)
   (use-package exec-path-from-shell
     :init
-    (setq exec-path-from-shell-check-startup-files nil
-          exec-path-from-shell-variables '("PATH" "MANPATH")
-          exec-path-from-shell-arguments '("-l"))
+    (setq exec-path-from-shell-variables '("PATH" "MANPATH"))
     (exec-path-from-shell-initialize)))
 
 ;; Start server
 (use-package server
   :ensure nil
+  :if centaur-server
   :hook (after-init . server-mode))
 
 ;; History
@@ -110,14 +100,18 @@
 
 (use-package recentf
   :ensure nil
+  :bind (("C-x C-r" . recentf-open-files))
   :hook (after-init . recentf-mode)
-  :init (setq recentf-max-saved-items 200
+  :init (setq recentf-max-saved-items 300
               recentf-exclude
               '("\\.?cache" ".cask" "url" "COMMIT_EDITMSG\\'" "bookmarks"
-                "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$" "^/tmp/" "^/ssh:"
-                "\\.?ido\\.last$" "\\.revive$" "/TAGS$" "^/var/folders/.+$"
+                "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\|bmp\\|xpm\\)$"
+                "\\.?ido\\.last$" "\\.revive$" "/G?TAGS$" "/.elfeed/"
+                "^/tmp/" "^/var/folders/.+$" "^/ssh:" "/persp-confs/"
                 (lambda (file) (file-in-directory-p file package-user-dir))))
-  :config (push (expand-file-name recentf-save-file) recentf-exclude))
+  :config
+  (push (expand-file-name recentf-save-file) recentf-exclude)
+  (add-to-list 'recentf-filename-handlers #'abbreviate-file-name))
 
 (use-package savehist
   :ensure nil
@@ -131,16 +125,10 @@
                                               extended-command-history)
               savehist-autosave-interval 300))
 
-(use-package time
-  :ensure nil
-  :unless (display-graphic-p)
-  :hook (after-init . display-time-mode)
-  :init (setq display-time-24hr-format t
-              display-time-day-and-date t))
-
 (use-package simple
   :ensure nil
-  :hook ((window-setup . size-indication-mode)
+  :hook ((after-init . size-indication-mode)
+         (text-mode . visual-line-mode)
          ((prog-mode markdown-mode conf-mode) . enable-trailing-whitespace))
   :init
   (setq column-number-mode t
@@ -157,6 +145,19 @@
     (setq show-trailing-whitespace t)
     (add-hook 'before-save-hook #'delete-trailing-whitespace nil t)))
 
+(use-package time
+  :ensure nil
+  :unless (display-graphic-p)
+  :hook (after-init . display-time-mode)
+  :init (setq display-time-24hr-format t
+              display-time-day-and-date t))
+
+(when emacs/>=27p
+  (use-package so-long
+    :ensure nil
+    :hook (after-init . global-so-long-mode)
+    :config (setq so-long-threshold 400)))
+
 ;; Mouse & Smooth Scroll
 ;; Scroll one line at a time (less "jumpy" than defaults)
 (when (display-graphic-p)
@@ -167,22 +168,33 @@
       scroll-conservatively 100000)
 
 ;; Misc
-(setq-default fill-column 80)
 (fset 'yes-or-no-p 'y-or-n-p)
+(setq-default major-mode 'text-mode
+              fill-column 80
+              tab-width 4
+              indent-tabs-mode nil)     ; Permanently indent with spaces, never with TABs
+
 (setq visible-bell t
-      inhibit-compacting-font-caches t) ; Don’t compact font caches during GC.
+      inhibit-compacting-font-caches t  ; Don’t compact font caches during GC.
+      delete-by-moving-to-trash t       ; Deleting files go to OS's trash folder
+      make-backup-files nil             ; Forbide to make backup files
+      auto-save-default nil             ; Disable auto save
+
+      uniquify-buffer-name-style 'post-forward-angle-brackets ; Show path if names are same
+      adaptive-fill-regexp "[ t]+|[ t]*([0-9]+.|*+)[ t]*"
+      adaptive-fill-first-line-regexp "^* *$"
+      sentence-end "\\([。！？]\\|……\\|[.?!][]\"')}]*\\($\\|[ \t]\\)\\)[ \t\n]*"
+      sentence-end-double-space nil)
 
 ;; Fullscreen
-;; WORKAROUND: To address blank screen issue with child-frame in fullscreen
-(when (and sys/mac-x-p emacs/>=26p)
-  (add-hook 'window-setup-hook (lambda ()
-                                 (setq ns-use-native-fullscreen nil))))
-(bind-keys ("C-<f11>" . toggle-frame-fullscreen)
-           ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS
-           ("S-s-<return>" . toggle-frame-fullscreen)
-           ("M-S-<return>" . toggle-frame-fullscreen))
+(when (display-graphic-p)
+  (add-hook 'window-setup-hook #'fix-fullscreen-cocoa)
+  (bind-keys ("C-<f11>" . toggle-frame-fullscreen)
+             ("C-s-f" . toggle-frame-fullscreen) ; Compatible with macOS
+             ("S-s-<return>" . toggle-frame-fullscreen)
+             ("M-S-<return>" . toggle-frame-fullscreen)))
 
-(provide 'init-base)
+(provide 'init-basic)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init-base.el ends here
+;;; init-basic.el ends here

@@ -1,10 +1,10 @@
-;;; init.el --- A Fancy and Fast Emacs Configuration.	-*- lexical-binding: t no-byte-compile: t; -*-
+;;; init.el --- A Fancy and Fast Emacs Configuration.	-*- lexical-binding: t no-byte-compile: t -*-
 
-;; Copyright (C) 2006-2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
-;; Version: 5.7.0
+;; Version: 5.9.0
 ;; Keywords: .emacs.d centaur
 
 ;;
@@ -54,7 +54,7 @@
   (error "This requires Emacs 25.1 and above!"))
 
 ;; Speed up startup
-(defvar centuar-gc-cons-threshold (if (display-graphic-p) 8000000 800000)
+(defvar centaur-gc-cons-threshold (if (display-graphic-p) 16000000 1600000)
   "The default value to use for `gc-cons-threshold'. If you experience freezing,
 decrease this. If you experience stuttering, increase this.")
 
@@ -67,12 +67,14 @@ decrease this. If you experience stuttering, increase this.")
 (defvar default-file-name-handler-alist file-name-handler-alist)
 
 (setq file-name-handler-alist nil)
-(setq gc-cons-threshold centaur-gc-cons-upper-limit)
+(setq gc-cons-threshold centaur-gc-cons-upper-limit
+      gc-cons-percentage 0.5)
 (add-hook 'emacs-startup-hook
           (lambda ()
             "Restore defalut values after startup."
             (setq file-name-handler-alist default-file-name-handler-alist)
-            (setq gc-cons-threshold centuar-gc-cons-threshold)
+            (setq gc-cons-threshold centaur-gc-cons-threshold
+                  gc-cons-percentage 0.1)
 
             ;; GC automatically while unfocusing the frame
             ;; `focus-out-hook' is obsolete since 27.1
@@ -89,7 +91,7 @@ decrease this. If you experience stuttering, increase this.")
               (setq gc-cons-threshold centaur-gc-cons-upper-limit))
 
             (defun my-minibuffer-exit-hook ()
-              (setq gc-cons-threshold centuar-gc-cons-threshold))
+              (setq gc-cons-threshold centaur-gc-cons-threshold))
 
             (add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
             (add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)))
@@ -98,20 +100,18 @@ decrease this. If you experience stuttering, increase this.")
 ;; Optimize: Force "lisp"" and "site-lisp" at the head to reduce the startup time.
 (defun update-load-path (&rest _)
   "Update `load-path'."
-  (push (expand-file-name "site-lisp" user-emacs-directory) load-path)
-  (push (expand-file-name "lisp" user-emacs-directory) load-path))
+  (dolist (dir '("site-lisp" "lisp"))
+    (push (expand-file-name dir user-emacs-directory) load-path)))
 
 (defun add-subdirs-to-load-path (&rest _)
   "Add subdirectories to `load-path'."
-  (let ((default-directory
-          (expand-file-name "site-lisp" user-emacs-directory)))
+  (let ((default-directory (expand-file-name "site-lisp" user-emacs-directory)))
     (normal-top-level-add-subdirs-to-load-path)))
 
 (advice-add #'package-initialize :after #'update-load-path)
 (advice-add #'package-initialize :after #'add-subdirs-to-load-path)
 
 (update-load-path)
-
 
 ;; Constants
 (require 'init-const)
@@ -124,8 +124,7 @@ decrease this. If you experience stuttering, increase this.")
 (require 'init-package)
 
 ;; Preferences
-(require 'init-base)
-(require 'init-funcs)
+(require 'init-basic)
 (require 'init-hydra)
 
 (require 'init-ui)
@@ -149,8 +148,9 @@ decrease this. If you experience stuttering, increase this.")
 
 (require 'init-markdown)
 (require 'init-org)
+(require 'init-reader)
 
-(require 'init-rss)
+(require 'init-docker)
 (require 'init-utils)
 
 

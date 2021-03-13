@@ -1,6 +1,6 @@
 ;; init-const.el --- Define constants.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -34,6 +34,23 @@
   "https://github.com/seagle0128/.emacs.d"
   "The Github page of Centaur Emacs.")
 
+(defconst centaur-custom-example-file
+  (expand-file-name "custom-example.el" user-emacs-directory)
+  "Custom example file of Centaur Emacs.")
+
+(defconst centaur-custom-post-file
+  (expand-file-name "custom-post.el" user-emacs-directory)
+  "Custom file after startup.
+
+Put private configurations to override defaults here.")
+
+(defconst centaur-custom-post-org-file
+  (expand-file-name "custom-post.org" user-emacs-directory)
+  "Custom org file after startup.
+
+Put private configurations to override defaults here.
+Loaded by `org-babel-load-file'.")
+
 (defconst sys/win32p
   (eq system-type 'windows-nt)
   "Are we running on a WinTel system?")
@@ -49,6 +66,18 @@
 (defconst sys/mac-x-p
   (and (display-graphic-p) sys/macp)
   "Are we running under X on a Mac system?")
+
+(defconst sys/mac-ns-p
+  (eq window-system 'ns)
+  "Are we running on a GNUstep or Macintosh Cocoa display?")
+
+(defconst sys/mac-cocoa-p
+  (featurep 'cocoa)
+  "Are we running with Cocoa on a Mac system?")
+
+(defconst sys/mac-port-p
+  (eq window-system 'mac)
+  "Are we running a macport build on a Mac system?")
 
 (defconst sys/linux-x-p
   (and (display-graphic-p) sys/linuxp)

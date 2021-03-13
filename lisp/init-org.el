@@ -1,6 +1,6 @@
 ;; init-org.el --- Initialize org configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2006-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -30,35 +30,16 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'init-const))
+(require 'init-const)
+(require 'init-custom)
+(require 'init-funcs)
 
 (use-package org
   :ensure nil
+  :commands (org-dynamic-block-define)
   :custom-face (org-ellipsis ((t (:foreground nil))))
-  :preface
-  (defun hot-expand (str &optional mod)
-    "Expand org template.
-
-STR is a structure template string recognised by org like <s. MOD is a
-string with additional parameters to add the begin line of the
-structure element. HEADER string includes more parameters that are
-prepended to the element after the #+HEADER: tag."
-    (let (text)
-      (when (region-active-p)
-        (setq text (buffer-substring (region-beginning) (region-end)))
-        (delete-region (region-beginning) (region-end)))
-      (insert str)
-      (if (fboundp 'org-try-structure-completion)
-          (org-try-structure-completion) ; < org 9
-        (progn
-          ;; New template expansion since org 9
-          (require 'org-tempo nil t)
-          (org-tempo-complete-tag)))
-      (when mod (insert mod) (forward-line))
-      (when text (insert text))))
   :pretty-hydra
-  ((:title (pretty-hydra-title "Org Template" 'fileicon "org")
+  ((:title (pretty-hydra-title "Org Template" 'fileicon "org" :face 'all-the-icons-green :height 1.1 :v-adjust 0.0)
     :color blue :quit-key "q")
    ("Basic"
     (("a" (hot-expand "<a") "ascii")
@@ -94,6 +75,7 @@ prepended to the element after the #+HEADER: tag."
      ("<" self-insert-command "ins"))))
   :bind (("C-c a" . org-agenda)
          ("C-c b" . org-switchb)
+         ("C-c x" . org-capture)
          :map org-mode-map
          ("<" . (lambda ()
                   "Insert org template."
@@ -101,29 +83,10 @@ prepended to the element after the #+HEADER: tag."
                   (if (or (region-active-p) (looking-back "^\s*" 1))
                       (org-hydra/body)
                     (self-insert-command 1)))))
-  :hook ((org-mode . (lambda ()
+  :hook (((org-babel-after-execute org-mode) . org-redisplay-inline-images) ; display image
+         (org-mode . (lambda ()
                        "Beautify org symbols."
-                       (push '("[ ]" . ?☐) prettify-symbols-alist)
-                       (push '("[X]" . ?☑) prettify-symbols-alist)
-                       (push '("[-]" . ?⛝) prettify-symbols-alist)
-
-                       (push '("#+ARCHIVE:" . ?📦) prettify-symbols-alist)
-                       (push '("#+AUTHOR:" . ?👤) prettify-symbols-alist)
-                       (push '("#+CREATOR:" . ?💁) prettify-symbols-alist)
-                       (push '("#+DATE:" . ?📆) prettify-symbols-alist)
-                       (push '("#+DESCRIPTION:" . ?🗎) prettify-symbols-alist)
-                       (push '("#+EMAIL:" . ?🖂) prettify-symbols-alist)
-                       (push '("#+OPTIONS:" . ?⚙) prettify-symbols-alist)
-                       (push '("#+TAGS:" . ?🏷) prettify-symbols-alist)
-                       (push '("#+TITLE:" . ?🕮) prettify-symbols-alist)
-
-                       (push '("#+BEGIN_SRC" . ?✎) prettify-symbols-alist)
-                       (push '("#+END_SRC" . ?□) prettify-symbols-alist)
-                       (push '("#+BEGIN_QUOTE" . ?») prettify-symbols-alist)
-                       (push '("#+END_QUOTE" . ?«) prettify-symbols-alist)
-                       (push '("#+HEADERS" . ?☰) prettify-symbols-alist)
-                       (push '("#+RESULTS:" . ?💻) prettify-symbols-alist)
-
+                       (setq prettify-symbols-alist centaur-prettify-org-symbols-alist)
                        (prettify-symbols-mode 1)))
          (org-indent-mode . (lambda()
                               (diminish 'org-indent-mode)
@@ -131,45 +94,99 @@ prepended to the element after the #+HEADER: tag."
                               ;; @see https://github.com/seagle0128/.emacs.d/issues/88
                               (make-variable-buffer-local 'show-paren-mode)
                               (setq show-paren-mode nil))))
-  :init (setq org-agenda-files '("~/org")
-              org-todo-keywords
-              '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")
-                (sequence "⚑(T)" "🏴(I)" "❓(H)" "|" "✔(D)" "✘(C)"))
-              org-todo-keyword-faces '(("HANGUP" . warning)
-                                       ("❓" . warning))
-              org-priority-faces '((?A . error)
-                                   (?B . warning)
-                                   (?C . success))
-              org-tags-column -80
-              org-log-done 'time
-              org-catch-invisible-edits 'smart
-              org-startup-indented t
-              org-ellipsis (if (char-displayable-p ?) "  " nil)
-              org-pretty-entities nil
-              org-hide-emphasis-markers t)
   :config
+  ;; For hydra
+  (defun hot-expand (str &optional mod)
+    "Expand org template.
+
+STR is a structure template string recognised by org like <s. MOD is a
+string with additional parameters to add the begin line of the
+structure element. HEADER string includes more parameters that are
+prepended to the element after the #+HEADER: tag."
+    (let (text)
+      (when (region-active-p)
+        (setq text (buffer-substring (region-beginning) (region-end)))
+        (delete-region (region-beginning) (region-end)))
+      (insert str)
+      (if (fboundp 'org-try-structure-completion)
+          (org-try-structure-completion) ; < org 9
+        (progn
+          ;; New template expansion since org 9
+          (require 'org-tempo nil t)
+          (org-tempo-complete-tag)))
+      (when mod (insert mod) (forward-line))
+      (when text (insert text))))
+
+  ;; To speed up startup, don't put to init section
+  (setq org-directory centaur-org-directory
+        org-capture-templates
+        `(("i" "Idea" entry (file ,(concat org-directory "/idea.org"))
+           "*  %^{Title} %?\n%U\n%a\n")
+          ("t" "Todo" entry (file ,(concat org-directory "/gtd.org"))
+           "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("n" "Note" entry (file ,(concat org-directory "/note.org"))
+           "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("j" "Journal" entry (,(if emacs/>=26p 'file+olp+datetree 'file+datetree)
+                                ,(concat org-directory "/journal.org"))
+           "*  %^{Title} %?\n%U\n%a\n" :clock-in t :clock-resume t)
+	      ("b" "Book" entry (,(if emacs/>=26p 'file+olp+datetree 'file+datetree)
+                             ,(concat org-directory "/book.org"))
+	       "* Topic: %^{Description}  %^g %? Added: %U"))
+
+        org-agenda-files `(,centaur-org-directory)
+        org-todo-keywords
+        '((sequence "TODO(t)" "DOING(i)" "HANGUP(h)" "|" "DONE(d)" "CANCEL(c)")
+          (sequence "⚑(T)" "🏴(I)" "❓(H)" "|" "✔(D)" "✘(C)"))
+        org-todo-keyword-faces '(("HANGUP" . warning)
+                                 ("❓" . warning))
+        org-priority-faces '((?A . error)
+                             (?B . warning)
+                             (?C . success))
+
+        org-tags-column -80
+        org-log-done 'time
+        org-catch-invisible-edits 'smart
+        org-startup-indented t
+        org-ellipsis (if (and (display-graphic-p) (char-displayable-p ?⏷)) "\t⏷" nil)
+        org-pretty-entities nil
+        org-hide-emphasis-markers t)
+
   ;; Add new template
   (add-to-list 'org-structure-template-alist '("n" . "note"))
 
-  ;; Enable markdown backend
+  ;; Use embedded webkit browser if possible
+  (when (featurep 'xwidget-internal)
+    (push '("\\.\\(x?html?\\|pdf\\)\\'"
+            .
+            (lambda (file _link)
+              (xwidget-webkit-browse-url (concat "file://" file))
+              (let ((buf (xwidget-buffer (xwidget-webkit-current-session))))
+                (when (buffer-live-p buf)
+                  (and (eq buf (current-buffer)) (quit-window))
+                  (pop-to-buffer buf)))))
+          org-file-apps))
+
+  ;; Add gfm/md backends
+  (use-package ox-gfm)
   (add-to-list 'org-export-backends 'md)
 
   (with-eval-after-load 'counsel
     (bind-key [remap org-set-tags-command] #'counsel-org-tag org-mode-map))
 
   ;; Prettify UI
-  (use-package org-bullets
-    :if (char-displayable-p ?⚫)
-    :hook (org-mode . org-bullets-mode)
-    :init (setq org-bullets-bullet-list '("⚫" "⚫" "⚫" "⚫")))
+  (when emacs/>=26p
+    (use-package org-superstar
+      :if (and (display-graphic-p) (char-displayable-p ?⚫))
+      :hook (org-mode . org-superstar-mode)
+      :init (setq org-superstar-headline-bullets-list '("⚫" "⚫" "⚫" "⚫"))))
 
   (use-package org-fancy-priorities
     :diminish
     :hook (org-mode . org-fancy-priorities-mode)
     :init (setq org-fancy-priorities-list
-                (if (char-displayable-p ?⯀)
+                (if (and (display-graphic-p) (char-displayable-p ?⯀))
                     '("⯀" "⯀" "⯀" "⯀")
-                  '("HIGH" "MIDIUM" "LOW" "OPTIONAL"))))
+                  '("HIGH" "MEDIUM" "LOW" "OPTIONAL"))))
 
   ;; Babel
   (setq org-confirm-babel-evaluate nil
@@ -195,12 +212,9 @@ prepended to the element after the #+HEADER: tag."
   (use-package ob-go
     :init (cl-pushnew '(go . t) load-language-list))
 
-  (use-package ob-rust
-    :init (cl-pushnew '(rust . t) load-language-list))
-
-  (use-package ob-ipython
-    :if (executable-find "jupyter")     ; DO NOT remove
-    :init (cl-pushnew '(ipython . t) load-language-list))
+  ;; Use mermadi-cli: npm install -g @mermaid-js/mermaid-cli
+  (use-package ob-mermaid
+    :init (cl-pushnew '(mermaid . t) load-language-list))
 
   (org-babel-do-load-languages 'org-babel-load-languages
                                load-language-list)
@@ -214,9 +228,16 @@ prepended to the element after the #+HEADER: tag."
   (use-package toc-org
     :hook (org-mode . toc-org-mode))
 
+  ;; Export text/html MIME emails
+  (use-package org-mime
+    :bind (:map message-mode-map
+           ("C-c M-o" . org-mime-htmlize)
+           :map org-mode-map
+           ("C-c M-o" . org-mime-org-buffer-htmlize)))
+
   ;; Preview
   (use-package org-preview-html
-    :diminish org-preview-html-mode)
+    :diminish)
 
   ;; Presentation
   (use-package org-tree-slide
@@ -224,7 +245,7 @@ prepended to the element after the #+HEADER: tag."
     :functions (org-display-inline-images
                 org-remove-inline-images)
     :bind (:map org-mode-map
-           ("C-<f7>" . org-tree-slide-mode)
+           ("s-<f7>" . org-tree-slide-mode)
            :map org-tree-slide-mode-map
            ("<left>" . org-tree-slide-move-previous-tree)
            ("<right>" . org-tree-slide-move-next-tree)
@@ -250,6 +271,34 @@ prepended to the element after the #+HEADER: tag."
     (org-pomodoro-mode-line-break ((t (:inherit success))))
     :bind (:map org-agenda-mode-map
            ("P" . org-pomodoro))))
+
+;; Roam
+(when (and emacs/>=26p (executable-find "cc"))
+  (use-package org-roam
+    :diminish
+    :custom (org-roam-directory (file-truename centaur-org-directory))
+    :hook (after-init . org-roam-mode)
+    :bind (:map org-roam-mode-map
+           (("C-c n l" . org-roam)
+            ("C-c n f" . org-roam-find-file)
+            ("C-c n g" . org-roam-graph))
+           :map org-mode-map
+           (("C-c n i" . org-roam-insert))
+           (("C-c n I" . org-roam-insert-immediate)))
+    :config
+    (unless (file-exists-p org-roam-directory)
+      (make-directory org-roam-directory)))
+
+  (use-package org-roam-server
+    :functions xwidget-buffer xwidget-webkit-current-session
+    :hook (org-roam-server-mode . org-roam-server-browse)
+    :init
+    (defun org-roam-server-browse ()
+      (when org-roam-server-mode
+        (let ((url (format "http://%s:%d" org-roam-server-host org-roam-server-port)))
+          (if (featurep 'xwidget-internal)
+              (centaur-webkit-browse-url url t)
+            (browse-url url)))))))
 
 (provide 'init-org)
 

@@ -1,6 +1,6 @@
 ;; init-rust.el --- Initialize Rust configurations.	-*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Vincent Zhang
+;; Copyright (C) 2019-2020 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; URL: https://github.com/seagle0128/.emacs.d
@@ -31,17 +31,7 @@
 ;;; Code:
 
 ;; Rust
-(use-package rust-mode
-  :init (setq rust-format-on-save t)
-  :config
-  (use-package cargo
-    :diminish cargo-minor-mode
-    :hook (rust-mode . cargo-minor-mode)
-    :config
-    ;; To render buttons correctly, keep it at the last
-    (setq compilation-filter-hook
-          (append compilation-filter-hook '(cargo-process--add-errno-buttons)))))
-
+(use-package rustic)
 (use-package rust-playground)
 
 (provide 'init-rust)
