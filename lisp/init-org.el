@@ -298,7 +298,7 @@ prepended to the element after the #+HEADER: tag."
 
 (add-to-list 'org-latex-classes
              '("ethz1page"
-               "\\documentclass[a4paper,11pt,titlepage,oneside]{memoir}
+               "\\documentclass[a4paper,10pt,titlepage,oneside]{memoir}
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
 \\usepackage{fixltx2e}
