@@ -199,7 +199,8 @@ If Non-nil, use dashboard, otherwise will restore previous session."
     (">=>" . ?↣)
     ("&&" . ?∧)
     ("||" . ?∨)
-    ("not" . ?¬))
+    ;; ("not" . ?¬)
+    )
   "Alist of symbol prettifications."
   :group 'centaur
   :type '(alist :key-type string :value-type (choice character sexp)))

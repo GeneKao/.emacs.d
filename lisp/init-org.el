@@ -425,6 +425,15 @@ prepended to the element after the #+HEADER: tag."
                                   ("\\section{%s}" . "\\section*{%s}")
                                   ("\\subsection{%s}" . "\\subsection*{%s}")))
 
+(add-to-list 'org-latex-classes
+	       '("acmart" "\\documentclass{acmart}
+		 [NO-DEFAULT-PACKAGES]"
+		 ("\\section{%s}" . "\\section*{%s}")
+		 ("\\subsection{%s}" . "\\subsection*{%s}")
+		 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+		 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+		 ))
+
 
 ;; org-roam
 (when (and emacs/>=26p (executable-find "cc"))
